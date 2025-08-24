@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D'Site - Portal</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #434343, #000000);
+            --text-primary: #f9fafb; /* gray-50 */
+            --accent-blue: #6a82fb;
+            --accent-red: #ff416c;
+            --accent-yellow: #ffc837;
+            --accent-pink: #fd1d1d;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        .animated-gradient-bg {
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            transition: filter 0.5s ease;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .shape {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; will-change: transform; z-index: 0;
+        }
+        .shape1 {
+            width: 400px; height: 400px; background: var(--accent-blue); top: -150px; left: -150px; animation: float 20s infinite alternate;
+        }
+        .shape2 {
+            width: 500px; height: 500px; background: var(--accent-red); bottom: -200px; right: -200px; animation: float 25s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            from { transform: translateY(0) translateX(0) rotate(0deg); }
+            to { transform: translateY(50px) translateX(70px) rotate(180deg); }
+        }
+
+        .portal-wrapper {
+            position: relative;
+            width: 380px;
+            height: 380px;
+            cursor: pointer;
+            border-radius: 50%; /* Make the boundary a circle */
+        }
+
+        .portal-bubble {
+            position: absolute;
+            inset: 0;
+            background: rgba(26, 26, 26, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, border-radius 3s ease-in-out;
+            animation: rotate 25s linear infinite;
+        }
+        
+        .portal-wrapper:hover .portal-bubble {
+            transform: scale(1.05);
+        }
+
+        .portal-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            animation: counter-rotate 25s linear infinite;
+        }
+
+        .portal-glow {
+            position: absolute;
+            inset: -20px;
+            z-index: -1;
+            background: conic-gradient(from var(--angle), var(--accent-blue), var(--accent-red), var(--accent-yellow), var(--accent-pink), var(--accent-blue));
+            background-size: 200% 200%;
+            animation: 
+                spin 8s linear infinite, 
+                color-flow 12s ease-in-out infinite alternate,
+                rotate 25s linear infinite;
+            filter: blur(50px);
+            opacity: 0.8;
+            transition: transform 0.3s ease, border-radius 3s ease-in-out;
+        }
+        
+        /* Desynchronize the second portal's animations */
+        #d-games-portal .portal-glow {
+            animation-delay: -4s, -6s, -12s;
+        }
+        #d-games-portal .portal-bubble {
+            animation-delay: -12s;
+        }
+         #d-games-portal .portal-content {
+            animation-delay: -12s;
+        }
+
+        .portal-wrapper:hover .portal-glow {
+            transform: scale(1.1);
+        }
+
+        @keyframes spin {
+            from { --angle: 0deg; }
+            to { --angle: 360deg; }
+        }
+
+        @keyframes color-flow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes counter-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
+        }
+
+        /* Portal Open Animation */
+        .portal-opening {
+            animation: openPortal 1s forwards cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes openPortal {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        body.portal-active .animated-gradient-bg {
+            filter: brightness(1.5);
+        }
+        body.portal-active main {
+            animation: fadeOutMain 0.5s forwards;
+        }
+        @keyframes fadeOutMain {
+            to { opacity: 0; }
+        }
+
+        /* Starfield Background */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+        @keyframes twinkle {
+            from { opacity: 0.2; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="animated-gradient-bg flex items-center justify-center min-h-screen">
+    <!-- Background Effects -->
+    <div id="space-background" class="absolute inset-0 z-0"></div>
+    <div class="absolute inset-0">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+    </div>
+
+    <main class="relative z-10 text-center">
+        <h1 class="text-6xl md:text-8xl font-extrabold mb-4">D'Site</h1>
+        <p class="text-xl text-gray-300 mb-16">Your portal to the D'Universe.</p>
+
+        <div class="flex flex-col md:flex-row gap-16">
+            <!-- D'Ai Portal -->
+            <div data-url="#" id="d-ai-portal" class="portal-wrapper">
+                <div class="portal-glow"></div>
+                <div class="portal-bubble">
+                    <div class="portal-content">
+                        <svg class="w-24 h-24 mb-6 text-[color:var(--accent-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <h2 class="text-4xl font-bold mb-2">D'Ai</h2>
+                        <p class="text-gray-400">Your intelligent chat companion.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- D'Games Portal -->
+            <div data-url="#" id="d-games-portal" class="portal-wrapper">
+                <div class="portal-glow"></div>
+                <div class="portal-bubble">
+                     <div class="portal-content">
+                        <svg class="w-24 h-24 mb-6 text-[color:var(--accent-red)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 10.5v3m-1.5-1.5h3" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.5 10a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                        </svg>
+                        <h2 class="text-4xl font-bold mb-2">D'Games</h2>
+                        <p class="text-gray-400">Your destination for free AAA games.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const portals = document.querySelectorAll('.portal-wrapper');
+            const spaceBackground = document.getElementById('space-background');
+
+            // --- Starfield Generation ---
+            function createStars() {
+                for (let i = 0; i < 100; i++) {
+                    const star = document.createElement('div');
+                    star.classList.add('star');
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.animationDelay = `${Math.random() * 2}s`;
+                    spaceBackground.appendChild(star);
+                }
+            }
+            createStars();
+
+            // --- Random Blob Animation Logic ---
+            function getRandomVal(min, max) {
+                return Math.floor(Math.random() * (max - min + 1) + min);
+            }
+
+            function generateBorderRadius() {
+                const vals = Array(8).fill(0).map(() => getRandomVal(40, 60)); // More controlled range
+                return `${vals[0]}% ${vals[1]}% ${vals[2]}% ${vals[3]}% / ${vals[4]}% ${vals[5]}% ${vals[6]}% ${vals[7]}%`;
+            }
+
+            function animatePortal(portal) {
+                const bubble = portal.querySelector('.portal-bubble');
+                const glow = portal.querySelector('.portal-glow');
+
+                const newBorderRadius = generateBorderRadius();
+                bubble.style.borderRadius = newBorderRadius;
+                glow.style.borderRadius = newBorderRadius;
+
+                // Set a new random interval for the next change
+                const randomInterval = getRandomVal(3000, 5000);
+                setTimeout(() => animatePortal(portal), randomInterval);
+            }
+
+            portals.forEach(portal => {
+                // Set initial random shape on load
+                const initialBorderRadius = generateBorderRadius();
+                portal.querySelector('.portal-bubble').style.borderRadius = initialBorderRadius;
+                portal.querySelector('.portal-glow').style.borderRadius = initialBorderRadius;
+                
+                // Start the independent animation for each portal
+                animatePortal(portal); 
+            });
+
+
+            // --- Portal Click Animation ---
+            portals.forEach(portal => {
+                portal.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    if (document.body.classList.contains('portal-active')) return;
+
+                    document.body.classList.add('portal-active');
+                    portal.classList.add('portal-opening');
+
+                    setTimeout(() => {
+                        alert(`Navigating to ${portal.querySelector('h2').textContent}...`);
+                        document.body.classList.remove('portal-active');
+                        portal.classList.remove('portal-opening');
+                    }, 1000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
