@@ -1,8 +1,552 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Updated Index</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D'Ai</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- highlight.js for syntax highlighting -->
+    <link id="hljs-dark-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link id="hljs-light-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" disabled>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #6a82fb, #fc5c7d, #5de5f1);
+            --text-primary: #1f2937; /* gray-800 */
+            --text-secondary: #4b5563; /* gray-600 */
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-panel-bg: rgba(255, 255, 255, 0.2);
+            --solid-panel-bg: #ffffff;
+            --bot-bubble-bg: #e5e5ea;
+            --bot-bubble-text: #000000;
+            --code-block-bg: #f9fafb; /* gray-50 */
+            --code-header-bg: #e5e7eb; /* gray-200 */
+            --code-header-text: #374151; /* gray-700 */
+        }
+
+        .dark {
+            --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            --text-primary: #f9fafb; /* gray-50 */
+            --text-secondary: #d1d5db; /* gray-300 */
+            --glass-bg: rgba(0, 0, 0, 0.15);
+            --glass-panel-bg: rgba(0, 0, 0, 0.2);
+            --solid-panel-bg: #1f2937; /* gray-800 */
+            --bot-bubble-bg: #374151; /* gray-700 */
+            --bot-bubble-text: #f9fafb; /* gray-50 */
+            --code-block-bg: #282c34;
+            --code-header-bg: rgba(0,0,0,0.2);
+            --code-header-text: #abb2bf;
+        }
+
+        /* Custom styles for the liquid glass UI */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .animated-gradient-bg {
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .shape {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; will-change: transform; z-index: 0;
+        }
+        .shape1 {
+            width: 350px; height: 350px; background: #fc5c7d; top: -120px; left: -120px; animation: float 20s infinite alternate;
+        }
+        .shape2 {
+            width: 450px; height: 450px; background: #5de5f1; bottom: -180px; right: -180px; animation: float 25s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            from { transform: translateY(0) translateX(0) rotate(0deg); }
+            to { transform: translateY(40px) translateX(60px) rotate(180deg); }
+        }
+
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .message-bubble-user {
+            background: linear-gradient(to right, #007aff, #00c6ff);
+        }
+        .message-bubble-bot {
+            background-color: var(--bot-bubble-bg);
+            color: var(--bot-bubble-text);
+        }
+        .glass-panel {
+            background: var(--glass-panel-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+        .solid-panel {
+            background-color: var(--solid-panel-bg);
+        }
+        .chat-container {
+            overscroll-behavior: contain;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+        
+        .message-bubble { 
+            max-width: 80%; 
+            word-wrap: break-word; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Thinking UI */
+        .thinking-summary {
+            cursor: pointer;
+            list-style: none;
+        }
+        .thinking-summary::-webkit-details-marker {
+            display: none;
+        }
+        .thinking-content {
+            background: rgba(0,0,0,0.2);
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+        .thinking-canvas {
+            width: 100%;
+            height: 150px;
+        }
+        .thinking-bar {
+            width: 100%; height: 4px; border-radius: 2px;
+            background: linear-gradient(90deg, #89f7fe, #66a6ff, #fc5c7d, #5de5f1);
+            background-size: 400% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer { 0% { background-position: 400% 0; } 100% { background-position: 0 0; } }
+        
+        .paint-splat {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: splat 1s ease-out forwards;
+        }
+        @keyframes splat {
+            0% { transform: scale(0); opacity: 1; }
+            80% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+
+        /* Styles for rendered Markdown content */
+        .message-content { word-break: break-word; }
+        .message-content strong { font-weight: 600; }
+        .message-content ul, .message-content ol { margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .message-content ul { list-style-type: disc; }
+        .message-content ol { list-style-type: decimal; }
+        .message-content p code { background-color: rgba(0,0,0,0.1); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; }
+        .message-content table { width: 100%; border-collapse: collapse; margin-top: 1rem; margin-bottom: 1rem; border-radius: 0.75rem; overflow: hidden; }
+        .message-content th, .message-content td { border: 1px solid rgba(0,0,0,0.2); padding: 0.5rem; text-align: left; }
+        .message-content th { background-color: rgba(0,0,0,0.05); }
+
+        /* Custom Code Block Styles */
+        .code-block-wrapper {
+            background-color: var(--code-block-bg);
+            border-radius: 0.75rem; margin-top: 1rem; margin-bottom: 1rem; overflow: hidden;
+        }
+        .code-block-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--code-header-bg);
+            padding: 0.5rem 1rem; color: var(--code-header-text); font-size: 0.875rem;
+        }
+        .copy-btn {
+            background-color: var(--copy-btn-bg); color: var(--code-header-text);
+            border: none; padding: 0.25rem 0.5rem; border-radius: 0.375rem;
+            cursor: pointer; font-size: 0.75rem; transition: background-color 0.2s;
+        }
+        .copy-btn:hover { background-color: var(--copy-btn-hover-bg); }
+        .code-block-wrapper pre { margin: 0; padding: 1rem; overflow-x: auto; }
+        .code-block-wrapper code { font-family: 'Courier New', Courier, monospace; font-size: 1rem; }
+
+        /* Theme Toggle Animation */
+        #theme-toggle:checked ~ .dot {
+            transform: translateX(1.5rem);
+        }
+        textarea { 
+            resize: none; 
+            max-height: 160px; /* Set max height for textarea */
+            scrollbar-width: none; /* Firefox */
+        }
+        textarea::-webkit-scrollbar {
+            display: none; /* Safari and Chrome */
+        }
+
+        /* Microinteraction animations */
+        .icon-hover {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .icon-hover:hover {
+            transform: scale(1.15);
+        }
+        
+        /* Dropdown Animation */
+        .dropdown-enter {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
+        .dropdown-enter-from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+        }
+        .dropdown-enter-to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    </style>
 </head>
-<body>
-    <h1>Hello, World!</h1>
+<body class="animated-gradient-bg flex h-screen w-screen p-4">
+    <!-- Floating Shapes -->
+    <div class="absolute inset-0 z-0">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+    </div>
+
+    <div id="glass-container" class="relative w-full h-full glass-container rounded-[1.5rem] overflow-hidden flex flex-col">
+        <!-- Floating Header with unified blur panel -->
+        <header class="absolute top-0 left-0 right-0 p-3 z-20">
+            <div class="glass-panel p-2 rounded-3xl flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="https://dverse.fun" class="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/20">
+                         <svg class="w-6 h-6 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    </a>
+                </div>
+                <div class="relative">
+                    <button id="model-toggle-button" class="flex items-center text-xl md:text-2xl font-bold text-[color:var(--text-primary)]">
+                        <span id="current-model-name">D'Ai 2.5 Flash</span>
+                        <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash" data-api-key="AQ.Ab8RN6JSzwLDKRsFjua6pnj-sjCLypj763K1sSSD2H70_7yQJQ">D'Ai 2.5 Flash</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Ai Paint (Nano Banana 🍌)" data-api-key="AQ.Ab8RN6KM0NuS1ql5KlYzuHMIu9cuaVVlNcumqobBh-hiM5iA8A">D'Ai Paint (Nano Banana 🍌)</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 md:space-x-4">
+                    <!-- Dark Mode Toggle -->
+                    <label for="theme-toggle" class="flex items-center cursor-pointer">
+                        <div class="relative">
+                            <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                            <div class="flex items-center justify-between bg-gray-600/50 w-14 h-8 rounded-full p-1">
+                                <svg id="moon-icon" class="w-6 h-6 text-gray-200 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                                <svg id="sun-icon" class="w-6 h-6 text-white icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            </div>
+                            <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform peer-checked:translate-x-6"></div>
+                        </div>
+                    </label>
+                    <button id="clear-chat-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
+                        <svg class="w-5 h-5 mr-2 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Clear Chat
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat History -->
+        <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-24 scroll-smooth">
+            <div class="flex justify-start">
+                <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
+                    <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Message Input -->
+        <footer class="absolute bottom-0 left-0 right-0 p-4 z-10">
+            <div class="flex items-center space-x-3">
+                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Type your message..."></textarea>
+                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg">
+                    <svg class="w-6 h-6 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // DOM Element References
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const themeToggle = document.getElementById('theme-toggle');
+        const darkThemeCss = document.getElementById('hljs-dark-theme');
+        const lightThemeCss = document.getElementById('hljs-light-theme');
+        const modelToggleButton = document.getElementById('model-toggle-button');
+        const modelDropdown = document.getElementById('model-dropdown');
+        const currentModelName = document.getElementById('current-model-name');
+        const clearChatBtn = document.getElementById('clear-chat-btn');
+
+        let currentChat = [];
+        let currentModelId = 'gemini-2.0-flash-lite-001';
+        let currentModelType = 'text';
+        
+        // --- Marked.js Custom Renderer for Code Blocks ---
+        const renderer = new marked.Renderer();
+        renderer.code = function(code, language) {
+            const codeString = String(code || '');
+            let highlightedCode;
+            try {
+                highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
+            } catch (e) {
+                console.error("Highlight.js error:", e);
+                highlightedCode = codeString; // Fallback to unhighlighted code
+            }
+            const langDisplay = language || 'code';
+            return `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span>${langDisplay}</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code class="hljs ${language}">${highlightedCode}</code></pre>
+                </div>
+            `;
+        };
+        marked.setOptions({ renderer });
+
+        // --- Copy to Clipboard Function ---
+        function copyCode(button) {
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code');
+            
+            const el = document.createElement('textarea');
+            el.value = code.innerText;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            button.innerText = 'Copied!';
+            setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+        }
+
+        // --- Theme Management ---
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                themeToggle.checked = true;
+                darkThemeCss.disabled = false;
+                lightThemeCss.disabled = true;
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggle.checked = false;
+                darkThemeCss.disabled = true;
+                lightThemeCss.disabled = false;
+            }
+        }
+
+        themeToggle.addEventListener('change', () => {
+            setTheme(themeToggle.checked);
+        });
+        
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark);
+
+
+        // --- UI Interaction Logic ---
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = `${userInput.scrollHeight}px`;
+        });
+
+        modelToggleButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = modelDropdown.classList.contains('hidden');
+            if (isHidden) {
+                modelDropdown.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modelDropdown.classList.remove('dropdown-enter-from');
+                    modelDropdown.classList.add('dropdown-enter-to');
+                });
+            } else {
+                modelDropdown.classList.add('dropdown-enter-from');
+                modelDropdown.classList.remove('dropdown-enter-to');
+                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
+            }
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (!modelDropdown.classList.contains('hidden') && !modelToggleButton.contains(e.target)) {
+                modelDropdown.classList.add('dropdown-enter-from');
+                modelDropdown.classList.remove('dropdown-enter-to');
+                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
+            }
+        });
+
+        modelDropdown.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                currentModelId = e.target.dataset.modelId;
+                currentModelType = e.target.dataset.modelType;
+                currentModelName.textContent = e.target.dataset.name;
+                userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image to generate...';
+                modelDropdown.classList.add('hidden');
+                clearChat();
+            }
+        });
+
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+        clearChatBtn.addEventListener('click', clearChat);
+
+        function clearChat() {
+            currentChat = [];
+            chatHistory.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
+                        <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
+                    </div>
+                </div>`;
+        }
+        
+        function appendMessage(sender, content, isThinking = false) {
+            const messageWrapper = document.createElement('div');
+            
+            if (sender === 'You') {
+                messageWrapper.classList.add('flex', 'justify-end');
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'message-bubble-user', 'text-white', 'p-3', 'shadow-md', 'rounded-tr-lg', 'rounded-tl-2xl', 'rounded-bl-2xl', 'rounded-br-2xl');
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.innerHTML = marked.parse(content);
+                messageBubble.appendChild(contentDiv);
+                messageWrapper.appendChild(messageBubble);
+            } else { // AI message or thinking indicator
+                messageWrapper.classList.add('flex', 'justify-start');
+                if (isThinking) {
+                    messageWrapper.id = 'thinking-wrapper';
+                     messageWrapper.innerHTML = `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
+                } else {
+                    const messageBubble = document.createElement('div');
+                    messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+                     if (content.startsWith("data:image")) {
+                        contentDiv.innerHTML = `<img src="${content}" class="rounded-xl shadow-lg max-w-xs md:max-w-sm"/>`;
+                    } else {
+                        contentDiv.innerHTML = marked.parse(content || '');
+                    }
+                    messageBubble.appendChild(contentDiv);
+                    messageWrapper.appendChild(messageBubble);
+                }
+            }
+
+            chatHistory.appendChild(messageWrapper);
+            return messageWrapper;
+        }
+
+        function finalizeThinkingAndShowAnswer(botContent) {
+            const thinkingWrapper = document.getElementById('thinking-wrapper');
+            if (thinkingWrapper) {
+                thinkingWrapper.remove();
+            }
+            appendMessage("D'Ai", botContent);
+        }
+        
+        async function sendMessage() {
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            appendMessage('You', userMessage);
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            
+            currentChat.push({ role: "user", parts: [{ text: userMessage }] });
+
+            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+
+            appendMessage("D'Ai", '', true);
+            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+
+            try {
+                const botResponse = await callGeminiApi(userMessage);
+                
+                finalizeThinkingAndShowAnswer(botResponse);
+                
+                const responsePart = botResponse.startsWith('data:image') ? { inlineData: { mimeType: 'image/png', data: botResponse.split(',')[1] } } : { text: botResponse };
+                currentChat.push({ role: "model", parts: [responsePart] });
+                
+                setTimeout(() => {
+                    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+                }, 100);
+
+            } catch (error) {
+                document.getElementById('thinking-wrapper')?.remove();
+                console.error('Error calling backend API:', error);
+                appendMessage("D'Ai", `Sorry, something went wrong: ${error.message}`);
+            }
+        }
+
+        // --- UPDATED API CALL ---
+        // This function now calls the Vercel serverless API endpoint.
+        async function callGeminiApi(prompt) {
+            // The URL is now a relative path to your own serverless backend
+            const backendApiUrl = '/api/chat'; 
+            const apiKey = document.querySelector(`[data-model-id="${currentModelId}"]`).dataset.apiKey;
+
+            const payload = {
+                modelId: currentModelId,
+                modelType: currentModelType,
+                prompt: prompt,
+                chatHistory: currentChat,
+                apiKey: apiKey 
+            };
+            
+            const response = await fetch(backendApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Backend error! status: ${response.status}, message: ${errorData.error.message}`);
+            }
+
+            const result = await response.json();
+
+            if (currentModelType === 'image') {
+                const imagePart = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                const base64Data = imagePart?.inlineData?.data;
+                if (base64Data) {
+                    return `data:image/png;base64,${base64Data}`;
+                }
+                throw new Error("Backend returned a response, but it did not contain image data.");
+            } else {
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    return text;
+                }
+                throw new Error("Backend returned a response, but it did not contain text.");
+            }
+        }
+    </script>
 </body>
 </html>
+
+
