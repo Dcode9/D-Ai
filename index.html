@@ -497,27 +497,30 @@
 
             } catch (error) {
                 document.getElementById('thinking-wrapper')?.remove();
-                console.error('Error calling backend API:', error);
+                console.error('Error calling Gemini API:', error);
                 appendMessage("D'Ai", `Sorry, something went wrong: ${error.message}`);
             }
         }
 
-        // --- UPDATED API CALL ---
-        // This function now calls the Vercel serverless API endpoint.
+        // --- LIVE API CALL (INSECURE - FOR DEMO ONLY) ---
+        // This function calls the Gemini API directly from the browser.
+        // This is not recommended for production as it exposes your API key.
+        // The correct method is to use a secure backend server.
         async function callGeminiApi(prompt) {
-            // The URL is now a relative path to your own serverless backend
-            const backendApiUrl = '/api/chat'; 
             const apiKey = document.querySelector(`[data-model-id="${currentModelId}"]`).dataset.apiKey;
-
-            const payload = {
-                modelId: currentModelId,
-                modelType: currentModelType,
-                prompt: prompt,
-                chatHistory: currentChat,
-                apiKey: apiKey 
-            };
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${apiKey}`;
             
-            const response = await fetch(backendApiUrl, {
+            let payload;
+            if (currentModelType === 'image') {
+                payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+                };
+            } else {
+                payload = { contents: currentChat };
+            }
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -525,7 +528,8 @@
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`Backend error! status: ${response.status}, message: ${errorData.error.message}`);
+                const message = errorData?.error?.message || response.statusText;
+                throw new Error(`HTTP error! status: ${response.status}, message: ${message}`);
             }
 
             const result = await response.json();
@@ -536,17 +540,16 @@
                 if (base64Data) {
                     return `data:image/png;base64,${base64Data}`;
                 }
-                throw new Error("Backend returned a response, but it did not contain image data.");
+                throw new Error("API response did not contain image data.");
             } else {
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) {
                     return text;
                 }
-                throw new Error("Backend returned a response, but it did not contain text.");
+                throw new Error("API response did not contain text.");
             }
         }
     </script>
 </body>
 </html>
-
 
