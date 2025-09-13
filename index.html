@@ -234,25 +234,16 @@
                 </div>
                 <div class="relative">
                     <button id="model-toggle-button" class="flex items-center text-xl md:text-2xl font-bold text-[color:var(--text-primary)]">
-                        <span id="current-model-name">D'Ai 2.5 Flash</span>
+                        <span id="current-model-name">D'2.5 Pro</span>
                         <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
-                    <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
-                         <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash">D'Ai 2.5 Flash</a>
-                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Ai Paint (Nano Banana 🍌)">D'Ai Paint (Nano Banana 🍌)</a>
+                    <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash" data-model-type="text" data-name="D'2.5 Pro">D'2.5 Pro</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-1.5-flash" data-model-type="text" data-name="D'2.5 Flash">D'2.5 Flash</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-preview-image-generation" data-model-type="image" data-name="D'Paint">D'Paint</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
-                     <!-- Auth Container -->
-                    <div id="auth-container">
-                         <a id="sign-in-link" href="#" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
-                            Sign In
-                        </a>
-                        <div id="user-profile" class="hidden items-center space-x-2">
-                             <img id="user-avatar" class="w-8 h-8 rounded-full" src="">
-                             <button id="sign-out-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">Sign Out</button>
-                        </div>
-                    </div>
                     <!-- Dark Mode Toggle -->
                     <label for="theme-toggle" class="flex items-center cursor-pointer">
                         <div class="relative">
@@ -276,7 +267,7 @@
         <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-24 scroll-smooth">
             <div class="flex justify-start">
                 <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                    <div class="message-content"><p>Hello! I'm D'Ai. Please sign in to begin.</p></div>
+                    <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
                 </div>
             </div>
         </div>
@@ -284,18 +275,15 @@
         <!-- Floating Message Input -->
         <footer class="absolute bottom-0 left-0 right-0 p-4 z-10">
             <div class="flex items-center space-x-3">
-                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Please sign in to chat..." disabled></textarea>
-                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg" disabled>
+                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Type your message..."></textarea>
+                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg">
                     <svg class="w-6 h-6 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
             </div>
         </footer>
     </div>
-    
-    <script type="module">
-        // This is the correct, modern way to handle authentication and API calls.
-        // It centralizes the login flow and keeps API keys secure.
-        
+
+    <script>
         // DOM Element References
         const chatHistory = document.getElementById('chat-history');
         const userInput = document.getElementById('userInput');
@@ -307,15 +295,12 @@
         const modelDropdown = document.getElementById('model-dropdown');
         const currentModelName = document.getElementById('current-model-name');
         const clearChatBtn = document.getElementById('clear-chat-btn');
-        const authContainer = document.getElementById('auth-container');
-        const signInLink = document.getElementById('sign-in-link');
-        const userProfile = document.getElementById('user-profile');
-        const userAvatar = document.getElementById('user-avatar');
-        const signOutBtn = document.getElementById('sign-out-btn');
+
+        // Hardcoded API Key
+        const API_KEY = "AIzaSyA7jvgK9Q5mW8aiLJ8ZrNsRyO8yopvY5_o";
 
         let currentChat = [];
-        let sessionToken = null;
-        let currentModelId = 'gemini-2.0-flash-lite-001';
+        let currentModelId = 'gemini-2.5-flash';
         let currentModelType = 'text';
 
         // --- Marked.js Custom Renderer for Code Blocks ---
@@ -327,7 +312,7 @@
                 highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
             } catch (e) {
                 console.error("Highlight.js error:", e);
-                highlightedCode = codeString;
+                highlightedCode = codeString; // Fallback to unhighlighted code
             }
             const langDisplay = language || 'code';
             return `
@@ -342,63 +327,21 @@
         };
         marked.setOptions({ renderer });
 
-        window.copyCode = function(button) { // Make copyCode globally accessible
+        // --- Copy to Clipboard Function ---
+        function copyCode(button) {
             const pre = button.parentElement.nextElementSibling;
             const code = pre.querySelector('code');
-            navigator.clipboard.writeText(code.innerText).then(() => {
-                button.innerText = 'Copied!';
-                setTimeout(() => { button.innerText = 'Copy'; }, 2000);
-            });
+            
+            const el = document.createElement('textarea');
+            el.value = code.innerText;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            button.innerText = 'Copied!';
+            setTimeout(() => { button.innerText = 'Copy'; }, 2000);
         }
-        
-        // --- Authentication Logic ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const tokenFromUrl = urlParams.get('token');
-
-            if (tokenFromUrl) {
-                sessionToken = tokenFromUrl;
-                sessionStorage.setItem('dverseSessionToken', tokenFromUrl);
-                // Clean the URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-                updateLoginState(true);
-            } else {
-                sessionToken = sessionStorage.getItem('dverseSessionToken');
-                updateLoginState(!!sessionToken);
-            }
-        });
-
-        function updateLoginState(isLoggedIn) {
-            if (isLoggedIn) {
-                signInLink.classList.add('hidden');
-                userProfile.classList.remove('hidden');
-                userProfile.classList.add('flex');
-                userInput.disabled = false;
-                sendButton.disabled = false;
-                userInput.placeholder = "Type your message...";
-                // In a real app, you would fetch user data here using the token
-                // For this demo, we'll use a placeholder
-                userAvatar.src = `https://placehold.co/40x40/7c3aed/ffffff?text=D`;
-            } else {
-                signInLink.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-                userInput.disabled = true;
-                sendButton.disabled = true;
-                userInput.placeholder = "Please sign in to chat...";
-                // Set the sign-in link to redirect back to this page
-                const redirectUrl = window.location.href;
-                signInLink.href = `https://dverse.fun?redirect_url=${encodeURIComponent(redirectUrl)}`;
-            }
-        }
-        
-        signOutBtn.addEventListener('click', () => {
-            sessionToken = null;
-            sessionStorage.removeItem('dverseSessionToken');
-            updateLoginState(false);
-            clearChat();
-             chatHistory.querySelector('.message-content p').textContent = "You have been signed out.";
-        });
-
 
         // --- Theme Management ---
         function setTheme(isDark) {
@@ -477,14 +420,10 @@
 
         function clearChat() {
             currentChat = [];
-            let initialMessage = "Hello! I'm D'Ai. Ask me anything!";
-            if (!sessionToken) {
-                initialMessage = "Hello! I'm D'Ai. Please sign in to begin.";
-            }
             chatHistory.innerHTML = `
                 <div class="flex justify-start">
                     <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                        <div class="message-content"><p>${initialMessage}</p></div>
+                        <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
                     </div>
                 </div>`;
         }
@@ -500,18 +439,33 @@
                 contentDiv.classList.add('message-content');
                 contentDiv.innerHTML = marked.parse(content);
                 messageBubble.appendChild(contentDiv);
-                messageWrapper.appendChild(messageWrapper); // Intentional error for user to find
+                messageWrapper.appendChild(messageBubble);
             } else { // AI message or thinking indicator
                 messageWrapper.classList.add('flex', 'justify-start');
                 if (isThinking) {
                     messageWrapper.id = 'thinking-wrapper';
-                     messageWrapper.innerHTML = `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
+                    const animationHtml = currentModelId.includes('pro') || currentModelId.includes('flash')
+                    ? `
+                        <details class="w-full max-w-[80%]" id="thinking-details">
+                            <summary class="thinking-summary p-3 rounded-2xl cursor-pointer list-none flex items-center glass-panel">
+                                <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                <span class="font-semibold text-[color:var(--text-secondary)]">Show thinking</span>
+                            </summary>
+                            <div class="thinking-content p-4 mt-2 rounded-2xl">
+                                <canvas class="thinking-canvas"></canvas>
+                            </div>
+                        </details>
+                    `
+                    : `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
+                    messageWrapper.innerHTML = animationHtml;
+
                 } else {
                     const messageBubble = document.createElement('div');
                     messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
                     const contentDiv = document.createElement('div');
                     contentDiv.classList.add('message-content');
-                     if (content.startsWith("data:image")) {
+                     // FIX: Check if the content is an image data string
+                    if (content.startsWith("data:image")) {
                         contentDiv.innerHTML = `<img src="${content}" class="rounded-xl shadow-lg max-w-xs md:max-w-sm"/>`;
                     } else {
                         contentDiv.innerHTML = marked.parse(content || '');
@@ -527,17 +481,35 @@
 
         function finalizeThinkingAndShowAnswer(botContent) {
             const thinkingWrapper = document.getElementById('thinking-wrapper');
-            if (thinkingWrapper) {
-                thinkingWrapper.remove();
+            if (!thinkingWrapper) return;
+
+            const detailsElement = thinkingWrapper.querySelector('details');
+            if (detailsElement) {
+                // If it was a pro model, we keep the "thinking" box and append the answer after it
+                const summaryElement = thinkingWrapper.querySelector('summary');
+                summaryElement.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <span class="font-semibold text-[color:var(--text-secondary)]">Thought Process</span>
+                    </div>
+                `;
+                detailsElement.removeAttribute('open');
+                const thinkingCanvas = detailsElement.querySelector('.thinking-canvas');
+                if (thinkingCanvas) thinkingCanvas.style.display = 'none'; // Hide canvas
+                const thinkingContent = detailsElement.querySelector('.thinking-content');
+                thinkingContent.innerHTML = `<p class="text-sm text-[color:var(--text-secondary)]">This is a placeholder for the model's reasoning steps.</p>`;
+                
+                // Append the actual answer *after* the thinking box
+                appendMessage("D'Ai", botContent);
+                thinkingWrapper.id = ''; // remove id to prevent conflicts
+            } else {
+                 // For other models, just replace the loading bar with the answer
+                 thinkingWrapper.remove();
+                 appendMessage("D'Ai", botContent);
             }
-            appendMessage("D'Ai", botContent);
         }
         
         async function sendMessage() {
-            if (!sessionToken) {
-                 appendMessage("D'Ai", "You must be signed in to send a message.");
-                 return;
-            }
             const userMessage = userInput.value.trim();
             if (!userMessage) return;
 
@@ -549,11 +521,15 @@
 
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
 
-            appendMessage("D'Ai", '', true);
+            const thinkingWrapper = appendMessage("D'Ai", '', true);
+            const canvas = thinkingWrapper.querySelector('.thinking-canvas');
+            if(canvas) startThinkingAnimation(canvas);
+
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
 
+
             try {
-                const botResponse = await callGeminiApiWithFirebase(userMessage);
+                const botResponse = await callGeminiApi(userMessage);
                 
                 finalizeThinkingAndShowAnswer(botResponse);
                 
@@ -571,20 +547,126 @@
             }
         }
 
-        // --- SECURE API CALL WITH FIREBASE ---
-        async function callGeminiApiWithFirebase(prompt) {
-             // This is a placeholder as the full Firebase logic is extensive
-             // In a real app, you would use the getVertexAI and getGenerativeModel functions here
-             // and they would automatically use the signed-in user's authentication.
-             
-             console.log(`Calling secure API for model ${currentModelId} with prompt: "${prompt}"`);
+        async function callGeminiApi(prompt) {
+            let apiUrl, payload;
+            
+            if (currentModelType === 'image') {
+                apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${API_KEY}`;
+                payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+                };
+            } else {
+                apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${API_KEY}`;
+                payload = { contents: currentChat };
+            }
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
 
-             // SIMULATED RESPONSE
-             if (currentModelType === 'image') {
-                 return `https://placehold.co/512x512/7c3aed/ffffff?text=Generated+Image`;
-             } else {
-                 return `This is a simulated response for your prompt: "${prompt}". In a real application, this text would come directly from the Gemini API, authenticated via Firebase.`;
-             }
+            if (!response.ok) {
+                const errorData = await response.json();
+                const message = errorData?.error?.message || response.statusText;
+                throw new Error(`HTTP error! status: ${response.status}, message: ${message}`);
+            }
+
+            const result = await response.json();
+
+            if (currentModelType === 'image') {
+                const imagePart = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                const base64Data = imagePart?.inlineData?.data;
+                if (base64Data) {
+                    return `data:image/png;base64,${base64Data}`;
+                }
+                throw new Error("API response did not contain image data.");
+            } else {
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    return text;
+                }
+                // Handle cases where the response might be empty or blocked
+                const finishReason = result.candidates?.[0]?.finishReason;
+                if (finishReason === "SAFETY") {
+                     return "I cannot answer that question as the response was blocked for safety reasons.";
+                }
+                return "I'm sorry, I couldn't generate a response.";
+            }
+        }
+
+        // --- Thinking Animation Canvas Logic ---
+        function startThinkingAnimation(canvas) {
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+            let animationFrameId;
+
+            function resize() {
+                width = canvas.offsetWidth;
+                height = canvas.offsetHeight;
+                canvas.width = width;
+                canvas.height = height;
+            }
+
+            function Particle(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.life = Math.random() * 50 + 50;
+            }
+
+            function createParticles() {
+                particles = [];
+                for (let i = 0; i < 40; i++) {
+                    particles.push(new Particle(width / 2, height / 2));
+                }
+            }
+
+            function animate() {
+                if(!canvas.closest('details[open]')) {
+                     animationFrameId = requestAnimationFrame(animate);
+                     return;
+                }
+                ctx.clearRect(0, 0, width, height);
+
+                particles.forEach((p, i) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+
+                    if (p.life <= 0 || p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
+                        particles.splice(i, 1);
+                        particles.push(new Particle(width / 2, height / 2));
+                    }
+
+                    const hue = (Date.now() * 0.1 + i * 5) % 360;
+                    ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${p.life / 100})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                animationFrameId = requestAnimationFrame(animate);
+            }
+            
+            const details = canvas.closest('details');
+            if (details) {
+                 details.addEventListener('toggle', () => {
+                    if (details.open) {
+                        if (!animationFrameId) {
+                           resize();
+                           createParticles();
+                           animate();
+                        }
+                    } else {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                });
+            }
         }
     </script>
 </body>
