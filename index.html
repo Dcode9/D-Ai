@@ -238,11 +238,21 @@
                         <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
-                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash" data-api-key="AQ.Ab8RN6JSzwLDKRsFjua6pnj-sjCLypj763K1sSSD2H70_7yQJQ">D'Ai 2.5 Flash</a>
-                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Ai Paint (Nano Banana 🍌)" data-api-key="AQ.Ab8RN6KM0NuS1ql5KlYzuHMIu9cuaVVlNcumqobBh-hiM5iA8A">D'Ai Paint (Nano Banana 🍌)</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash">D'Ai 2.5 Flash</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Ai Paint (Nano Banana 🍌)">D'Ai Paint (Nano Banana 🍌)</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
+                    <!-- Auth Container -->
+                    <div id="auth-container">
+                         <button id="sign-in-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
+                            Sign In
+                        </button>
+                        <div id="user-profile" class="hidden items-center space-x-2">
+                             <img id="user-avatar" class="w-8 h-8 rounded-full" src="">
+                             <button id="sign-out-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">Sign Out</button>
+                        </div>
+                    </div>
                     <!-- Dark Mode Toggle -->
                     <label for="theme-toggle" class="flex items-center cursor-pointer">
                         <div class="relative">
@@ -266,7 +276,7 @@
         <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-24 scroll-smooth">
             <div class="flex justify-start">
                 <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                    <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
+                    <div class="message-content"><p>Hello! I'm D'Ai. Please sign in to begin.</p></div>
                 </div>
             </div>
         </div>
@@ -274,282 +284,22 @@
         <!-- Floating Message Input -->
         <footer class="absolute bottom-0 left-0 right-0 p-4 z-10">
             <div class="flex items-center space-x-3">
-                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Type your message..."></textarea>
-                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg">
+                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Please sign in to chat..." disabled></textarea>
+                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg" disabled>
                     <svg class="w-6 h-6 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
             </div>
         </footer>
     </div>
 
-    <script>
-        // DOM Element References
-        const chatHistory = document.getElementById('chat-history');
-        const userInput = document.getElementById('userInput');
-        const sendButton = document.getElementById('sendButton');
-        const themeToggle = document.getElementById('theme-toggle');
-        const darkThemeCss = document.getElementById('hljs-dark-theme');
-        const lightThemeCss = document.getElementById('hljs-light-theme');
-        const modelToggleButton = document.getElementById('model-toggle-button');
-        const modelDropdown = document.getElementById('model-dropdown');
-        const currentModelName = document.getElementById('current-model-name');
-        const clearChatBtn = document.getElementById('clear-chat-btn');
-
-        let currentChat = [];
-        let currentModelId = 'gemini-2.0-flash-lite-001';
-        let currentModelType = 'text';
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getVertexAI, getGenerativeModel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-vertexai-compat.js";
         
-        // --- Marked.js Custom Renderer for Code Blocks ---
-        const renderer = new marked.Renderer();
-        renderer.code = function(code, language) {
-            const codeString = String(code || '');
-            let highlightedCode;
-            try {
-                highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
-            } catch (e) {
-                console.error("Highlight.js error:", e);
-                highlightedCode = codeString; // Fallback to unhighlighted code
-            }
-            const langDisplay = language || 'code';
-            return `
-                <div class="code-block-wrapper">
-                    <div class="code-block-header">
-                        <span>${langDisplay}</span>
-                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    </div>
-                    <pre><code class="hljs ${language}">${highlightedCode}</code></pre>
-                </div>
-            `;
-        };
-        marked.setOptions({ renderer });
-
-        // --- Copy to Clipboard Function ---
-        function copyCode(button) {
-            const pre = button.parentElement.nextElementSibling;
-            const code = pre.querySelector('code');
-            
-            const el = document.createElement('textarea');
-            el.value = code.innerText;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-
-            button.innerText = 'Copied!';
-            setTimeout(() => { button.innerText = 'Copy'; }, 2000);
-        }
-
-        // --- Theme Management ---
-        function setTheme(isDark) {
-            if (isDark) {
-                document.documentElement.classList.add('dark');
-                themeToggle.checked = true;
-                darkThemeCss.disabled = false;
-                lightThemeCss.disabled = true;
-            } else {
-                document.documentElement.classList.remove('dark');
-                themeToggle.checked = false;
-                darkThemeCss.disabled = true;
-                lightThemeCss.disabled = false;
-            }
-        }
-
-        themeToggle.addEventListener('change', () => {
-            setTheme(themeToggle.checked);
-        });
-        
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setTheme(prefersDark);
-
-
-        // --- UI Interaction Logic ---
-        userInput.addEventListener('input', () => {
-            userInput.style.height = 'auto';
-            userInput.style.height = `${userInput.scrollHeight}px`;
-        });
-
-        modelToggleButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isHidden = modelDropdown.classList.contains('hidden');
-            if (isHidden) {
-                modelDropdown.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    modelDropdown.classList.remove('dropdown-enter-from');
-                    modelDropdown.classList.add('dropdown-enter-to');
-                });
-            } else {
-                modelDropdown.classList.add('dropdown-enter-from');
-                modelDropdown.classList.remove('dropdown-enter-to');
-                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
-            }
-        });
-        
-        window.addEventListener('click', (e) => {
-            if (!modelDropdown.classList.contains('hidden') && !modelToggleButton.contains(e.target)) {
-                modelDropdown.classList.add('dropdown-enter-from');
-                modelDropdown.classList.remove('dropdown-enter-to');
-                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
-            }
-        });
-
-        modelDropdown.addEventListener('click', (e) => {
-            if (e.target.tagName === 'A') {
-                currentModelId = e.target.dataset.modelId;
-                currentModelType = e.target.dataset.modelType;
-                currentModelName.textContent = e.target.dataset.name;
-                userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image to generate...';
-                modelDropdown.classList.add('hidden');
-                clearChat();
-            }
-        });
-
-
-        // --- Event Listeners ---
-        sendButton.addEventListener('click', sendMessage);
-        userInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        });
-        clearChatBtn.addEventListener('click', clearChat);
-
-        function clearChat() {
-            currentChat = [];
-            chatHistory.innerHTML = `
-                <div class="flex justify-start">
-                    <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                        <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
-                    </div>
-                </div>`;
-        }
-        
-        function appendMessage(sender, content, isThinking = false) {
-            const messageWrapper = document.createElement('div');
-            
-            if (sender === 'You') {
-                messageWrapper.classList.add('flex', 'justify-end');
-                const messageBubble = document.createElement('div');
-                messageBubble.classList.add('message-bubble', 'message-bubble-user', 'text-white', 'p-3', 'shadow-md', 'rounded-tr-lg', 'rounded-tl-2xl', 'rounded-bl-2xl', 'rounded-br-2xl');
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('message-content');
-                contentDiv.innerHTML = marked.parse(content);
-                messageBubble.appendChild(contentDiv);
-                messageWrapper.appendChild(messageBubble);
-            } else { // AI message or thinking indicator
-                messageWrapper.classList.add('flex', 'justify-start');
-                if (isThinking) {
-                    messageWrapper.id = 'thinking-wrapper';
-                     messageWrapper.innerHTML = `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
-                } else {
-                    const messageBubble = document.createElement('div');
-                    messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
-                    const contentDiv = document.createElement('div');
-                    contentDiv.classList.add('message-content');
-                     if (content.startsWith("data:image")) {
-                        contentDiv.innerHTML = `<img src="${content}" class="rounded-xl shadow-lg max-w-xs md:max-w-sm"/>`;
-                    } else {
-                        contentDiv.innerHTML = marked.parse(content || '');
-                    }
-                    messageBubble.appendChild(contentDiv);
-                    messageWrapper.appendChild(messageBubble);
-                }
-            }
-
-            chatHistory.appendChild(messageWrapper);
-            return messageWrapper;
-        }
-
-        function finalizeThinkingAndShowAnswer(botContent) {
-            const thinkingWrapper = document.getElementById('thinking-wrapper');
-            if (thinkingWrapper) {
-                thinkingWrapper.remove();
-            }
-            appendMessage("D'Ai", botContent);
-        }
-        
-        async function sendMessage() {
-            const userMessage = userInput.value.trim();
-            if (!userMessage) return;
-
-            appendMessage('You', userMessage);
-            userInput.value = '';
-            userInput.style.height = 'auto';
-            
-            currentChat.push({ role: "user", parts: [{ text: userMessage }] });
-
-            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-
-            appendMessage("D'Ai", '', true);
-            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-
-            try {
-                const botResponse = await callGeminiApi(userMessage);
-                
-                finalizeThinkingAndShowAnswer(botResponse);
-                
-                const responsePart = botResponse.startsWith('data:image') ? { inlineData: { mimeType: 'image/png', data: botResponse.split(',')[1] } } : { text: botResponse };
-                currentChat.push({ role: "model", parts: [responsePart] });
-                
-                setTimeout(() => {
-                    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-                }, 100);
-
-            } catch (error) {
-                document.getElementById('thinking-wrapper')?.remove();
-                console.error('Error calling Gemini API:', error);
-                appendMessage("D'Ai", `Sorry, something went wrong: ${error.message}`);
-            }
-        }
-
-        // --- LIVE API CALL (INSECURE - FOR DEMO ONLY) ---
-        // This function calls the Gemini API directly from the browser.
-        // This is not recommended for production as it exposes your API key.
-        // The correct method is to use a secure backend server.
-        async function callGeminiApi(prompt) {
-            const apiKey = document.querySelector(`[data-model-id="${currentModelId}"]`).dataset.apiKey;
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${apiKey}`;
-            
-            let payload;
-            if (currentModelType === 'image') {
-                payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-                };
-            } else {
-                payload = { contents: currentChat };
-            }
-            
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                const message = errorData?.error?.message || response.statusText;
-                throw new Error(`HTTP error! status: ${response.status}, message: ${message}`);
-            }
-
-            const result = await response.json();
-
-            if (currentModelType === 'image') {
-                const imagePart = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-                const base64Data = imagePart?.inlineData?.data;
-                if (base64Data) {
-                    return `data:image/png;base64,${base64Data}`;
-                }
-                throw new Error("API response did not contain image data.");
-            } else {
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    return text;
-                }
-                throw new Error("API response did not contain text.");
-            }
-        }
-    </script>
-</body>
-</html>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1swfAErUQSLSPV9xcnA6Wcaiw
 
