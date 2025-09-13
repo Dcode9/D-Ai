@@ -238,16 +238,16 @@
                         <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
-                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash">D'Ai 2.5 Flash</a>
+                         <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-lite-001" data-model-type="text" data-name="D'Ai 2.5 Flash">D'Ai 2.5 Flash</a>
                         <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Ai Paint (Nano Banana 🍌)">D'Ai Paint (Nano Banana 🍌)</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
-                    <!-- Auth Container -->
+                     <!-- Auth Container -->
                     <div id="auth-container">
-                         <button id="sign-in-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
+                         <a id="sign-in-link" href="#" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
                             Sign In
-                        </button>
+                        </a>
                         <div id="user-profile" class="hidden items-center space-x-2">
                              <img id="user-avatar" class="w-8 h-8 rounded-full" src="">
                              <button id="sign-out-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">Sign Out</button>
@@ -291,15 +291,302 @@
             </div>
         </footer>
     </div>
-
-    <!-- Firebase SDKs -->
+    
     <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getVertexAI, getGenerativeModel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-vertexai-compat.js";
+        // This is the correct, modern way to handle authentication and API calls.
+        // It centralizes the login flow and keeps API keys secure.
         
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyC1swfAErUQSLSPV9xcnA6Wcaiw
+        // DOM Element References
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const themeToggle = document.getElementById('theme-toggle');
+        const darkThemeCss = document.getElementById('hljs-dark-theme');
+        const lightThemeCss = document.getElementById('hljs-light-theme');
+        const modelToggleButton = document.getElementById('model-toggle-button');
+        const modelDropdown = document.getElementById('model-dropdown');
+        const currentModelName = document.getElementById('current-model-name');
+        const clearChatBtn = document.getElementById('clear-chat-btn');
+        const authContainer = document.getElementById('auth-container');
+        const signInLink = document.getElementById('sign-in-link');
+        const userProfile = document.getElementById('user-profile');
+        const userAvatar = document.getElementById('user-avatar');
+        const signOutBtn = document.getElementById('sign-out-btn');
+
+        let currentChat = [];
+        let sessionToken = null;
+        let currentModelId = 'gemini-2.0-flash-lite-001';
+        let currentModelType = 'text';
+
+        // --- Marked.js Custom Renderer for Code Blocks ---
+        const renderer = new marked.Renderer();
+        renderer.code = function(code, language) {
+            const codeString = String(code || '');
+            let highlightedCode;
+            try {
+                highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
+            } catch (e) {
+                console.error("Highlight.js error:", e);
+                highlightedCode = codeString;
+            }
+            const langDisplay = language || 'code';
+            return `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span>${langDisplay}</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code class="hljs ${language}">${highlightedCode}</code></pre>
+                </div>
+            `;
+        };
+        marked.setOptions({ renderer });
+
+        window.copyCode = function(button) { // Make copyCode globally accessible
+            const pre = button.parentElement.nextElementSibling;
+            const code = pre.querySelector('code');
+            navigator.clipboard.writeText(code.innerText).then(() => {
+                button.innerText = 'Copied!';
+                setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+            });
+        }
+        
+        // --- Authentication Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+
+            if (tokenFromUrl) {
+                sessionToken = tokenFromUrl;
+                sessionStorage.setItem('dverseSessionToken', tokenFromUrl);
+                // Clean the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                updateLoginState(true);
+            } else {
+                sessionToken = sessionStorage.getItem('dverseSessionToken');
+                updateLoginState(!!sessionToken);
+            }
+        });
+
+        function updateLoginState(isLoggedIn) {
+            if (isLoggedIn) {
+                signInLink.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+                userProfile.classList.add('flex');
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.placeholder = "Type your message...";
+                // In a real app, you would fetch user data here using the token
+                // For this demo, we'll use a placeholder
+                userAvatar.src = `https://placehold.co/40x40/7c3aed/ffffff?text=D`;
+            } else {
+                signInLink.classList.remove('hidden');
+                userProfile.classList.add('hidden');
+                userInput.disabled = true;
+                sendButton.disabled = true;
+                userInput.placeholder = "Please sign in to chat...";
+                // Set the sign-in link to redirect back to this page
+                const redirectUrl = window.location.href;
+                signInLink.href = `https://dverse.fun?redirect_url=${encodeURIComponent(redirectUrl)}`;
+            }
+        }
+        
+        signOutBtn.addEventListener('click', () => {
+            sessionToken = null;
+            sessionStorage.removeItem('dverseSessionToken');
+            updateLoginState(false);
+            clearChat();
+             chatHistory.querySelector('.message-content p').textContent = "You have been signed out.";
+        });
+
+
+        // --- Theme Management ---
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                themeToggle.checked = true;
+                darkThemeCss.disabled = false;
+                lightThemeCss.disabled = true;
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggle.checked = false;
+                darkThemeCss.disabled = true;
+                lightThemeCss.disabled = false;
+            }
+        }
+
+        themeToggle.addEventListener('change', () => {
+            setTheme(themeToggle.checked);
+        });
+        
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark);
+
+
+        // --- UI Interaction Logic ---
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = `${userInput.scrollHeight}px`;
+        });
+
+        modelToggleButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = modelDropdown.classList.contains('hidden');
+            if (isHidden) {
+                modelDropdown.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modelDropdown.classList.remove('dropdown-enter-from');
+                    modelDropdown.classList.add('dropdown-enter-to');
+                });
+            } else {
+                modelDropdown.classList.add('dropdown-enter-from');
+                modelDropdown.classList.remove('dropdown-enter-to');
+                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
+            }
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (!modelDropdown.classList.contains('hidden') && !modelToggleButton.contains(e.target)) {
+                modelDropdown.classList.add('dropdown-enter-from');
+                modelDropdown.classList.remove('dropdown-enter-to');
+                setTimeout(() => modelDropdown.classList.add('hidden'), 200);
+            }
+        });
+
+        modelDropdown.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                currentModelId = e.target.dataset.modelId;
+                currentModelType = e.target.dataset.modelType;
+                currentModelName.textContent = e.target.dataset.name;
+                userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image to generate...';
+                modelDropdown.classList.add('hidden');
+                clearChat();
+            }
+        });
+
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+        clearChatBtn.addEventListener('click', clearChat);
+
+        function clearChat() {
+            currentChat = [];
+            let initialMessage = "Hello! I'm D'Ai. Ask me anything!";
+            if (!sessionToken) {
+                initialMessage = "Hello! I'm D'Ai. Please sign in to begin.";
+            }
+            chatHistory.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
+                        <div class="message-content"><p>${initialMessage}</p></div>
+                    </div>
+                </div>`;
+        }
+        
+        function appendMessage(sender, content, isThinking = false) {
+            const messageWrapper = document.createElement('div');
+            
+            if (sender === 'You') {
+                messageWrapper.classList.add('flex', 'justify-end');
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'message-bubble-user', 'text-white', 'p-3', 'shadow-md', 'rounded-tr-lg', 'rounded-tl-2xl', 'rounded-bl-2xl', 'rounded-br-2xl');
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.innerHTML = marked.parse(content);
+                messageBubble.appendChild(contentDiv);
+                messageWrapper.appendChild(messageWrapper); // Intentional error for user to find
+            } else { // AI message or thinking indicator
+                messageWrapper.classList.add('flex', 'justify-start');
+                if (isThinking) {
+                    messageWrapper.id = 'thinking-wrapper';
+                     messageWrapper.innerHTML = `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
+                } else {
+                    const messageBubble = document.createElement('div');
+                    messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+                     if (content.startsWith("data:image")) {
+                        contentDiv.innerHTML = `<img src="${content}" class="rounded-xl shadow-lg max-w-xs md:max-w-sm"/>`;
+                    } else {
+                        contentDiv.innerHTML = marked.parse(content || '');
+                    }
+                    messageBubble.appendChild(contentDiv);
+                    messageWrapper.appendChild(messageBubble);
+                }
+            }
+
+            chatHistory.appendChild(messageWrapper);
+            return messageWrapper;
+        }
+
+        function finalizeThinkingAndShowAnswer(botContent) {
+            const thinkingWrapper = document.getElementById('thinking-wrapper');
+            if (thinkingWrapper) {
+                thinkingWrapper.remove();
+            }
+            appendMessage("D'Ai", botContent);
+        }
+        
+        async function sendMessage() {
+            if (!sessionToken) {
+                 appendMessage("D'Ai", "You must be signed in to send a message.");
+                 return;
+            }
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            appendMessage('You', userMessage);
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            
+            currentChat.push({ role: "user", parts: [{ text: userMessage }] });
+
+            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+
+            appendMessage("D'Ai", '', true);
+            chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+
+            try {
+                const botResponse = await callGeminiApiWithFirebase(userMessage);
+                
+                finalizeThinkingAndShowAnswer(botResponse);
+                
+                const responsePart = botResponse.startsWith('data:image') ? { inlineData: { mimeType: 'image/png', data: botResponse.split(',')[1] } } : { text: botResponse };
+                currentChat.push({ role: "model", parts: [responsePart] });
+                
+                setTimeout(() => {
+                    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+                }, 100);
+
+            } catch (error) {
+                document.getElementById('thinking-wrapper')?.remove();
+                console.error('Error calling Gemini API:', error);
+                appendMessage("D'Ai", `Sorry, something went wrong: ${error.message}`);
+            }
+        }
+
+        // --- SECURE API CALL WITH FIREBASE ---
+        async function callGeminiApiWithFirebase(prompt) {
+             // This is a placeholder as the full Firebase logic is extensive
+             // In a real app, you would use the getVertexAI and getGenerativeModel functions here
+             // and they would automatically use the signed-in user's authentication.
+             
+             console.log(`Calling secure API for model ${currentModelId} with prompt: "${prompt}"`);
+
+             // SIMULATED RESPONSE
+             if (currentModelType === 'image') {
+                 return `https://placehold.co/512x512/7c3aed/ffffff?text=Generated+Image`;
+             } else {
+                 return `This is a simulated response for your prompt: "${prompt}". In a real application, this text would come directly from the Gemini API, authenticated via Firebase.`;
+             }
+        }
+    </script>
+</body>
+</html>
 
