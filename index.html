@@ -114,43 +114,14 @@
         }
         
         /* Thinking UI */
-        .thinking-summary {
-            cursor: pointer;
-            list-style: none;
-        }
-        .thinking-summary::-webkit-details-marker {
-            display: none;
-        }
-        .thinking-content {
-            background: rgba(0,0,0,0.2);
-            border-bottom-left-radius: 1rem;
-            border-bottom-right-radius: 1rem;
-        }
-        .thinking-canvas {
-            width: 100%;
-            height: 150px;
-        }
         .thinking-bar {
             width: 100%; height: 4px; border-radius: 2px;
             background: linear-gradient(90deg, #89f7fe, #66a6ff, #fc5c7d, #5de5f1);
             background-size: 400% 100%;
-            animation: shimmer 2s infinite linear;
+            animation: shimmer 1.5s infinite linear; /* Made animation faster */
         }
         @keyframes shimmer { 0% { background-position: 400% 0; } 100% { background-position: 0 0; } }
         
-        .paint-splat {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0;
-            animation: splat 1s ease-out forwards;
-        }
-        @keyframes splat {
-            0% { transform: scale(0); opacity: 1; }
-            80% { transform: scale(1.2); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 0; }
-        }
-
-
         /* Styles for rendered Markdown content */
         .message-content { word-break: break-word; }
         .message-content strong { font-weight: 600; }
@@ -234,13 +205,13 @@
                 </div>
                 <div class="relative">
                     <button id="model-toggle-button" class="flex items-center text-xl md:text-2xl font-bold text-[color:var(--text-primary)]">
-                        <span id="current-model-name">D'2.5 Pro</span>
+                        <span id="current-model-name">D'2.5 Flash</span>
                         <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
-                    <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
+                    <div id="model-dropdown" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max solid-panel rounded-2xl shadow-lg hidden dropdown-enter dropdown-enter-from">
                         <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash" data-model-type="text" data-name="D'2.5 Pro">D'2.5 Pro</a>
                         <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-1.5-flash" data-model-type="text" data-name="D'2.5 Flash">D'2.5 Flash</a>
-                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.0-flash-preview-image-generation" data-model-type="image" data-name="D'Paint">D'Paint</a>
+                        <a href="#" class="block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" data-model-id="gemini-2.5-flash-image-preview" data-model-type="image" data-name="D'Paint (Nano Banana 🍌)">D'Paint (Nano Banana 🍌)</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
@@ -264,23 +235,48 @@
         </header>
 
         <!-- Chat History -->
-        <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-24 scroll-smooth">
-            <div class="flex justify-start">
+        <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-36 scroll-smooth">
+             <div class="flex justify-start">
                 <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
                     <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
                 </div>
             </div>
         </div>
-
+        
         <!-- Floating Message Input -->
         <footer class="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <div class="flex items-center space-x-3">
-                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar" placeholder="Type your message..."></textarea>
-                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg">
+            <div id="image-preview-container" class="hidden mb-2 p-2 glass-panel rounded-xl w-max">
+                 <div class="relative">
+                    <img id="image-preview" src="" class="h-16 w-16 object-cover rounded-lg">
+                    <button id="remove-image-btn" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 leading-none">
+                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-end space-x-3">
+                 <label id="upload-image-label" for="image-upload" class="hidden bg-gray-500/50 text-white p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-gray-600/50 transition cursor-pointer">
+                    <svg class="w-6 h-6 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                </label>
+                <input type="file" id="image-upload" accept="image/*" class="hidden">
+                <textarea id="userInput" rows="1" class="glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)] custom-scrollbar self-end" placeholder="Type your message..."></textarea>
+                <button id="sendButton" class="bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg self-end">
                     <svg class="w-6 h-6 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
             </div>
         </footer>
+    </div>
+    
+    <!-- Popup Modal -->
+    <div id="popup-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div id="popup-modal" class="bg-[color:var(--solid-panel-bg)] text-[color:var(--text-primary)] rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center transform scale-95 opacity-0 transition-all duration-300">
+            <h3 class="text-2xl font-bold mb-2">Introducing Nano Banana 🍌</h3>
+            <p class="text-[color:var(--text-secondary)] mb-4">
+                Edit and generate images with Google's powerful new model in the D'Paint tab!
+            </p>
+            <button id="close-popup-btn" class="bg-blue-500 text-white font-semibold py-2 px-6 rounded-xl hover:bg-blue-600 transition">
+                Got it!
+            </button>
+        </div>
     </div>
 
     <script>
@@ -295,18 +291,27 @@
         const modelDropdown = document.getElementById('model-dropdown');
         const currentModelName = document.getElementById('current-model-name');
         const clearChatBtn = document.getElementById('clear-chat-btn');
+        const uploadImageLabel = document.getElementById('upload-image-label');
+        const imageUploadInput = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const removeImageBtn = document.getElementById('remove-image-btn');
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popupModal = document.getElementById('popup-modal');
+        const closePopupBtn = document.getElementById('close-popup-btn');
 
         // Hardcoded API Key
         const API_KEY = "AIzaSyA7jvgK9Q5mW8aiLJ8ZrNsRyO8yopvY5_o";
 
         let currentChat = [];
-        let currentModelId = 'gemini-2.5-flash';
+        let currentModelId = 'gemini-1.5-flash';
         let currentModelType = 'text';
+        let uploadedImageData = null;
 
         // --- Marked.js Custom Renderer for Code Blocks ---
         const renderer = new marked.Renderer();
         renderer.code = function(code, language) {
-            const codeString = String(code || '');
+            const codeString = (typeof code === 'string' || code instanceof String) ? code : String(code);
             let highlightedCode;
             try {
                 highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
@@ -328,19 +333,13 @@
         marked.setOptions({ renderer });
 
         // --- Copy to Clipboard Function ---
-        function copyCode(button) {
+        window.copyCode = function(button) {
             const pre = button.parentElement.nextElementSibling;
             const code = pre.querySelector('code');
-            
-            const el = document.createElement('textarea');
-            el.value = code.innerText;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-
-            button.innerText = 'Copied!';
-            setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+            navigator.clipboard.writeText(code.innerText).then(() => {
+                button.innerText = 'Copied!';
+                setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+            });
         }
 
         // --- Theme Management ---
@@ -358,13 +357,9 @@
             }
         }
 
-        themeToggle.addEventListener('change', () => {
-            setTheme(themeToggle.checked);
-        });
-        
+        themeToggle.addEventListener('change', () => setTheme(themeToggle.checked));
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         setTheme(prefersDark);
-
 
         // --- UI Interaction Logic ---
         userInput.addEventListener('input', () => {
@@ -377,13 +372,9 @@
             const isHidden = modelDropdown.classList.contains('hidden');
             if (isHidden) {
                 modelDropdown.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    modelDropdown.classList.remove('dropdown-enter-from');
-                    modelDropdown.classList.add('dropdown-enter-to');
-                });
+                requestAnimationFrame(() => modelDropdown.classList.remove('dropdown-enter-from'));
             } else {
                 modelDropdown.classList.add('dropdown-enter-from');
-                modelDropdown.classList.remove('dropdown-enter-to');
                 setTimeout(() => modelDropdown.classList.add('hidden'), 200);
             }
         });
@@ -391,7 +382,6 @@
         window.addEventListener('click', (e) => {
             if (!modelDropdown.classList.contains('hidden') && !modelToggleButton.contains(e.target)) {
                 modelDropdown.classList.add('dropdown-enter-from');
-                modelDropdown.classList.remove('dropdown-enter-to');
                 setTimeout(() => modelDropdown.classList.add('hidden'), 200);
             }
         });
@@ -401,12 +391,32 @@
                 currentModelId = e.target.dataset.modelId;
                 currentModelType = e.target.dataset.modelType;
                 currentModelName.textContent = e.target.dataset.name;
-                userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image to generate...';
+                uploadImageLabel.classList.toggle('hidden', currentModelType !== 'image');
+                userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image or ask a question about an uploaded one...';
                 modelDropdown.classList.add('hidden');
                 clearChat();
             }
         });
 
+        // --- Image Upload Logic ---
+        imageUploadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedImageData = e.target.result;
+                    imagePreview.src = uploadedImageData;
+                    imagePreviewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeImageBtn.addEventListener('click', () => {
+            uploadedImageData = null;
+            imageUploadInput.value = ''; // Reset file input
+            imagePreviewContainer.classList.add('hidden');
+        });
 
         // --- Event Listeners ---
         sendButton.addEventListener('click', sendMessage);
@@ -417,18 +427,35 @@
             }
         });
         clearChatBtn.addEventListener('click', clearChat);
+        
+        // --- Popup Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+             // Set default model name in UI
+            currentModelName.textContent = "D'2.5 Flash";
+            
+            if (!localStorage.getItem('nanoBananaPopupShown')) {
+                popupOverlay.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    popupModal.classList.remove('scale-95', 'opacity-0');
+                });
+            }
+        });
+        
+        closePopupBtn.addEventListener('click', () => {
+            popupModal.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                popupOverlay.classList.add('hidden');
+                localStorage.setItem('nanoBananaPopupShown', 'true');
+            }, 300);
+        });
 
         function clearChat() {
             currentChat = [];
-            chatHistory.innerHTML = `
-                <div class="flex justify-start">
-                    <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                        <div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div>
-                    </div>
-                </div>`;
+            chatHistory.innerHTML = `<div class="flex justify-start"><div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"><div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div></div></div>`;
+            removeImageBtn.click();
         }
         
-        function appendMessage(sender, content, isThinking = false) {
+        function appendMessage(sender, content, imageSrc = null, isThinking = false) {
             const messageWrapper = document.createElement('div');
             
             if (sender === 'You') {
@@ -437,34 +464,22 @@
                 messageBubble.classList.add('message-bubble', 'message-bubble-user', 'text-white', 'p-3', 'shadow-md', 'rounded-tr-lg', 'rounded-tl-2xl', 'rounded-bl-2xl', 'rounded-br-2xl');
                 const contentDiv = document.createElement('div');
                 contentDiv.classList.add('message-content');
-                contentDiv.innerHTML = marked.parse(content);
+                if (imageSrc) {
+                    contentDiv.innerHTML += `<img src="${imageSrc}" class="rounded-lg mb-2 max-h-48">`;
+                }
+                contentDiv.innerHTML += marked.parse(content);
                 messageBubble.appendChild(contentDiv);
                 messageWrapper.appendChild(messageBubble);
-            } else { // AI message or thinking indicator
+            } else { 
                 messageWrapper.classList.add('flex', 'justify-start');
                 if (isThinking) {
                     messageWrapper.id = 'thinking-wrapper';
-                    const animationHtml = currentModelId.includes('pro') || currentModelId.includes('flash')
-                    ? `
-                        <details class="w-full max-w-[80%]" id="thinking-details">
-                            <summary class="thinking-summary p-3 rounded-2xl cursor-pointer list-none flex items-center glass-panel">
-                                <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                <span class="font-semibold text-[color:var(--text-secondary)]">Show thinking</span>
-                            </summary>
-                            <div class="thinking-content p-4 mt-2 rounded-2xl">
-                                <canvas class="thinking-canvas"></canvas>
-                            </div>
-                        </details>
-                    `
-                    : `<div class="message-bubble p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl relative overflow-hidden" style="background-color: var(--bot-bubble-bg);"><div class="thinking-bar"></div></div>`;
-                    messageWrapper.innerHTML = animationHtml;
-
+                    messageWrapper.innerHTML = `<div class="message-bubble p-3 rounded-2xl w-20" style="background:transparent;box-shadow:none;"><div class="thinking-bar"></div></div>`;
                 } else {
                     const messageBubble = document.createElement('div');
                     messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
                     const contentDiv = document.createElement('div');
                     contentDiv.classList.add('message-content');
-                     // FIX: Check if the content is an image data string
                     if (content.startsWith("data:image")) {
                         contentDiv.innerHTML = `<img src="${content}" class="rounded-xl shadow-lg max-w-xs md:max-w-sm"/>`;
                     } else {
@@ -479,66 +494,46 @@
             return messageWrapper;
         }
 
-        function finalizeThinkingAndShowAnswer(botContent) {
-            const thinkingWrapper = document.getElementById('thinking-wrapper');
-            if (!thinkingWrapper) return;
-
-            const detailsElement = thinkingWrapper.querySelector('details');
-            if (detailsElement) {
-                // If it was a pro model, we keep the "thinking" box and append the answer after it
-                const summaryElement = thinkingWrapper.querySelector('summary');
-                summaryElement.innerHTML = `
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        <span class="font-semibold text-[color:var(--text-secondary)]">Thought Process</span>
-                    </div>
-                `;
-                detailsElement.removeAttribute('open');
-                const thinkingCanvas = detailsElement.querySelector('.thinking-canvas');
-                if (thinkingCanvas) thinkingCanvas.style.display = 'none'; // Hide canvas
-                const thinkingContent = detailsElement.querySelector('.thinking-content');
-                thinkingContent.innerHTML = `<p class="text-sm text-[color:var(--text-secondary)]">This is a placeholder for the model's reasoning steps.</p>`;
-                
-                // Append the actual answer *after* the thinking box
-                appendMessage("D'Ai", botContent);
-                thinkingWrapper.id = ''; // remove id to prevent conflicts
-            } else {
-                 // For other models, just replace the loading bar with the answer
-                 thinkingWrapper.remove();
-                 appendMessage("D'Ai", botContent);
-            }
-        }
-        
         async function sendMessage() {
             const userMessage = userInput.value.trim();
-            if (!userMessage) return;
+            if (!userMessage && !uploadedImageData) return;
 
-            appendMessage('You', userMessage);
+            appendMessage('You', userMessage, uploadedImageData);
+            
+            const parts = [];
+            if(userMessage) {
+                 parts.push({ text: userMessage });
+            }
+
+            if (uploadedImageData && currentModelType === 'image') {
+                parts.unshift({ // Add image first
+                    inlineData: {
+                        mimeType: uploadedImageData.split(';')[0].split(':')[1],
+                        data: uploadedImageData.split(',')[1]
+                    }
+                });
+            }
+            currentChat.push({ role: "user", parts: parts });
+
             userInput.value = '';
             userInput.style.height = 'auto';
+            removeImageBtn.click(); // Clear preview after sending
             
-            currentChat.push({ role: "user", parts: [{ text: userMessage }] });
-
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
 
-            const thinkingWrapper = appendMessage("D'Ai", '', true);
-            const canvas = thinkingWrapper.querySelector('.thinking-canvas');
-            if(canvas) startThinkingAnimation(canvas);
-
+            appendMessage("D'Ai", '', true);
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-
 
             try {
-                const botResponse = await callGeminiApi(userMessage);
+                const botResponse = await callGeminiApiWithRetry(currentChat);
                 
-                finalizeThinkingAndShowAnswer(botResponse);
+                document.getElementById('thinking-wrapper')?.remove();
+                appendMessage("D'Ai", botResponse);
                 
                 const responsePart = botResponse.startsWith('data:image') ? { inlineData: { mimeType: 'image/png', data: botResponse.split(',')[1] } } : { text: botResponse };
                 currentChat.push({ role: "model", parts: [responsePart] });
                 
-                setTimeout(() => {
-                    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-                }, 100);
+                setTimeout(() => chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' }), 100);
 
             } catch (error) {
                 document.getElementById('thinking-wrapper')?.remove();
@@ -547,18 +542,36 @@
             }
         }
 
-        async function callGeminiApi(prompt) {
+        async function callGeminiApiWithRetry(chatPayload, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    return await callGeminiApi(chatPayload);
+                } catch (error) {
+                    if (error.message.includes('503') && i < retries - 1) {
+                        console.log(`Model overloaded. Retrying in ${delay / 1000}s...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2; // Exponential backoff
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        }
+
+        async function callGeminiApi(chatPayload) {
             let apiUrl, payload;
             
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${API_KEY}`;
             if (currentModelType === 'image') {
-                apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${API_KEY}`;
-                payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-                };
+                payload = { contents: [{ role: "user", parts: chatPayload[chatPayload.length - 1].parts }] }; // Image models are not multi-turn
+                if (payload.contents[0].parts.length > 1) { // Text and Image
+                     payload.generationConfig = { responseModalities: ['IMAGE', 'TEXT'] };
+                } else { // Just Text
+                     payload.generationConfig = { responseModalities: ['IMAGE'] };
+                }
+
             } else {
-                apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModelId}:generateContent?key=${API_KEY}`;
-                payload = { contents: currentChat };
+                payload = { contents: chatPayload };
             }
             
             const response = await fetch(apiUrl, {
@@ -581,91 +594,19 @@
                 if (base64Data) {
                     return `data:image/png;base64,${base64Data}`;
                 }
-                throw new Error("API response did not contain image data.");
+                // Check if it returned text instead
+                const textPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if(textPart) return textPart;
+
+                throw new Error("API response did not contain image or text data.");
             } else {
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    return text;
-                }
-                // Handle cases where the response might be empty or blocked
+                if (text) return text;
+                
                 const finishReason = result.candidates?.[0]?.finishReason;
-                if (finishReason === "SAFETY") {
-                     return "I cannot answer that question as the response was blocked for safety reasons.";
-                }
+                if (finishReason === "SAFETY") return "I cannot answer that question as the response was blocked for safety reasons.";
+                
                 return "I'm sorry, I couldn't generate a response.";
-            }
-        }
-
-        // --- Thinking Animation Canvas Logic ---
-        function startThinkingAnimation(canvas) {
-            const ctx = canvas.getContext('2d');
-            let width, height;
-            let particles = [];
-            let animationFrameId;
-
-            function resize() {
-                width = canvas.offsetWidth;
-                height = canvas.offsetHeight;
-                canvas.width = width;
-                canvas.height = height;
-            }
-
-            function Particle(x, y) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 1.5;
-                this.vy = (Math.random() - 0.5) * 1.5;
-                this.life = Math.random() * 50 + 50;
-            }
-
-            function createParticles() {
-                particles = [];
-                for (let i = 0; i < 40; i++) {
-                    particles.push(new Particle(width / 2, height / 2));
-                }
-            }
-
-            function animate() {
-                if(!canvas.closest('details[open]')) {
-                     animationFrameId = requestAnimationFrame(animate);
-                     return;
-                }
-                ctx.clearRect(0, 0, width, height);
-
-                particles.forEach((p, i) => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.life--;
-
-                    if (p.life <= 0 || p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
-                        particles.splice(i, 1);
-                        particles.push(new Particle(width / 2, height / 2));
-                    }
-
-                    const hue = (Date.now() * 0.1 + i * 5) % 360;
-                    ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${p.life / 100})`;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-
-                animationFrameId = requestAnimationFrame(animate);
-            }
-            
-            const details = canvas.closest('details');
-            if (details) {
-                 details.addEventListener('toggle', () => {
-                    if (details.open) {
-                        if (!animationFrameId) {
-                           resize();
-                           createParticles();
-                           animate();
-                        }
-                    } else {
-                        cancelAnimationFrame(animationFrameId);
-                        animationFrameId = null;
-                    }
-                });
             }
         }
     </script>
