@@ -61,6 +61,13 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+// --- API ROOT ---
+// A simple endpoint to confirm the API is running.
+app.get('/api', (req, res) => {
+    res.status(200).json({ message: "D'Ai Backend is running." });
+});
+
+
 // --- AUTHENTICATION ROUTES ---
 // This is the endpoint your "Sign In" button will link to.
 app.get('/api/login', (req, res, next) => {
@@ -163,6 +170,13 @@ app.post('/api/generate', verifyToken, async (req, res) => {
         res.status(500).json({ error: "Failed to generate content from Gemini API." });
     }
 });
+
+// --- CATCH-ALL 404 HANDLER ---
+// This middleware will run for any request that doesn't match a route above.
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'Not Found' });
+});
+
 
 // Vercel handles the server listening part, so we just export the app
 module.exports = app;
