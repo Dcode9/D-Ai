@@ -14,7 +14,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const CALLBACK_URL = process.env.CALLBACK_URL; // e.g., https://d-ai-omega.vercel.app/api/auth/google/callback
 const JWT_SECRET = process.env.JWT_SECRET;
-const COOKIE_SECRET = process.env.COOKIE_SECRET; // CRITICAL: This is now used for signing cookies
+const COOKIE_SECRET = process.env.COOKIE_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const app = express();
@@ -39,7 +39,6 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
-// Initialize cookie-parser with a secret for signed cookies
 app.use(cookieParser(COOKIE_SECRET)); 
 app.use(passport.initialize());
 
@@ -50,7 +49,6 @@ passport.use(new GoogleStrategy({
     callbackURL: CALLBACK_URL
   },
   (accessToken, refreshToken, profile, done) => {
-    // In a real app, you would find or create a user in your database here.
     const user = {
       id: profile.id,
       name: profile.displayName,
@@ -62,21 +60,16 @@ passport.use(new GoogleStrategy({
 ));
 
 // --- API ROOT ---
-// A simple endpoint to confirm the API is running.
-app.get('/api', (req, res) => {
+app.get('/', (req, res) => {
     res.status(200).json({ message: "D'Ai Backend is running." });
 });
 
 
 // --- AUTHENTICATION ROUTES ---
-// This is the endpoint your "Sign In" button will link to.
-app.get('/api/login', (req, res, next) => {
+// CRITICAL FIX: The path is now '/login', not '/api/login'
+app.get('/login', (req, res, next) => {
     const { redirect_url } = req.query;
-    console.log(`[LOGIN] Received login request. Redirect URL is: ${redirect_url}`);
-
     if (redirect_url) {
-        // CRITICAL FIX: Set a short-lived, signed cookie to remember the redirect URL.
-        // This is more reliable than using the 'state' parameter across domains.
         res.cookie('authRedirectUrl', redirect_url, {
             signed: true,
             httpOnly: true,
@@ -84,40 +77,30 @@ app.get('/api/login', (req, res, next) => {
             sameSite: 'Lax',
             maxAge: 5 * 60 * 1000 // 5 minutes expiry
         });
-        console.log(`[LOGIN] Set authRedirectUrl cookie.`);
     }
-    
     passport.authenticate('google', { 
         scope: ['profile', 'email']
     })(req, res, next);
 });
 
-// This is the endpoint Google will send the user back to.
-app.get('/api/auth/google/callback', 
+// CRITICAL FIX: The path is now '/auth/google/callback'
+app.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: 'https://dverse.fun?auth_failed=true', session: false }),
   (req, res) => {
     const user = req.user;
-    console.log(`[CALLBACK] User authenticated: ${user.email}`);
-
-    // CRITICAL FIX: Read the redirect URL from the secure, signed cookie.
     const finalRedirect = req.signedCookies.authRedirectUrl || 'https://ai.dverse.fun';
-    console.log(`[CALLBACK] Redirecting to: ${finalRedirect}`);
-
-    // Clear the temporary redirect cookie as it's no longer needed.
     res.clearCookie('authRedirectUrl');
 
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, JWT_SECRET, { expiresIn: '7d' });
 
-    // This is the CRITICAL part for sharing the login across subdomains.
     res.cookie('dverseSessionToken', token, {
         httpOnly: true,
-        secure: true, // Only sent over HTTPS
-        sameSite: 'Lax', // Good security practice
-        domain: '.dverse.fun', // The leading dot is key!
+        secure: true,
+        sameSite: 'Lax',
+        domain: '.dverse.fun',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000
     });
-    console.log(`[CALLBACK] Set dverseSessionToken cookie for domain .dverse.fun`);
     
     res.redirect(finalRedirect);
   }
@@ -130,7 +113,6 @@ const verifyToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            // If the token is bad, clear the cookie
             res.clearCookie('dverseSessionToken', { domain: '.dverse.fun', path: '/' });
             return res.status(403).json({ error: "Forbidden: Invalid Token" });
         }
@@ -139,8 +121,8 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-app.get('/api/user', verifyToken, (req, res) => {
-    // We just return the user data that was already stored in the token.
+// CRITICAL FIX: The path is now '/user'
+app.get('/user', verifyToken, (req, res) => {
     res.json({
         name: req.user.name,
         email: req.user.email,
@@ -148,7 +130,8 @@ app.get('/api/user', verifyToken, (req, res) => {
     });
 });
 
-app.post('/api/generate', verifyToken, async (req, res) => {
+// CRITICAL FIX: The path is now '/generate'
+app.post('/generate', verifyToken, async (req, res) => {
     try {
         const { modelId, modelType, chatHistory } = req.body;
         const model = ai.getGenerativeModel({ model: modelId });
@@ -157,22 +140,23 @@ app.post('/api/generate', verifyToken, async (req, res) => {
         const lastUserPrompt = chatHistory[chatHistory.length - 1];
 
         if (modelType === 'image') {
-            result = await model.generateContent({ parts: lastUserPrompt.parts });
+            const imageParts = lastUserPrompt.parts.filter(p => p.inlineData);
+            const textParts = lastUserPrompt.parts.filter(p => p.text);
+            const prompt = [textParts[0].text, ...imageParts];
+            result = await model.generateContent(prompt);
         } else {
-             result = await model.generateContent({ contents: chatHistory });
+             result = await model.generateContentStream({ contents: chatHistory });
         }
         
-        // Ensure we send back a structured response Vercel can handle
         res.status(200).json(result.response.candidates[0].content);
 
     } catch (error) {
-        console.error("Error in /api/generate:", error.response?.data || error.message);
+        console.error("Error in /generate:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to generate content from Gemini API." });
     }
 });
 
 // --- CATCH-ALL 404 HANDLER ---
-// This middleware will run for any request that doesn't match a route above.
 app.use((req, res, next) => {
     res.status(404).json({ error: 'Not Found' });
 });
