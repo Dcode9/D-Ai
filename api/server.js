@@ -14,6 +14,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const CALLBACK_URL = process.env.CALLBACK_URL; // e.g., https://d-ai-omega.vercel.app/api/auth/google/callback
 const JWT_SECRET = process.env.JWT_SECRET;
+const COOKIE_SECRET = process.env.COOKIE_SECRET; // CRITICAL: This is now used for signing cookies
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const app = express();
@@ -38,17 +39,17 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
-app.use(cookieParser());
+// Initialize cookie-parser with a secret for signed cookies
+app.use(cookieParser(COOKIE_SECRET)); 
 app.use(passport.initialize());
 
 // --- PASSPORT (GOOGLE OAUTH) SETUP ---
 passport.use(new GoogleStrategy({
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: CALLBACK_URL,
-    passReqToCallback: true
+    callbackURL: CALLBACK_URL
   },
-  (req, accessToken, refreshToken, profile, done) => {
+  (accessToken, refreshToken, profile, done) => {
     // In a real app, you would find or create a user in your database here.
     const user = {
       id: profile.id,
@@ -64,14 +65,24 @@ passport.use(new GoogleStrategy({
 // This is the endpoint your "Sign In" button will link to.
 app.get('/api/login', (req, res, next) => {
     const { redirect_url } = req.query;
-    // We safely encode the final destination URL into the 'state' parameter.
-    const state = redirect_url ? Buffer.from(JSON.stringify({ redirect_url })).toString('base64') : undefined;
+    console.log(`[LOGIN] Received login request. Redirect URL is: ${redirect_url}`);
+
+    if (redirect_url) {
+        // CRITICAL FIX: Set a short-lived, signed cookie to remember the redirect URL.
+        // This is more reliable than using the 'state' parameter across domains.
+        res.cookie('authRedirectUrl', redirect_url, {
+            signed: true,
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            maxAge: 5 * 60 * 1000 // 5 minutes expiry
+        });
+        console.log(`[LOGIN] Set authRedirectUrl cookie.`);
+    }
     
-    const authenticator = passport.authenticate('google', { 
-        scope: ['profile', 'email'],
-        state: state 
-    });
-    authenticator(req, res, next);
+    passport.authenticate('google', { 
+        scope: ['profile', 'email']
+    })(req, res, next);
 });
 
 // This is the endpoint Google will send the user back to.
@@ -79,19 +90,14 @@ app.get('/api/auth/google/callback',
   passport.authenticate('google', { failureRedirect: 'https://dverse.fun?auth_failed=true', session: false }),
   (req, res) => {
     const user = req.user;
-    
-    // Default redirect location if something goes wrong.
-    let finalRedirect = 'https://ai.dverse.fun'; 
-    if (req.query.state) {
-        try {
-            const state = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
-            if (state.redirect_url) {
-                finalRedirect = state.redirect_url;
-            }
-        } catch (e) {
-            console.error("Failed to parse state:", e);
-        }
-    }
+    console.log(`[CALLBACK] User authenticated: ${user.email}`);
+
+    // CRITICAL FIX: Read the redirect URL from the secure, signed cookie.
+    const finalRedirect = req.signedCookies.authRedirectUrl || 'https://ai.dverse.fun';
+    console.log(`[CALLBACK] Redirecting to: ${finalRedirect}`);
+
+    // Clear the temporary redirect cookie as it's no longer needed.
+    res.clearCookie('authRedirectUrl');
 
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -104,6 +110,7 @@ app.get('/api/auth/google/callback',
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
+    console.log(`[CALLBACK] Set dverseSessionToken cookie for domain .dverse.fun`);
     
     res.redirect(finalRedirect);
   }
@@ -112,7 +119,7 @@ app.get('/api/auth/google/callback',
 // --- SECURE API ROUTES ---
 const verifyToken = (req, res, next) => {
     const token = req.cookies.dverseSessionToken;
-    if (!token) return res.status(41).json({ error: "Unauthorized" });
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
@@ -128,7 +135,7 @@ const verifyToken = (req, res, next) => {
 app.get('/api/user', verifyToken, (req, res) => {
     // We just return the user data that was already stored in the token.
     res.json({
-        name: req.user.name, // CRITICAL FIX: Was req.user.aname
+        name: req.user.name,
         email: req.user.email,
         avatarUrl: req.user.avatarUrl
     });
@@ -143,5 +150,20 @@ app.post('/api/generate', verifyToken, async (req, res) => {
         const lastUserPrompt = chatHistory[chatHistory.length - 1];
 
         if (modelType === 'image') {
-            result = await model.generateContent({ parts: lastUserPro
+            result = await model.generateContent({ parts: lastUserPrompt.parts });
+        } else {
+             result = await model.generateContent({ contents: chatHistory });
+        }
+        
+        // Ensure we send back a structured response Vercel can handle
+        res.status(200).json(result.response.candidates[0].content);
+
+    } catch (error) {
+        console.error("Error in /api/generate:", error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to generate content from Gemini API." });
+    }
+});
+
+// Vercel handles the server listening part, so we just export the app
+module.exports = app;
 
