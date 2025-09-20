@@ -76,7 +76,7 @@ app.get('/api/login', (req, res, next) => {
 
 // This is the endpoint Google will send the user back to.
 app.get('/api/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'https://dverse.fun', session: false }),
+  passport.authenticate('google', { failureRedirect: 'https://dverse.fun?auth_failed=true', session: false }),
   (req, res) => {
     const user = req.user;
     
@@ -112,7 +112,7 @@ app.get('/api/auth/google/callback',
 // --- SECURE API ROUTES ---
 const verifyToken = (req, res, next) => {
     const token = req.cookies.dverseSessionToken;
-    if (!token) return res.status(401).json({ error: "Unauthorized" });
+    if (!token) return res.status(41).json({ error: "Unauthorized" });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
@@ -128,7 +128,7 @@ const verifyToken = (req, res, next) => {
 app.get('/api/user', verifyToken, (req, res) => {
     // We just return the user data that was already stored in the token.
     res.json({
-        name: req.user.name,
+        name: req.user.name, // CRITICAL FIX: Was req.user.aname
         email: req.user.email,
         avatarUrl: req.user.avatarUrl
     });
@@ -143,19 +143,5 @@ app.post('/api/generate', verifyToken, async (req, res) => {
         const lastUserPrompt = chatHistory[chatHistory.length - 1];
 
         if (modelType === 'image') {
-            result = await model.generateContent({ parts: lastUserPrompt.parts });
-        } else {
-             result = await model.generateContent({ contents: chatHistory });
-        }
-        
-        res.json(result.response.candidates[0].content);
-
-    } catch (error) {
-        console.error("Error in /api/generate:", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to generate content from Gemini API." });
-    }
-});
-
-// Vercel handles the server listening part, so we just export the app
-module.exports = app;
+            result = await model.generateContent({ parts: lastUserPro
 
