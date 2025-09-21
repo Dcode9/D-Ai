@@ -205,7 +205,7 @@
                     </a>
                 </div>
                 <div class="relative">
-                    <button id="model-toggle-button" class="flex items-center text-xl md:text-2xl font-bold text-[color:var(--text-primary)]">
+                    <button id="model-toggle-button" class="flex items-center text-xl md:text-2xl font-bold text-[color:var(--text-primary)] disabled:opacity-50" disabled>
                         <span id="current-model-name">D'2.5 Flash</span>
                         <svg class="w-5 h-5 ml-2 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
@@ -219,7 +219,7 @@
                      <!-- AUTH CONTAINER: Holds Sign In button or User Profile -->
                     <div id="auth-container">
                         <!-- Sign In Button (shown when logged out) -->
-                        <a id="sign-in-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <a id="sign-in-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition hidden">
                             Sign in with Google
                         </a>
                         <!-- User Profile (shown when logged in) -->
@@ -239,7 +239,7 @@
                             <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform peer-checked:translate-x-6"></div>
                         </div>
                     </label>
-                    <button id="clear-chat-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20">
+                    <button id="clear-chat-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20" disabled>
                         <svg class="w-5 h-5 mr-2 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         Clear Chat
                     </button>
@@ -249,11 +249,7 @@
 
         <!-- Chat History -->
         <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-36 scroll-smooth">
-             <div class="flex justify-start">
-                <div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl">
-                    <div class="message-content"><p>Hello! I'm D'Ai. Please sign in to ask me anything!</p></div>
-                </div>
-            </div>
+             <!-- Initial message will be populated by script -->
         </div>
         
         <!-- Floating Message Input -->
@@ -340,7 +336,10 @@
                 // Disable chat features
                 userInput.disabled = true;
                 sendButton.disabled = true;
+                modelToggleButton.disabled = true;
+                clearChatBtn.disabled = true;
                 userInput.placeholder = "Please sign in to chat...";
+                appendMessage("D'Ai", "Welcome! Please sign in to begin your conversation.");
 
             } else {
                 // --- LOGGED IN STATE ---
@@ -352,7 +351,6 @@
                     if (!response.ok) {
                         // Token is invalid or expired
                         console.error("Session invalid. Please sign in again.");
-                        // In a real app, you'd clear the cookie here and re-run checkAuthStatus
                         signInLink.classList.remove('hidden');
                         userProfile.classList.add('hidden');
                         return;
@@ -369,7 +367,10 @@
                     // Enable chat features
                     userInput.disabled = false;
                     sendButton.disabled = false;
+                    modelToggleButton.disabled = false;
+                    clearChatBtn.disabled = false;
                     userInput.placeholder = "Type your message...";
+                    appendMessage("D'Ai", `Welcome back, ${userData.name}! How can I help you today?`);
 
                 } catch (error) {
                     console.error("Failed to fetch user data:", error);
@@ -529,6 +530,13 @@
             // ... (This function remains largely the same) ...
             const userMessage = userInput.value.trim();
             if (!userMessage && !uploadedImageData) return;
+            
+             // Clear the "Welcome" message on first user interaction
+            const firstMessage = chatHistory.querySelector('.message-content p');
+            if (firstMessage && firstMessage.textContent.startsWith("Welcome")) {
+                chatHistory.innerHTML = '';
+            }
+
             appendMessage('You', userMessage, uploadedImageData);
             const parts = [];
             if(userMessage) {
@@ -547,7 +555,7 @@
             userInput.style.height = 'auto';
             removeImageBtn.click();
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-            appendMessage("D'Ai", '', true);
+            appendMessage("D'Ai", '', null, true);
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
 
             try {
