@@ -216,13 +216,13 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
-                     <!-- AUTH CONTAINER: Holds Sign In button or User Profile -->
+                     <!-- AUTH CONTAINER: Both states are now in the HTML, one is hidden -->
                     <div id="auth-container">
-                        <!-- Sign In Button (shown when logged out) -->
+                        <!-- Logged-Out State -->
                         <a id="sign-in-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition hidden">
                             Sign in with Google
                         </a>
-                        <!-- User Profile (shown when logged in) -->
+                        <!-- Logged-In State -->
                         <div id="user-profile" class="hidden items-center gap-3">
                              <img id="user-avatar" src="" alt="User Avatar" class="w-10 h-10 rounded-full">
                              <span id="user-name" class="font-semibold text-[color:var(--text-primary)]"></span>
@@ -321,7 +321,6 @@
         }
 
         async function checkAuthStatus() {
-            // Check for the session cookie set by your main auth server
             const sessionToken = getCookie('dverseSessionToken');
 
             if (!sessionToken) {
@@ -329,27 +328,20 @@
                 signInLink.classList.remove('hidden');
                 userProfile.classList.add('hidden');
                 
-                // Construct the login URL to redirect back to this page
                 const redirectUrl = window.location.href;
                 signInLink.href = `${AUTH_SERVER_URL}/login?redirect_url=${encodeURIComponent(redirectUrl)}`;
 
-                // Disable chat features
-                userInput.disabled = true;
-                sendButton.disabled = true;
-                modelToggleButton.disabled = true;
-                clearChatBtn.disabled = true;
-                userInput.placeholder = "Please sign in to chat...";
+                setChatState(false, 'Please sign in to chat...');
                 appendMessage("D'Ai", "Welcome! Please sign in to begin your conversation.");
 
             } else {
                 // --- LOGGED IN STATE ---
                 try {
                     const response = await fetch(`${AUTH_SERVER_URL}/api/user`, {
-                        credentials: 'include' // This is CRITICAL for sending the cookie
+                        credentials: 'include'
                     });
 
                     if (!response.ok) {
-                        // Token is invalid or expired
                         console.error("Session invalid. Please sign in again.");
                         signInLink.classList.remove('hidden');
                         userProfile.classList.add('hidden');
@@ -358,18 +350,12 @@
                     
                     const userData = await response.json();
                     
-                    // Update UI with user data
                     signInLink.classList.add('hidden');
                     userProfile.classList.remove('hidden');
                     userName.textContent = userData.name;
                     userAvatar.src = userData.avatarUrl;
 
-                    // Enable chat features
-                    userInput.disabled = false;
-                    sendButton.disabled = false;
-                    modelToggleButton.disabled = false;
-                    clearChatBtn.disabled = false;
-                    userInput.placeholder = "Type your message...";
+                    setChatState(true, 'Type your message...');
                     appendMessage("D'Ai", `Welcome back, ${userData.name}! How can I help you today?`);
 
                 } catch (error) {
@@ -380,11 +366,18 @@
             }
         }
 
+        function setChatState(enabled, placeholder) {
+            userInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            modelToggleButton.disabled = !enabled;
+            clearChatBtn.disabled = !enabled;
+            userInput.placeholder = placeholder;
+        }
+
 
         // --- Marked.js Custom Renderer for Code Blocks ---
         const renderer = new marked.Renderer();
         renderer.code = function(code, language) {
-            // ... (rest of the function is the same as before) ...
             const codeString = (typeof code === 'string' || code instanceof String) ? code : String(code);
             let highlightedCode;
             try {
@@ -398,7 +391,6 @@
         marked.setOptions({ renderer });
 
         window.copyCode = function(button) {
-            // ... (rest of the function is the same as before) ...
             const pre = button.parentElement.nextElementSibling;
             const code = pre.querySelector('code');
             navigator.clipboard.writeText(code.innerText).then(() => {
@@ -408,7 +400,6 @@
         }
 
         // --- Theme Management & UI Logic ---
-        // ... (All other functions like setTheme, userInput listeners, etc. are the same as before) ...
         function setTheme(isDark) {
             if (isDark) {
                 document.documentElement.classList.add('dark');
@@ -489,7 +480,6 @@
         }
 
         function appendMessage(sender, content, imageSrc = null, isThinking = false) {
-             // ... (This function remains largely the same) ...
             const messageWrapper = document.createElement('div');
             if (sender === 'You') {
                 messageWrapper.classList.add('flex', 'justify-end');
@@ -519,7 +509,7 @@
                         contentDiv.innerHTML = marked.parse(content || '');
                     }
                     messageBubble.appendChild(contentDiv);
-                    messageWrapper.appendChild(messageBubble);
+                    messageWrapper.appendChild(messageWrapper);
                 }
             }
             chatHistory.appendChild(messageWrapper);
@@ -527,11 +517,9 @@
         }
 
         async function sendMessage() {
-            // ... (This function remains largely the same) ...
             const userMessage = userInput.value.trim();
             if (!userMessage && !uploadedImageData) return;
             
-             // Clear the "Welcome" message on first user interaction
             const firstMessage = chatHistory.querySelector('.message-content p');
             if (firstMessage && firstMessage.textContent.startsWith("Welcome")) {
                 chatHistory.innerHTML = '';
@@ -574,7 +562,6 @@
         }
 
         async function callGeminiApi(chatPayload) {
-            // This now points to your secure backend API
             const backendUrl = `${AUTH_SERVER_URL}/api/generate`; 
 
             const response = await fetch(backendUrl, {
