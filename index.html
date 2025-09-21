@@ -31,6 +31,7 @@
             --code-block-bg: #f9fafb; /* gray-50 */
             --code-header-bg: #e5e7eb; /* gray-200 */
             --code-header-text: #374151; /* gray-700 */
+            --pro-thinking-glow: radial-gradient(circle at center, rgba(107, 169, 255, 0.5) 0%, rgba(107, 169, 255, 0) 70%);
         }
 
         .dark {
@@ -45,6 +46,7 @@
             --code-block-bg: #282c34;
             --code-header-bg: rgba(0,0,0,0.2);
             --code-header-text: #abb2bf;
+            --pro-thinking-glow: radial-gradient(circle at center, rgba(107, 169, 255, 0.3) 0%, rgba(107, 169, 255, 0) 70%);
         }
 
         /* Custom styles for the liquid glass UI */
@@ -88,7 +90,7 @@
         .message-bubble-user {
             background: linear-gradient(to right, #007aff, #00c6ff);
         }
-        .message-bubble-bot {
+        .message-bubble-bot, .pro-thinking-summary, .thinking-tokens {
             background-color: var(--bot-bubble-bg);
             color: var(--bot-bubble-text);
         }
@@ -115,13 +117,47 @@
         }
         
         /* Thinking UI */
+         .pro-thinking-summary {
+            list-style: none; /* Removes default disclosure arrow */
+            transition: background-color 0.2s;
+        }
+       .pro-thinking-summary::-webkit-details-marker {
+            display: none;
+        }
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        .pro-thinking-summary .arrow-icon {
+            transition: transform 0.3s ease;
+        }
+        details[open] > summary .arrow-icon {
+            transform: rotate(90deg);
+        }
+
         .thinking-bar {
             width: 100%; height: 4px; border-radius: 2px;
             background: linear-gradient(90deg, #89f7fe, #66a6ff, #fc5c7d, #5de5f1);
             background-size: 400% 100%;
             animation: shimmer 1.5s infinite linear;
         }
-        @keyframes shimmer { 0% { background-position: 400% 0; } 100% { background-position: 0 0; } }
+         @keyframes shimmer { 0% { background-position: 400% 0; } 100% { background-position: 0 0; } }
+
+        .paint-splat-container {
+            width: 80px;
+            height: 80px;
+        }
+        .paint-splat {
+            position: absolute;
+            border-radius: 50%;
+            animation: splat 1.5s ease-out infinite;
+        }
+        @keyframes splat {
+            0%, 100% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1); opacity: 1; }
+        }
         
         /* Styles for rendered Markdown content */
         .message-content { word-break: break-word; }
@@ -173,7 +209,16 @@
         .icon-hover:hover {
             transform: scale(1.15);
         }
-        
+        .home-icon-container:hover .home-icon-glow {
+            opacity: 1;
+        }
+        .home-icon-glow {
+            transition: opacity 0.3s ease;
+        }
+        .clear-chat-icon { transition: color 0.2s, transform 0.2s; }
+        .clear-chat-icon:hover { color: #ef4444; /* red-500 */ transform: scale(1.1); }
+        .clear-chat-icon:active { color: #b91c1c; /* red-700 */ transform: scale(0.95); }
+
         /* Dropdown Animation */
         .dropdown-enter {
             transition: opacity 0.2s ease-out, transform 0.2s ease-out;
@@ -186,6 +231,23 @@
             opacity: 1;
             transform: scale(1) translateY(0);
         }
+         .pro-thinking-glow-wrapper {
+            position: relative;
+        }
+        .pro-thinking-glow-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 1.25rem; /* Matches the thinking box radius */
+            background: var(--pro-thinking-glow);
+            z-index: -1;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body class="animated-gradient-bg flex h-screen w-screen p-4">
@@ -196,12 +258,13 @@
     </div>
 
     <div id="glass-container" class="relative w-full h-full glass-container rounded-[1.5rem] overflow-hidden flex flex-col">
-        <!-- Floating Header with unified blur panel -->
+        <!-- Floating Header -->
         <header class="absolute top-0 left-0 right-0 p-3 z-20">
             <div class="glass-panel p-2 rounded-3xl flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="https://dverse.fun" class="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/20">
-                        <img src="https://raw.githubusercontent.com/Dcode9/D-Ai/main/DAi.ico" class="w-6 h-6">
+                    <a href="https://dverse.fun" class="p-2 rounded-full relative home-icon-container">
+                        <div class="absolute inset-0 rounded-full home-icon-glow bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/30 to-transparent opacity-0"></div>
+                        <img src="https://raw.githubusercontent.com/Dcode9/D-Ai/main/DAi.ico" class="w-6 h-6 relative z-10">
                     </a>
                 </div>
                 <div class="relative">
@@ -216,17 +279,9 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
-                     <!-- AUTH CONTAINER: Holds Sign In button or User Profile -->
+                     <!-- Auth Container -->
                     <div id="auth-container">
-                        <!-- Sign In Button (shown when logged out) -->
-                        <a id="sign-in-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition hidden">
-                            Sign in with Google
-                        </a>
-                        <!-- User Profile (shown when logged in) -->
-                        <div id="user-profile" class="hidden items-center gap-3">
-                             <img id="user-avatar" src="" alt="User Avatar" class="w-10 h-10 rounded-full">
-                             <span id="user-name" class="font-semibold text-[color:var(--text-primary)]"></span>
-                        </div>
+                        <!-- Sign-in button will be injected here -->
                     </div>
                     <!-- Dark Mode Toggle -->
                     <label for="theme-toggle" class="flex items-center cursor-pointer">
@@ -239,17 +294,16 @@
                             <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform peer-checked:translate-x-6"></div>
                         </div>
                     </label>
-                    <button id="clear-chat-btn" class="flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20" disabled>
-                        <svg class="w-5 h-5 mr-2 icon-hover" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Clear Chat
+                    <button id="clear-chat-btn" class="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/20" disabled>
+                        <svg class="w-6 h-6 clear-chat-icon text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                 </div>
             </div>
         </header>
-
+    
         <!-- Chat History -->
         <div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-6 pt-24 pb-36 scroll-smooth">
-             <!-- Initial message will be populated by script -->
+             <!-- Initial message appears here -->
         </div>
         
         <!-- Floating Message Input -->
@@ -275,10 +329,23 @@
         </footer>
     </div>
     
-    <script>
-        // --- CONFIGURATION ---
-        const AUTH_SERVER_URL = "https://authfordev.dverse.fun"; // Your central auth server
+    <!-- TEMPLATES for Auth States -->
+    <template id="sign-in-template">
+        <a id="sign-in-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            Sign in with Google
+        </a>
+    </template>
+    <template id="user-profile-template">
+        <div class="inline-flex items-center gap-2">
+            <img id="user-avatar" src="" alt="User Avatar" class="w-8 h-8 rounded-full">
+            <span id="user-name" class="font-semibold text-sm text-[color:var(--text-primary)] hidden md:inline"></span>
+            <button id="logout-btn" class="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/20">
+                <svg class="w-5 h-5 text-[color:var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </button>
+        </div>
+    </template>
 
+    <script>
         // DOM Element References
         const chatHistory = document.getElementById('chat-history');
         const userInput = document.getElementById('userInput');
@@ -295,110 +362,41 @@
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const imagePreview = document.getElementById('image-preview');
         const removeImageBtn = document.getElementById('remove-image-btn');
-        
         const authContainer = document.getElementById('auth-container');
-        const signInLink = document.getElementById('sign-in-link');
-        const userProfile = document.getElementById('user-profile');
-        const userAvatar = document.getElementById('user-avatar');
-        const userName = document.getElementById('user-name');
-
+        const signInTemplate = document.getElementById('sign-in-template');
+        const userProfileTemplate = document.getElementById('user-profile-template');
 
         let currentChat = [];
         let currentModelId = 'gemini-1.5-flash';
         let currentModelType = 'text';
         let uploadedImageData = null;
 
-        // --- AUTHENTICATION LOGIC ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuthStatus();
-        });
-
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return null;
-        }
-
-        async function checkAuthStatus() {
-            // Check for the session cookie set by your main auth server
-            const sessionToken = getCookie('dverseSessionToken');
-
-            if (!sessionToken) {
-                // --- LOGGED OUT STATE ---
-                signInLink.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-                
-                // Construct the login URL to redirect back to this page
-                const redirectUrl = window.location.href;
-                signInLink.href = `${AUTH_SERVER_URL}/login?redirect_url=${encodeURIComponent(redirectUrl)}`;
-
-                // Disable chat features
-                userInput.disabled = true;
-                sendButton.disabled = true;
-                modelToggleButton.disabled = true;
-                clearChatBtn.disabled = true;
-                userInput.placeholder = "Please sign in to chat...";
-                appendMessage("D'Ai", "Welcome! Please sign in to begin your conversation.");
-
-            } else {
-                // --- LOGGED IN STATE ---
-                try {
-                    const response = await fetch(`${AUTH_SERVER_URL}/api/user`, {
-                        credentials: 'include' // This is CRITICAL for sending the cookie
-                    });
-
-                    if (!response.ok) {
-                        // Token is invalid or expired
-                        console.error("Session invalid. Please sign in again.");
-                        signInLink.classList.remove('hidden');
-                        userProfile.classList.add('hidden');
-                        return;
-                    }
-                    
-                    const userData = await response.json();
-                    
-                    // Update UI with user data
-                    signInLink.classList.add('hidden');
-                    userProfile.classList.remove('hidden');
-                    userName.textContent = userData.name;
-                    userAvatar.src = userData.avatarUrl;
-
-                    // Enable chat features
-                    userInput.disabled = false;
-                    sendButton.disabled = false;
-                    modelToggleButton.disabled = false;
-                    clearChatBtn.disabled = false;
-                    userInput.placeholder = "Type your message...";
-                    appendMessage("D'Ai", `Welcome back, ${userData.name}! How can I help you today?`);
-
-                } catch (error) {
-                    console.error("Failed to fetch user data:", error);
-                    signInLink.classList.remove('hidden');
-                    userProfile.classList.add('hidden');
-                }
-            }
-        }
-
-
         // --- Marked.js Custom Renderer for Code Blocks ---
         const renderer = new marked.Renderer();
         renderer.code = function(code, language) {
-            // ... (rest of the function is the same as before) ...
             const codeString = (typeof code === 'string' || code instanceof String) ? code : String(code);
             let highlightedCode;
             try {
                 highlightedCode = hljs.highlightAuto(codeString, language ? [language] : undefined).value;
             } catch (e) {
-                highlightedCode = codeString;
+                console.error("Highlight.js error:", e);
+                highlightedCode = codeString; // Fallback to unhighlighted code
             }
             const langDisplay = language || 'code';
-            return `<div class="code-block-wrapper"><div class="code-block-header"><span>${langDisplay}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="hljs ${language}">${highlightedCode}</code></pre></div>`;
+            return `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span>${langDisplay}</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code class="hljs ${language}">${highlightedCode}</code></pre>
+                </div>
+            `;
         };
         marked.setOptions({ renderer });
 
+        // --- Copy to Clipboard Function ---
         window.copyCode = function(button) {
-            // ... (rest of the function is the same as before) ...
             const pre = button.parentElement.nextElementSibling;
             const code = pre.querySelector('code');
             navigator.clipboard.writeText(code.innerText).then(() => {
@@ -407,8 +405,7 @@
             });
         }
 
-        // --- Theme Management & UI Logic ---
-        // ... (All other functions like setTheme, userInput listeners, etc. are the same as before) ...
+        // --- Theme Management ---
         function setTheme(isDark) {
             if (isDark) {
                 document.documentElement.classList.add('dark');
@@ -422,13 +419,93 @@
                 lightThemeCss.disabled = false;
             }
         }
+
         themeToggle.addEventListener('change', () => setTheme(themeToggle.checked));
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         setTheme(prefersDark);
+
+        // --- Authentication Logic ---
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function deleteCookie(name) {
+            document.cookie = name + '=; Path=/; Domain=.dverse.fun; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        async function checkAuthStatus() {
+            const sessionToken = getCookie('dverseSessionToken');
+            
+            if (!sessionToken) {
+                // --- LOGGED OUT STATE ---
+                const signInFragment = signInTemplate.content.cloneNode(true);
+                const signInLink = signInFragment.getElementById('sign-in-link');
+                const redirectUrl = window.location.href.split('?')[0];
+                signInLink.href = `/api/login?redirect_url=${encodeURIComponent(redirectUrl)}`;
+                
+                authContainer.innerHTML = '';
+                authContainer.appendChild(signInFragment);
+
+                setChatState(false, 'Please sign in to chat...');
+                appendMessage("D'Ai", "Welcome! Please sign in to begin your conversation.");
+
+            } else {
+                // --- LOGGED IN STATE ---
+                try {
+                    const response = await fetch('/api/user', {
+                        credentials: 'include' // CRITICAL: Sends the cookie
+                    });
+
+                    if (!response.ok) {
+                        console.error("Auth token is invalid, signing out.");
+                        deleteCookie('dverseSessionToken');
+                        checkAuthStatus(); // Re-run the check to show sign-in button
+                        return;
+                    }
+
+                    const userData = await response.json();
+                    
+                    const profileFragment = userProfileTemplate.content.cloneNode(true);
+                    profileFragment.getElementById('user-name').textContent = userData.name;
+                    profileFragment.getElementById('user-avatar').src = userData.avatarUrl;
+                    
+                    authContainer.innerHTML = '';
+                    authContainer.appendChild(profileFragment);
+
+                    document.getElementById('logout-btn').addEventListener('click', () => {
+                        deleteCookie('dverseSessionToken');
+                        window.location.reload();
+                    });
+
+                    setChatState(true, 'Type your message...');
+                    appendMessage("D'Ai", `Welcome back, ${userData.name}! How can I help you today?`);
+
+                } catch (error) {
+                    console.error("Failed to fetch user data:", error);
+                     const signInFragment = signInTemplate.content.cloneNode(true);
+                     authContainer.innerHTML = '';
+                     authContainer.appendChild(signInFragment);
+                }
+            }
+        }
+        
+        function setChatState(enabled, placeholder) {
+            userInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            clearChatBtn.disabled = !enabled;
+            modelToggleButton.disabled = !enabled;
+            userInput.placeholder = placeholder;
+        }
+
+        // --- UI Interaction Logic ---
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = `${userInput.scrollHeight}px`;
         });
+
         modelToggleButton.addEventListener('click', (e) => {
             e.stopPropagation();
             const isHidden = modelDropdown.classList.contains('hidden');
@@ -440,13 +517,16 @@
                 setTimeout(() => modelDropdown.classList.add('hidden'), 200);
             }
         });
+        
         window.addEventListener('click', (e) => {
             if (!modelDropdown.classList.contains('hidden') && !modelToggleButton.contains(e.target)) {
                 modelDropdown.classList.add('dropdown-enter-from');
                 setTimeout(() => modelDropdown.classList.add('hidden'), 200);
             }
         });
+
         modelDropdown.addEventListener('click', (e) => {
+            e.preventDefault();
             if (e.target.tagName === 'A') {
                 currentModelId = e.target.dataset.modelId;
                 currentModelType = e.target.dataset.modelType;
@@ -454,9 +534,11 @@
                 uploadImageLabel.classList.toggle('hidden', currentModelType !== 'image');
                 userInput.placeholder = currentModelType === 'text' ? 'Type your message...' : 'Describe an image or ask a question about an uploaded one...';
                 modelDropdown.classList.add('hidden');
-                clearChat();
+                clearChat(true); // Clear chat but keep welcome message
             }
         });
+
+        // --- Image Upload Logic ---
         imageUploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -469,11 +551,14 @@
                 reader.readAsDataURL(file);
             }
         });
+
         removeImageBtn.addEventListener('click', () => {
             uploadedImageData = null;
-            imageUploadInput.value = '';
+            imageUploadInput.value = ''; // Reset file input
             imagePreviewContainer.classList.add('hidden');
         });
+
+        // --- Event Listeners ---
         sendButton.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -481,16 +566,22 @@
                 sendMessage();
             }
         });
-        clearChatBtn.addEventListener('click', clearChat);
-        function clearChat() {
+        clearChatBtn.addEventListener('click', () => clearChat(false));
+        
+        // --- Chat Logic ---
+        function clearChat(isModelSwitch) {
             currentChat = [];
-            chatHistory.innerHTML = `<div class="flex justify-start"><div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"><div class="message-content"><p>Hello! I'm D'Ai. Ask me anything!</p></div></div></div>`;
+            if (!isModelSwitch) {
+                 chatHistory.innerHTML = `<div class="flex justify-start"><div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"><div class="message-content"><p>New chat started. Ask me anything!</p></div></div></div>`;
+            } else {
+                 chatHistory.innerHTML = `<div class="flex justify-start"><div class="message-bubble message-bubble-bot p-3 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"><div class="message-content"><p>Model switched to ${currentModelName.textContent}. How can I help?</p></div></div></div>`;
+            }
             removeImageBtn.click();
         }
-
+        
         function appendMessage(sender, content, imageSrc = null, isThinking = false) {
-             // ... (This function remains largely the same) ...
             const messageWrapper = document.createElement('div');
+            
             if (sender === 'You') {
                 messageWrapper.classList.add('flex', 'justify-end');
                 const messageBubble = document.createElement('div');
@@ -507,7 +598,24 @@
                 messageWrapper.classList.add('flex', 'justify-start');
                 if (isThinking) {
                     messageWrapper.id = 'thinking-wrapper';
-                    messageWrapper.innerHTML = `<div class="message-bubble p-3 rounded-2xl w-20" style="background:transparent;box-shadow:none;"><div class="thinking-bar"></div></div>`;
+                    if (currentModelId === "gemini-2.5-flash") { // Pro model
+                        messageWrapper.innerHTML = `
+                            <div class="w-full max-w-[80%] pro-thinking-glow-wrapper">
+                                <details class="thinking-details">
+                                    <summary class="pro-thinking-summary p-3 rounded-2xl cursor-pointer flex items-center">
+                                        <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                        <span class="pro-thinking-text">Thinking...</span>
+                                        <svg class="w-5 h-5 ml-auto arrow-icon text-[color:var(--text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    </summary>
+                                    <div class="thinking-tokens p-3 text-sm text-[color:var(--text-secondary)]">Generating response...</div>
+                                </details>
+                            </div>
+                        `;
+                    } else if (currentModelType === 'image') { // Paint model
+                         messageWrapper.innerHTML = `<div class="message-bubble p-3 rounded-2xl w-20 relative paint-splat-container" style="background:transparent;box-shadow:none;"><div class="paint-splat w-16 h-16 bg-pink-400"></div><div class="paint-splat w-12 h-12 bg-cyan-400" style="animation-delay: 0.2s;"></div><div class="paint-splat w-8 h-8 bg-yellow-400" style="animation-delay: 0.4s;"></div></div>`;
+                    } else { // Flash model
+                        messageWrapper.innerHTML = `<div class="message-bubble p-3 rounded-2xl w-20" style="background:transparent;box-shadow:none;"><div class="thinking-bar"></div></div>`;
+                    }
                 } else {
                     const messageBubble = document.createElement('div');
                     messageBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl');
@@ -522,28 +630,29 @@
                     messageWrapper.appendChild(messageBubble);
                 }
             }
+
             chatHistory.appendChild(messageWrapper);
             return messageWrapper;
         }
 
         async function sendMessage() {
-            // ... (This function remains largely the same) ...
             const userMessage = userInput.value.trim();
             if (!userMessage && !uploadedImageData) return;
-            
-             // Clear the "Welcome" message on first user interaction
-            const firstMessage = chatHistory.querySelector('.message-content p');
-            if (firstMessage && firstMessage.textContent.startsWith("Welcome")) {
+
+            // Clear welcome message on first user interaction
+            if (chatHistory.children.length === 1 && chatHistory.children[0].innerText.includes("Welcome")) {
                 chatHistory.innerHTML = '';
             }
 
             appendMessage('You', userMessage, uploadedImageData);
+            
             const parts = [];
             if(userMessage) {
                  parts.push({ text: userMessage });
             }
+
             if (uploadedImageData && currentModelType === 'image') {
-                parts.unshift({
+                parts.unshift({ // Add image first
                     inlineData: {
                         mimeType: uploadedImageData.split(';')[0].split(':')[1],
                         data: uploadedImageData.split(',')[1]
@@ -551,61 +660,99 @@
                 });
             }
             currentChat.push({ role: "user", parts: parts });
+
             userInput.value = '';
             userInput.style.height = 'auto';
-            removeImageBtn.click();
+            removeImageBtn.click(); // Clear preview after sending
+            
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-            appendMessage("D'Ai", '', null, true);
+
+            const thinkingMessage = appendMessage("D'Ai", '', null, true);
             chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
 
             try {
                 const botResponse = await callGeminiApi(currentChat);
-                document.getElementById('thinking-wrapper')?.remove();
-                appendMessage("D'Ai", botResponse);
+                
+                if (currentModelId === 'gemini-2.5-flash' && thinkingMessage.querySelector('.thinking-details')) {
+                    const details = thinkingMessage.querySelector('.thinking-details');
+                    const summary = thinkingMessage.querySelector('.pro-thinking-summary');
+                    const tokens = thinkingMessage.querySelector('.thinking-tokens');
+                    
+                    summary.querySelector('.pro-thinking-text').textContent = 'Thought Process';
+                    tokens.textContent = "The model considered the user's prompt and generated a relevant response based on its training data."; // Placeholder
+                    
+                    const answerBubble = document.createElement('div');
+                    answerBubble.classList.add('message-bubble', 'message-bubble-bot', 'p-3', 'shadow-md', 'rounded-tl-lg', 'rounded-tr-2xl', 'rounded-br-2xl', 'rounded-bl-2xl', 'mt-2');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+                    contentDiv.innerHTML = marked.parse(botResponse || '');
+                    answerBubble.appendChild(contentDiv);
+                    thinkingMessage.appendChild(answerBubble);
+                } else {
+                    thinkingMessage.remove();
+                    appendMessage("D'Ai", botResponse);
+                }
+                
                 const responsePart = botResponse.startsWith('data:image') ? { inlineData: { mimeType: 'image/png', data: botResponse.split(',')[1] } } : { text: botResponse };
                 currentChat.push({ role: "model", parts: [responsePart] });
+                
                 setTimeout(() => chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' }), 100);
 
             } catch (error) {
-                document.getElementById('thinking-wrapper')?.remove();
+                thinkingMessage.remove();
                 console.error('Error calling Gemini API:', error);
                 appendMessage("D'Ai", `Sorry, something went wrong: ${error.message}`);
             }
         }
 
-        async function callGeminiApi(chatPayload) {
-            // This now points to your secure backend API
-            const backendUrl = `${AUTH_SERVER_URL}/api/generate`; 
+       async function callGeminiApi(chatPayload) {
+            const backendUrl = '/api/generate';
 
-            const response = await fetch(backendUrl, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include', // CRITICAL for sending the session cookie
-                body: JSON.stringify({
-                    modelId: currentModelId,
-                    modelType: currentModelType,
-                    chatHistory: chatPayload
-                }),
-            });
+            try {
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        modelId: currentModelId,
+                        modelType: currentModelType,
+                        chatHistory: chatPayload
+                    }),
+                    credentials: 'include' // Important for sending cookies
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Backend server error');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                const responsePart = result.parts[0];
+        
+                if (responsePart.inlineData) {
+                    const base64Data = responsePart.inlineData.data;
+                    return `data:image/png;base64,${base64Data}`;
+                } else if (responsePart.text) {
+                    return responsePart.text;
+                }
+        
+                const finishReason = result.finishReason;
+                if (finishReason === "SAFETY") return "I cannot answer that question as the response was blocked for safety reasons.";
+                
+                return "I'm sorry, I couldn't generate a response.";
+
+            } catch (err) {
+                 console.error("API Call failed:", err);
+                 // If the error is an auth error, it might be good to re-check auth status
+                 if (err.message.includes("Unauthorized") || err.message.includes("401")) {
+                     checkAuthStatus();
+                 }
+                 throw err; // Re-throw the error to be caught by sendMessage
             }
-
-            const result = await response.json();
-            
-            const responsePart = result.candidates[0].content.parts[0];
-            if (responsePart.inlineData) {
-                return `data:image/png;base64,${responsePart.inlineData.data}`;
-            } else if (responsePart.text) {
-                return responsePart.text;
-            }
-
-            return "I'm sorry, I couldn't generate a response.";
         }
+
+        // Run the auth check when the page loads
+        document.addEventListener('DOMContentLoaded', checkAuthStatus);
     </script>
 </body>
 </html>
