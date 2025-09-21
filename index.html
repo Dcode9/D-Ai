@@ -453,14 +453,7 @@ async function fetchJson(url) {
                     if (stringContent.startsWith('data:image')) {
                         contentDiv.innerHTML = `<img src="${stringContent}" class="rounded-lg">`;
                     } else {
-                        // Safe stringify + parse for markdown to avoid [object Object]
-                        try {
-                            const markdown = extractStringsRecursively(stringContent);
-                            contentDiv.innerHTML = marked.parse(markdown);
-                        } catch (e) {
-                            console.error("Markdown parse error:", e);
-                            contentDiv.textContent = String(stringContent);
-                        }
+                        contentDiv.innerHTML = marked.parse(stringContent);
                     }
                     messageBubble.appendChild(contentDiv);
                     messageWrapper.appendChild(messageBubble);
@@ -508,9 +501,6 @@ async function fetchJson(url) {
             try {
                 const botResponse = await callGeminiApiWithRetry(userMessage);
                 
-                // Log raw AI response before rendering
-                console.log("Raw AI response:", botResponse);
-
                 thinkingMessage.remove();
                 appendMessage("D'Ai", botResponse);
                 
@@ -555,7 +545,7 @@ async function fetchJson(url) {
                     generationConfig: { responseModalities: ['IMAGE'] }
                 };
             } else {
-                // Use Gemini 2.5 Flash for text and return a safe string by default
+                // Switch to Gemini 2.5 Flash for text
                 apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
                 payload = { contents: chatHistoryArray };
             }
@@ -580,7 +570,20 @@ async function fetchJson(url) {
                     return `data:image/png;base64,${base64Data}`;
                 }
             } else {
-                // Always return a string extracted from the whole result to avoid raw objects
+                // Prefer extracting from the top candidate content (handles nested objects)
+                const candidate = result?.candidates?.[0];
+                if (candidate) {
+                    // If candidate.content exists (structured), extract recursively
+                    if (candidate.content) {
+                        return extractStringsRecursively(candidate.content);
+                    }
+                    // Fallback: if candidate has parts array, extract from parts
+                    const parts = candidate.content?.parts ?? candidate.parts ?? result?.candidates?.[0]?.content?.parts;
+                    if (parts && Array.isArray(parts)) {
+                        return parts.map(p => extractStringsRecursively(p)).join('');
+                    }
+                }
+                // Generic fallback: try to pull out any strings from the whole result
                 return extractStringsRecursively(result);
             }
             throw new Error('Unexpected API response format.');
