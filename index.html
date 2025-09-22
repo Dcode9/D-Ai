@@ -251,12 +251,19 @@
     
     // --- GEMINI SERVICE ---
     
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set.");
+    let ai;
+    let apiKeyError = null;
+
+    try {
+        if (typeof process === 'undefined' || typeof process.env === 'undefined' || !process.env.API_KEY) {
+            throw new Error("The API_KEY environment variable is not set. Please add it to your Vercel project settings.");
+        }
+        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    } catch (e) {
+        apiKeyError = e.message;
+        console.error("Gemini AI Initialization Error:", e.message);
     }
-    
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
+
     const IMAGE_GENERATION_INSTRUCTION = `You are D'Ai, a helpful multimodal assistant. If the user asks you to generate, create, or draw an image, you MUST respond with only the text "[ACTION:GENERATE_IMAGE]" followed by a descriptive, stand-alone prompt that can be used to generate the image. For example, if the user says 'Can you draw me a picture of a robot holding a red skateboard?', you must respond with "[ACTION:GENERATE_IMAGE] A robot holding a red skateboard.". For all other requests, respond as a normal, helpful assistant.`;
     
     function _processResponseParts(parts) {
@@ -285,6 +292,7 @@
     }
     
     function initializeChat() {
+        if (!ai) return null;
         return ai.chats.create({
             model: 'gemini-2.5-flash',
             config: { systemInstruction: IMAGE_GENERATION_INSTRUCTION },
@@ -641,6 +649,22 @@
     
     function App() {
         const { theme, toggleTheme } = useTheme();
+
+        if (apiKeyError) {
+            return (
+                React.createElement("div", { className: "animated-gradient-bg flex items-center justify-center min-h-screen p-2 sm:p-4" },
+                    React.createElement("div", { className: "absolute inset-0 z-0" },
+                        React.createElement("div", { className: "shape shape1" }),
+                        React.createElement("div", { className: "shape shape2" })
+                    ),
+                    React.createElement("div", { className: "relative w-full max-w-lg rounded-[2.5rem] shadow-2xl glass-container overflow-hidden p-8 text-center" },
+                        React.createElement("h2", { className: "text-2xl font-bold text-[color:var(--text-primary)] mb-4" }, "Application Error"),
+                        React.createElement("p", { className: "text-[color:var(--text-secondary)]" }, apiKeyError)
+                    )
+                )
+            );
+        }
+
         const [messages, setMessages] = useState([TEXT_WELCOME_MESSAGE]);
         const [isLoading, setIsLoading] = useState(false);
         const [modelType, setModelType] = useState('text');
