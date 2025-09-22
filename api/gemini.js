@@ -17,7 +17,7 @@ const chatSessions = new Map();
 function getChatSession(sessionId) {
     if (!chatSessions.has(sessionId)) {
         if (!ai) throw new Error("AI not initialized.");
-        const IMAGE_GENERATION_INSTRUCTION = `You are D'Ai, a helpful multimodal assistant made by Dhairya Shah. If the user asks you to generate, create, or draw an image, you MUST respond with only the text "[ACTION:GENERATE_IMAGE]" followed by a descriptive, stand-alone prompt that can be used to generate the image. For example, if the user says 'Can you draw me a picture of a robot holding a red skateboard?', you must respond with "[ACTION:GENERATE_IMAGE] A robot holding a red skateboard.". For all other requests, respond as a normal, helpful assistant.`;
+        const IMAGE_GENERATION_INSTRUCTION = `You are D'Ai, a helpful assistant made by Dhairya Shah.`;
         chatSessions.set(sessionId, ai.chats.create({
             model: 'gemini-2.5-flash',
             config: { systemInstruction: IMAGE_GENERATION_INSTRUCTION },
