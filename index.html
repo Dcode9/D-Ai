@@ -270,11 +270,6 @@
         return data.parts;
     }
     
-    async function generateImage(prompt) {
-        const data = await apiCall('generateImage', { prompt });
-        return data.imageUrl;
-    }
-    
     async function generateOrEditImageWithNanoBanana(prompt, image) {
         const data = await apiCall('nanoBanana', { prompt, image });
         return data.parts;
@@ -545,7 +540,7 @@
     const TEXT_WELCOME_MESSAGE = {
         id: 'initial-welcome',
         role: 'model',
-        parts: [{ text: `Hello! I'm **D'Ai (Gemini 2.5)** — your assistant for code, explanations, and images.` }]
+        parts: [{ text: `Hello! I'm **D'Ai (Gemini 2.5)** — your assistant for code and explanations. For image creation, please use the D'Ai - Paint model.` }]
     };
     
     const PAINT_WELCOME_MESSAGE = {
@@ -606,35 +601,12 @@
             try {
                 if (modelType === 'text') {
                     const rawBotResponseParts = await sendMessageToModel(sessionId, inputText);
-                    const responseText = rawBotResponseParts.map(p => p.text || '').join('').trim();
-                    const imageActionPrefix = "[ACTION:GENERATE_IMAGE]";
-    
-                    if (responseText.startsWith(imageActionPrefix)) {
-                        const imagePrompt = responseText.substring(imageActionPrefix.length).trim();
-                        
-                        const confirmationMessage = {
-                            id: `model-${Date.now()}-confirm`,
-                            role: 'model',
-                            parts: [{ text: `OK, using Imagen to generate: *${imagePrompt}*` }]
-                        };
-                        setMessages(prev => [...prev, confirmationMessage]);
-    
-                        const imageUrl = await generateImage(imagePrompt);
-                        const imageMessage = {
-                            id: `model-${Date.now()}-image`,
-                            role: 'model',
-                            parts: [{ imageData: imageUrl }]
-                        };
-                        setMessages(prev => [...prev, imageMessage]);
-    
-                    } else {
-                        const textMessage = {
-                            id: `model-${Date.now()}`,
-                            role: 'model',
-                            parts: rawBotResponseParts
-                        };
-                        setMessages(prev => [...prev, textMessage]);
-                    }
+                    const textMessage = {
+                        id: `model-${Date.now()}`,
+                        role: 'model',
+                        parts: rawBotResponseParts
+                    };
+                    setMessages(prev => [...prev, textMessage]);
     
                 } else if (modelType === 'image') {
                     const botResponseParts = await generateOrEditImageWithNanoBanana(inputText, imageFile);
