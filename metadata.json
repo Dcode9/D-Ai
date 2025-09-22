@@ -1,0 +1,7 @@
+{
+  "name": "D'Ai - Gemini Chat",
+  "description": "A sleek, feature-rich chat interface for interacting with Google's Gemini models. It supports both text-based conversations and image generation, featuring a 'liquid glass' UI, dark/light themes, and Markdown rendering with syntax highlighting.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
