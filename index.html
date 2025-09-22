@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-g" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>D'Ai - Gemini Chat</title>
@@ -212,7 +212,6 @@
     // <![CDATA[
     import React from 'react';
     import ReactDOM from 'react-dom/client';
-    import { GoogleGenAI, Modality } from "@google/genai";
     
     const { useState, useEffect, useCallback, useRef, forwardRef } = React;
     
@@ -249,132 +248,40 @@
         }, [textareaRef, value]);
     };
     
-    // --- GEMINI SERVICE ---
+    // --- API SERVICE (calls our serverless function) ---
     
-    let ai;
-    let apiKeyError = null;
-
-    try {
-        if (typeof process === 'undefined' || typeof process.env === 'undefined' || !process.env.API_KEY) {
-            throw new Error("The API_KEY environment variable is not set. Please add it to your Vercel project settings.");
-        }
-        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    } catch (e) {
-        apiKeyError = e.message;
-        console.error("Gemini AI Initialization Error:", e.message);
-    }
-
-    const IMAGE_GENERATION_INSTRUCTION = `You are D'Ai, a helpful multimodal assistant. If the user asks you to generate, create, or draw an image, you MUST respond with only the text "[ACTION:GENERATE_IMAGE]" followed by a descriptive, stand-alone prompt that can be used to generate the image. For example, if the user says 'Can you draw me a picture of a robot holding a red skateboard?', you must respond with "[ACTION:GENERATE_IMAGE] A robot holding a red skateboard.". For all other requests, respond as a normal, helpful assistant.`;
-    
-    function _processResponseParts(parts) {
-        if (!parts || parts.length === 0) return [];
-        
-        return parts.map(part => {
-            if (part.inlineData) {
-                const { mimeType, data } = part.inlineData;
-                return { imageData: `data:${mimeType};base64,${data}` };
-            }
-            
-            if (part.text != null) {
-                 if (typeof part.text === 'string') {
-                     return { text: part.text };
-                 } else if (typeof part.text === 'object') {
-                     try {
-                        const jsonString = JSON.stringify(part.text, null, 2);
-                        return { text: `\`\`\`json\n${jsonString}\n\`\`\`` };
-                     } catch (e) {
-                         return { text: '[Unsupported content: Could not format object]' };
-                     }
-                 }
-            }
-            return null; 
-        }).filter(p => p !== null);
-    }
-    
-    function initializeChat() {
-        if (!ai) return null;
-        return ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: { systemInstruction: IMAGE_GENERATION_INSTRUCTION },
+    async function apiCall(action, payload) {
+        const response = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, payload })
         });
+    
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+    
+        return response.json();
     }
     
-    async function sendMessageToModel(chat, message) {
-        const response = await chat.sendMessage({ message });
-        
-        const parts = response.candidates?.[0]?.content?.parts;
-    
-        if (!parts || parts.length === 0) {
-            const finishReason = response.candidates?.[0]?.finishReason;
-            if (finishReason && finishReason !== 'STOP') {
-                return [{ text: `The response was stopped prematurely. Reason: ${finishReason}` }];
-            }
-            return [{ text: "I received a response, but it was empty." }];
-        }
-        
-        const messageParts = _processResponseParts(parts);
-    
-        if (messageParts.length === 0) {
-            return [{ text: "I received a response, but it contained no displayable content." }];
-        }
-    
-        return messageParts;
+    async function sendMessageToModel(sessionId, message) {
+        const data = await apiCall('sendMessage', { sessionId, message });
+        return data.parts;
     }
     
     async function generateImage(prompt) {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/png',
-              aspectRatio: '1:1',
-            },
-        });
-    
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-            return `data:image/png;base64,${base64ImageBytes}`;
-        }
-    
-        throw new Error("Image generation failed or returned no images.");
+        const data = await apiCall('generateImage', { prompt });
+        return data.imageUrl;
     }
     
     async function generateOrEditImageWithNanoBanana(prompt, image) {
-        const modelParts = [];
+        const data = await apiCall('nanoBanana', { prompt, image });
+        return data.parts;
+    }
     
-        if (image) {
-            const base64Data = image.data.split(',')[1];
-            if (!base64Data) throw new Error("Invalid image data URL format.");
-            modelParts.push({ inlineData: { data: base64Data, mimeType: image.mimeType } });
-        }
-    
-        if (prompt) {
-            modelParts.push({ text: prompt });
-        }
-    
-        if (modelParts.length === 0) {
-            throw new Error("A prompt or an image is required to generate content.");
-        }
-    
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
-            contents: { parts: modelParts },
-            config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
-        });
-    
-        const parts = response.candidates?.[0]?.content?.parts;
-        const messageParts = _processResponseParts(parts);
-    
-        if (messageParts.length === 0) {
-            const finishReason = response.candidates?.[0]?.finishReason;
-            if (finishReason && finishReason !== 'STOP') {
-                return [{ text: `Nano Banana stopped prematurely. Reason: ${finishReason}` }];
-            }
-            return [{ text: "Nano Banana returned an empty response." }];
-        }
-        
-        return messageParts;
+    async function clearServerChat(sessionId) {
+        await apiCall('clearChat', { sessionId });
     }
     
     // --- COMPONENTS ---
@@ -537,7 +444,7 @@
                 React.createElement("div", { className: "flex items-end space-x-3" },
                     currentModel === 'image' && React.createElement(React.Fragment, null,
                         React.createElement("input", { type: "file", ref: fileInputRef, onChange: handleFileChange, accept: "image/png, image/jpeg, image/webp", hidden: true }),
-                        React.createElement("button", { onClick: () => fileInputRef.current?.click(), disabled: isLoading, className: "bg-gray-500/50 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-gray-600/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg disabled:bg-gray-400/50 disabled:cursor-not-allowed", "aria-label": "Upload image" },
+                        React.createElement("button", { onClick: () => fileInput.current?.click(), disabled: isLoading, className: "bg-gray-500/50 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-gray-600/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg disabled:bg-gray-400/50 disabled:cursor-not-allowed", "aria-label": "Upload image" },
                             React.createElement("svg", { className: "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" }))
                         )
                     ),
@@ -649,26 +556,10 @@
     
     function App() {
         const { theme, toggleTheme } = useTheme();
-
-        if (apiKeyError) {
-            return (
-                React.createElement("div", { className: "animated-gradient-bg flex items-center justify-center min-h-screen p-2 sm:p-4" },
-                    React.createElement("div", { className: "absolute inset-0 z-0" },
-                        React.createElement("div", { className: "shape shape1" }),
-                        React.createElement("div", { className: "shape shape2" })
-                    ),
-                    React.createElement("div", { className: "relative w-full max-w-lg rounded-[2.5rem] shadow-2xl glass-container overflow-hidden p-8 text-center" },
-                        React.createElement("h2", { className: "text-2xl font-bold text-[color:var(--text-primary)] mb-4" }, "Application Error"),
-                        React.createElement("p", { className: "text-[color:var(--text-secondary)]" }, apiKeyError)
-                    )
-                )
-            );
-        }
-
         const [messages, setMessages] = useState([TEXT_WELCOME_MESSAGE]);
         const [isLoading, setIsLoading] = useState(false);
         const [modelType, setModelType] = useState('text');
-        const [chat, setChat] = useState(null);
+        const [sessionId, setSessionId] = useState(`session-${Date.now()}`);
         const [error, setError] = useState(null);
         const [showNanoBananaPopup, setShowNanoBananaPopup] = useState(false);
         const [showIntroPopup, setShowIntroPopup] = useState(false);
@@ -685,10 +576,8 @@
     
         useEffect(() => {
             if (modelType === 'text') {
-                setChat(initializeChat());
                 setMessages([TEXT_WELCOME_MESSAGE]);
             } else {
-                setChat(null);
                 setMessages([PAINT_WELCOME_MESSAGE]);
             }
         }, [modelType]);
@@ -715,8 +604,8 @@
             setError(null);
     
             try {
-                if (modelType === 'text' && chat) {
-                    const rawBotResponseParts = await sendMessageToModel(chat, inputText);
+                if (modelType === 'text') {
+                    const rawBotResponseParts = await sendMessageToModel(sessionId, inputText);
                     const responseText = rawBotResponseParts.map(p => p.text || '').join('').trim();
                     const imageActionPrefix = "[ACTION:GENERATE_IMAGE]";
     
@@ -757,11 +646,11 @@
                     setMessages(prev => [...prev, responseMessage]);
     
                 } else {
-                    throw new Error("Invalid model type or chat not initialized.");
+                    throw new Error("Invalid model type.");
                 }
     
             } catch (err) {
-                console.error("Error communicating with Gemini API:", err);
+                console.error("Error communicating with API:", err);
                 const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
                 setError(errorMessage);
                 const errorBotMessage = {
@@ -773,16 +662,17 @@
             } finally {
                 setIsLoading(false);
             }
-        }, [isLoading, modelType, chat]);
+        }, [isLoading, modelType, sessionId]);
     
         const handleClearChat = useCallback(() => {
             const welcomeMsg = modelType === 'text' ? TEXT_WELCOME_MESSAGE : PAINT_WELCOME_MESSAGE;
             setMessages([welcomeMsg]);
             setError(null);
             if (modelType === 'text') {
-                setChat(initializeChat());
+                clearServerChat(sessionId);
+                setSessionId(`session-${Date.now()}`); // Start a new session
             }
-        }, [modelType]);
+        }, [modelType, sessionId]);
     
         const handleModelChange = useCallback((newModel) => {
             if (newModel === modelType) return;
