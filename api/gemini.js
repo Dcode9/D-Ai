@@ -75,15 +75,19 @@ export default async function handler(req, res) {
                 const chat = getChatSession(sessionId);
                 const response = await chat.sendMessage({ message });
 
-                const parts = response.candidates?.[0]?.content?.parts;
-                if (!parts || parts.length === 0) {
+                // Use the recommended `response.text` for robust text extraction
+                const responseText = response.text;
+                
+                if (!responseText) {
                      const finishReason = response.candidates?.[0]?.finishReason;
                      if (finishReason && finishReason !== 'STOP') {
                          return res.json({ parts: [{ text: `The response was stopped prematurely. Reason: ${finishReason}` }]});
                      }
                      return res.json({ parts: [{ text: "I received a response, but it was empty." }]});
                 }
-                const messageParts = _processResponseParts(parts);
+                
+                // The frontend expects a `parts` array, so we wrap the text response
+                const messageParts = [{ text: responseText }];
                 return res.status(200).json({ parts: messageParts });
             }
 
