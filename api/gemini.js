@@ -17,10 +17,10 @@ const chatSessions = new Map();
 function getChatSession(sessionId) {
     if (!chatSessions.has(sessionId)) {
         if (!ai) throw new Error("AI not initialized.");
-        const IMAGE_GENERATION_INSTRUCTION = `You are D'Ai, a helpful assistant made by Dhairya Shah.`;
+        const TEXT_MODEL_INSTRUCTION = `You are D'Ai, a helpful text-only assistant made by Dhairya Shah. You CANNOT create images. If a user asks you to draw or create an image, politely decline and tell them to use the "D'Ai - Paint" model instead.`;
         chatSessions.set(sessionId, ai.chats.create({
             model: 'gemini-2.5-flash',
-            config: { systemInstruction: IMAGE_GENERATION_INSTRUCTION },
+            config: { systemInstruction: TEXT_MODEL_INSTRUCTION },
         }));
     }
     return chatSessions.get(sessionId);
@@ -89,28 +89,6 @@ export default async function handler(req, res) {
                 // The frontend expects a `parts` array, so we wrap the text response
                 const messageParts = [{ text: responseText }];
                 return res.status(200).json({ parts: messageParts });
-            }
-
-            case 'generateImage': {
-                const { prompt } = payload;
-                const response = await ai.models.generateImages({
-                    model: 'imagen-4.0-generate-001',
-                    prompt: prompt,
-                    config: {
-                      numberOfImages: 1,
-                      outputMimeType: 'image/png',
-                      aspectRatio: '1:1',
-                    },
-                });
-
-                // CRITICAL FIX: Safely check if images were actually generated before accessing them.
-                if (!response.generatedImages || response.generatedImages.length === 0) {
-                    throw new Error("Image generation failed. The prompt may have been blocked by safety filters.");
-                }
-
-                const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-                const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-                return res.status(200).json({ imageUrl });
             }
 
             case 'nanoBanana': {
