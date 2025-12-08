@@ -24,109 +24,73 @@
     </style>
 </head>
 <body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-3">
-        <div class="max-w-3xl mx-auto flex justify-between px-4 items-center">
-            <div class="flex items-center gap-3">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="D'Ai">
-                <div><h1 class="font-bold leading-none">D'Ai</h1><p class="text-[10px] text-gray-500 uppercase">Fastest AI</p></div>
+    <!-- Clean Header -->
+    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
+        <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
+            <div class="text-center">
+                <h1 class="font-bold leading-none text-lg">D'Ai</h1>
+                <p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on Planet</p>
             </div>
-            <button onclick="window.reset()" class="text-xs text-gray-500 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
         </div>
+        <button onclick="window.location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <!-- Key Modal -->
-    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/95 transition-opacity duration-300">
-        <div class="bg-dark-surface border border-dark-border p-6 rounded-xl w-full max-w-sm shadow-2xl">
-            <h2 class="text-xl font-bold text-white mb-2">Unlock Speed</h2>
-            <p class="text-xs text-gray-500 mb-4">Server access currently limited. Please enter a key.</p>
-            <form onsubmit="window.saveKey(event)" class="space-y-4">
-                <input id="key" type="password" class="w-full bg-black border border-dark-border rounded p-3 text-white focus:border-brand outline-none" placeholder="Cerebras API Key" required>
-                <button class="w-full bg-brand hover:opacity-90 text-white font-bold py-3 rounded">Enter</button>
-            </form>
-        </div>
-    </div>
-
-    <main class="flex-1 flex flex-col pt-16 w-full max-w-3xl mx-auto overflow-hidden">
+    <!-- Main Chat -->
+    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80">
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse" alt="Logo">
-                <h2 class="text-2xl font-bold text-white">D'Ai is ready.</h2>
+                <h2 class="text-2xl font-bold text-white tracking-tight">How can I help?</h2>
             </div>
         </div>
     </main>
 
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg to-transparent pb-6 pt-10 px-4">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-xl border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3 max-h-40 resize-none outline-none" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3 text-gray-500 hover:text-brand disabled:opacity-50"><i class="fa-solid fa-paper-plane"></i></button>
+    <!-- Input -->
+    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4">
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-2xl border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-colors">
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
 
     <script>
         (function() {
+            // Setup Markdown
             const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
+            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            const S={k:localStorage.getItem('ck'),msg:[],gen:false};
-            const E={m:document.getElementById('modal'),c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            const S={msg:[],gen:false};
+            const E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             
-            window.saveKey = function(e) { e.preventDefault(); const k=document.getElementById('key').value.trim(); if(k){localStorage.setItem('ck',k);S.k=k;E.m.classList.add('hidden');} };
-            window.reset = function() { S.msg=[];S.gen=false; E.c.innerHTML='';E.c.appendChild(E.h);E.h.classList.remove('hidden'); document.getElementById('btn').disabled=false; };
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333]">${t}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
+            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
             
             window.send = async function() {
-                const t=E.i.value.trim(); 
-                if(!t||S.gen) return;
-                
-                S.gen=true; 
-                E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden');
-                document.getElementById('btn').disabled=true;
+                const t=E.i.value.trim(); if(!t||S.gen) return;
+                S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
                 if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
                 S.msg.push({role:"user",content:t}); add('user',t);
                 
                 const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
-                
-                // --- Robust Fallback Logic ---
-                // 1. Try Backend. 2. If Fail, try Client Direct. 3. If missing Key, show Modal.
-                let res = null;
-                const payload = {model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7};
+                let buf="", disp="";
                 
                 try {
-                    try {
-                        // Attempt 1: Serverless Backend
-                        res = await fetch("/api/chat", {
-                            method:"POST",
-                            headers:{"Content-Type":"application/json"},
-                            body:JSON.stringify(payload)
-                        });
-                        
-                        // If 403 (Forbidden) or 404/500, throw to trigger fallback
-                        if (!res.ok) throw new Error("Server Unavailable");
-                        
-                    } catch(serverError) {
-                        console.warn("Backend failed, switching to client-side fallback:", serverError);
-                        
-                        // Attempt 2: Client-side Direct
-                        if (!S.k) {
-                            E.m.classList.remove('hidden'); // Ask for key
-                            throw new Error("Please enter API Key"); // Stop execution
-                        }
-                        
-                        res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-                            method:"POST",
-                            headers:{"Content-Type":"application/json","Authorization":`Bearer ${S.k}`},
-                            body:JSON.stringify(payload)
-                        });
+                    // Direct Backend Call
+                    const res = await fetch("/api/chat", {
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                    });
+
+                    if (!res.ok) {
+                        if(res.status === 403) throw new Error("Security Block (403). Check Hostinger/Cloudflare Firewall.");
+                        if(res.status === 500) throw new Error("Server Error. Check API Key in Vercel.");
+                        throw new Error(`Connection Error (${res.status})`);
                     }
 
-                    if (!res || !res.ok) throw new Error((await res.text()) || "Connection Failed");
-
-                    // Streaming Logic
                     const reader=res.body.getReader(), dec=new TextDecoder();
-                    let buf="", disp="";
-                    
                     const loop=()=>{
                         if(buf.length>disp.length){
                             disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
@@ -134,12 +98,7 @@
                             E.c.scrollTop=E.c.scrollHeight;
                         }
                         if(disp.length<buf.length||active) requestAnimationFrame(loop);
-                        else { 
-                            if(cur)cur.remove(); 
-                            S.msg.push({role:"assistant",content:buf}); 
-                            S.gen=false; 
-                            document.getElementById('btn').disabled=false; 
-                        }
+                        else { if(cur)cur.remove(); S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
                     };
                     let active=true; requestAnimationFrame(loop);
                     
@@ -148,18 +107,9 @@
                         dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
                     }
                     active=false;
-
                 } catch(e){ 
-                    // Only show error if it wasn't the modal trigger
-                    if (e.message !== "Please enter API Key") {
-                        el.innerHTML=`<span class="text-red-500 text-sm">⚠️ ${e.message}</span>`; 
-                    } else {
-                        el.parentNode.remove(); // Remove empty bubble if we just opened modal
-                        S.msg.pop(); // Remove user message from history to allow retry
-                    }
-                    if(cur)cur.remove(); 
-                    S.gen=false; 
-                    document.getElementById('btn').disabled=false; 
+                    el.innerHTML=`<div class="text-red-500 text-xs border border-red-900/50 bg-red-900/10 p-3 rounded"><strong>⚠️ Error:</strong> ${e.message}</div>`; 
+                    if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
                 }
             };
         })();
