@@ -3,27 +3,21 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // 1. Safe Origin Handling
-  // We cannot use '*' if we want to allow credentials (cookies/auth headers).
-  // We must reflect the specific origin or default to your site's URL if missing.
-  const requestOrigin = req.headers.get('origin');
-  const allowedOrigin = requestOrigin || 'https://ai.dverse.fun'; 
-
-  // 2. Robust CORS Headers
+  // SYSTEMATIC FIX: Public API Configuration
+  // 1. Allow '*' Origin (Simplest, least error-prone)
+  // 2. Do NOT allow Credentials (Cookies). This prevents 403s from strict security settings.
   const corsHeaders = {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': '*', 
     'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true', // Required for cookies/same-origin
-    'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
   };
 
-  // 3. Handle Preflight (OPTIONS)
+  // Handle Preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // 4. Health Check (GET)
+  // Health Check
   if (req.method === 'GET') {
     return new Response(JSON.stringify({ status: 'Online' }), { 
       status: 200, 
@@ -31,7 +25,7 @@ export default async function handler(req) {
     });
   }
 
-  // 5. Main Logic (POST)
+  // Main Logic
   if (req.method === 'POST') {
     try {
       const body = await req.json();
