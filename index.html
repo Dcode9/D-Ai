@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
@@ -15,7 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    
     <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
@@ -29,29 +27,17 @@
     <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-3">
         <div class="max-w-3xl mx-auto flex justify-between px-4 items-center">
             <div class="flex items-center gap-3">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10">
                 <div><h1 class="font-bold leading-none">D'Ai</h1><p class="text-[10px] text-gray-500 uppercase">Fastest AI</p></div>
             </div>
             <button onclick="window.reset()" class="text-xs text-gray-500 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
         </div>
     </header>
 
-    <!-- Key Modal (Fallback for Client-side mode) -->
-    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/95 transition-opacity duration-300">
-        <div class="bg-dark-surface border border-dark-border p-6 rounded-xl w-full max-w-sm">
-            <h2 class="text-xl font-bold text-white mb-4">Unlock Speed</h2>
-            <p class="text-xs text-gray-500 mb-4">Server access unavailable. Please enter a key manually.</p>
-            <form onsubmit="window.saveKey(event)" class="space-y-4">
-                <input id="key" type="password" class="w-full bg-black border border-dark-border rounded p-3 text-white focus:border-brand outline-none" placeholder="Cerebras API Key" required>
-                <button class="w-full bg-brand hover:opacity-90 text-white font-bold py-3 rounded">Enter</button>
-            </form>
-        </div>
-    </div>
-
     <main class="flex-1 flex flex-col pt-16 w-full max-w-3xl mx-auto overflow-hidden">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse" alt="Logo">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse">
                 <h2 class="text-2xl font-bold text-white">D'Ai is ready.</h2>
             </div>
         </div>
@@ -70,20 +56,15 @@
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            const S={k:localStorage.getItem('ck'),msg:[],gen:false};
-            const E={m:document.getElementById('modal'),c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            const S={msg:[],gen:false};
+            const E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             
-            window.saveKey = function(e) { e.preventDefault(); const k=document.getElementById('key').value.trim(); if(k){localStorage.setItem('ck',k);S.k=k;E.m.classList.add('hidden');} };
             window.reset = function() { S.msg=[];S.gen=false; E.c.innerHTML='';E.c.appendChild(E.h);E.h.classList.remove('hidden'); document.getElementById('btn').disabled=false; };
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333]">${t}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
             
             window.send = async function() {
-                const t=E.i.value.trim(); 
-                if(!t||S.gen) return;
-                
-                S.gen=true; 
-                E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden');
-                document.getElementById('btn').disabled=true;
+                const t=E.i.value.trim(); if(!t||S.gen) return;
+                S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
                 if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
                 S.msg.push({role:"user",content:t}); add('user',t);
@@ -92,21 +73,20 @@
                 let buf="", disp="";
                 
                 try {
-                    // Strategy: Try Serverless Function first, fall back to Client Key
-                    let res;
-                    const payload = {model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7};
-                    
-                    try {
-                        // Try Vercel Backend
-                        res = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-                        if(res.status === 404 || res.status === 500) throw new Error("Backend not found");
-                    } catch(err) {
-                        // Fallback to Client Key
-                        if(!S.k) { E.m.classList.remove('hidden'); S.gen=false; cur.remove(); document.getElementById('btn').disabled=false; return; }
-                        res = await fetch("https://api.cerebras.ai/v1/chat/completions", {method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${S.k}`},body:JSON.stringify(payload)});
-                    }
+                    // Always use relative backend path
+                    const res = await fetch("/api/chat", {
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                    });
 
-                    if(!res.ok) throw new Error((await res.text()) || "API Error");
+                    // Handle Non-200 Errors explicitly
+                    if (!res.ok) {
+                        const errData = await res.text();
+                        let msg = `Server Error (${res.status})`;
+                        try { msg = JSON.parse(errData).error || msg; } catch(e) { msg = errData || msg; }
+                        throw new Error(msg);
+                    }
 
                     const reader=res.body.getReader(), dec=new TextDecoder();
                     const loop=()=>{
@@ -125,7 +105,10 @@
                         dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
                     }
                     active=false;
-                } catch(e){ el.innerText=`Error: ${e.message}`; if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; }
+                } catch(e){ 
+                    el.innerHTML=`<span class="text-red-500 text-sm">⚠️ ${e.message}</span>`; 
+                    if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
+                }
             };
         })();
     </script>
