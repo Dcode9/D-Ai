@@ -1,739 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-g" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>D'Ai - Gemini Chat</title>
-    <!-- Tailwind CSS for styling -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D'Ai</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Marked.js for Markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
-        /* CSS Variables for Theming */
-        :root {
-            --bg-gradient: linear-gradient(135deg, #6a82fb, #fc5c7d, #5de5f1);
-            --text-primary: #1f2937; /* gray-800 */
-            --text-secondary: #4b5563; /* gray-600 */
-            --glass-bg: rgba(255, 255, 255, 0.15);
-            --glass-panel-bg: rgba(255, 255, 255, 0.2);
-            --bot-bubble-bg: #e5e5ea;
-            --bot-bubble-text: #000000;
-            --code-block-bg: #f9fafb; /* gray-50 */
-            --code-header-bg: #e5e7eb; /* gray-200 */
-            --code-header-text: #374151; /* gray-700 */
-            --copy-btn-bg: rgba(0,0,0,0.05);
-            --copy-btn-hover-bg: rgba(0,0,0,0.1);
-        }
-
-        .dark {
-            --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            --text-primary: #f9fafb; /* gray-50 */
-            --text-secondary: #d1d5db; /* gray-300 */
-            --glass-bg: rgba(0, 0, 0, 0.15);
-            --glass-panel-bg: rgba(0, 0, 0, 0.2);
-            --bot-bubble-bg: #374151; /* gray-700 */
-            --bot-bubble-text: #f9fafb; /* gray-50 */
-            --code-block-bg: #282c34;
-            --code-header-bg: rgba(0,0,0,0.2);
-            --code-header-text: #abb2bf;
-            --copy-btn-bg: rgba(255,255,255,0.1);
-            --copy-btn-hover-bg: rgba(255,255,255,0.2);
-        }
-
-        /* Custom styles for the liquid glass UI */
-        body {
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-        .animated-gradient-bg {
-            background: var(--bg-gradient);
-            background-size: 400% 400%;
-            animation: gradientShift 12s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .shape {
-            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; will-change: transform; z-index: 0;
-        }
-        .shape1 {
-            width: 350px; height: 350px; background: #fc5c7d; top: -120px; left: -120px; animation: float 20s infinite alternate;
-        }
-        .shape2 {
-            width: 450px; height: 450px; background: #5de5f1; bottom: -180px; right: -180px; animation: float 25s infinite alternate-reverse;
-        }
-
-        @keyframes float {
-            from { transform: translateY(0) translateX(0) rotate(0deg); }
-            to { transform: translateY(40px) translateX(60px) rotate(180deg); }
-        }
-
-        .glass-container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .message-bubble-user {
-            background: linear-gradient(to right, #007aff, #00c6ff);
-        }
-        .message-bubble-bot {
-            background-color: var(--bot-bubble-bg);
-            color: var(--bot-bubble-text);
-        }
-        .glass-panel {
-            background: var(--glass-panel-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-        }
-        .chat-container {
-            overscroll-behavior: contain;
-        }
-        .chat-container::-webkit-scrollbar { width: 6px; }
-        .chat-container::-webkit-scrollbar-track { background: transparent; }
-        .chat-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
-        .chat-container::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
-        
-        .message-bubble { 
-            max-width: 80%; 
-            word-wrap: break-word; 
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .thinking-bar {
-            width: 100px; height: 4px; border-radius: 2px;
-            background: linear-gradient(90deg, #89f7fe, #66a6ff, #fc5c7d, #5de5f1);
-            background-size: 400% 100%;
-            animation: shimmer 2s infinite linear, pulse 1.5s infinite ease-in-out;
-        }
-        @keyframes shimmer { 0% { background-position: 400% 0; } 100% { background-position: 0 0; } }
-        @keyframes pulse { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.5); } }
-
-        /* Styles for rendered content */
-        .message-content { word-break: break-word; }
-        .message-content a { color: #007aff; text-decoration: underline; }
-        .message-content strong { font-weight: 600; }
-        .message-content ul, .message-content ol { margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
-        .message-content ul { list-style-type: disc; }
-        .message-content ol { list-style-type: decimal; }
-        .message-content p { margin-bottom: 0.5rem; }
-        .message-content p:last-child { margin-bottom: 0; }
-        .message-content table { width: 100%; border-collapse: collapse; margin-top: 1rem; margin-bottom: 1rem; border-radius: 0.75rem; overflow: hidden; }
-        .message-content th, .message-content td { border: 1px solid rgba(0,0,0,0.2); padding: 0.5rem; text-align: left; }
-        .message-content th { background-color: rgba(0,0,0,0.05); }
-
-        /* Custom Code Block Styles */
-        .code-block-wrapper {
-            background-color: var(--code-block-bg);
-            border-radius: 0.75rem; margin-top: 1rem; margin-bottom: 1rem; overflow: hidden;
-            color: var(--code-header-text);
-        }
-        .code-block-header {
-            display: flex; justify-content: space-between; align-items: center;
-            background-color: var(--code-header-bg);
-            padding: 0.5rem 1rem; color: var(--code-header-text); font-size: 0.875rem;
-        }
-        .copy-btn {
-            background-color: var(--copy-btn-bg); color: var(--code-header-text);
-            border: none; padding: 0.25rem 0.5rem; border-radius: 0.375rem;
-            cursor: pointer; font-size: 0.75rem; transition: background-color 0.2s;
-        }
-        .copy-btn:hover { background-color: var(--copy-btn-hover-bg); }
-        .code-block-wrapper pre { margin: 0; padding: 1rem; overflow-x: auto; }
-        .code-block-wrapper code { font-family: 'Courier New', Courier, monospace; }
-
-        /* Theme Toggle Animation */
-        #theme-toggle:checked ~ .dot {
-            transform: translateX(1.5rem);
-        }
-
-        /* Textarea Base Styles & Invisible Scrollbar */
-        textarea { 
-            resize: none; 
-            max-height: 160px; /* Set max height for textarea */
-            overflow-y: auto; /* Show scrollbar only when max-height is reached */
-            scrollbar-width: none; /* For Firefox */
-            -ms-overflow-style: none;  /* For Internet Explorer and Edge */
-        }
-        textarea::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-        }
-        
-        /* Dropdown Styles & Animation */
-        .dropdown-glass {
-            background: rgba(255, 255, 255, 0.3); /* Increased opacity for readability */
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        .dark .dropdown-glass {
-            background: rgba(0, 0, 0, 0.25); /* Increased opacity for readability */
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-        .dropdown-container {
-            transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
-            transform-origin: top; /* Animation originates from the top */
-        }
-        .dropdown-hidden {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-            pointer-events: none; /* Prevent interaction when hidden */
-        }
-        .dropdown-visible {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-            pointer-events: auto;
-        }
+        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
+        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
+        .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
+        .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
+        .cursor-blink{display:inline-block;width:6px;height:18px;background:#FF4F00;margin-left:4px;vertical-align:middle;animation:b 1s step-end infinite}@keyframes b{50%{opacity:0}}
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0"
-  }
-}
-</script>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module">
-    // <![CDATA[
-    import React from 'react';
-    import ReactDOM from 'react-dom/client';
-    
-    const { useState, useEffect, useCallback, useRef, forwardRef } = React;
-    
-    // --- HOOKS ---
-    
-    const useTheme = () => {
-        const [theme, setTheme] = useState(() => {
-            if (typeof window !== 'undefined') {
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                return prefersDark ? 'dark' : 'light';
-            }
-            return 'light';
-        });
-    
-        const toggleTheme = () => {
-            setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-        };
-    
-        useEffect(() => {
-            const root = window.document.documentElement;
-            root.classList.remove('light', 'dark');
-            root.classList.add(theme);
-        }, [theme]);
-    
-        return { theme, toggleTheme };
-    };
-    
-    const useAutoResizeTextarea = (textareaRef, value) => {
-        useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-            }
-        }, [textareaRef, value]);
-    };
-    
-    // --- API SERVICE (calls our serverless function) ---
-    
-    async function apiCall(action, payload) {
-        const response = await fetch('/api/gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, payload })
-        });
-    
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-    
-        return response.json();
-    }
-    
-    async function sendMessageToModel(sessionId, message) {
-        const data = await apiCall('sendMessage', { sessionId, message });
-        return data.parts;
-    }
-    
-    async function generateOrEditImageWithNanoBanana(prompt, image) {
-        const data = await apiCall('nanoBanana', { prompt, image });
-        return data.parts;
-    }
-    
-    async function clearServerChat(sessionId) {
-        await apiCall('clearChat', { sessionId });
-    }
-    
-    // --- COMPONENTS ---
-    
-    const MarkdownRenderer = ({ content }) => {
-        const CODE_BLOCK_REGEX = /^```(\w+)?\n([\s\S]+?)```\s*$/;
-        const match = content.trim().match(CODE_BLOCK_REGEX);
-    
-        if (match) {
-            const language = match[1] || 'code';
-            const code = match[2] || '';
-            const [copyText, setCopyText] = useState('Copy');
-    
-            const handleCopy = () => {
-                navigator.clipboard.writeText(code).then(() => {
-                    setCopyText('Copied!');
-                    setTimeout(() => setCopyText('Copy'), 2000);
-                }).catch(() => {
-                    setCopyText('Failed!');
-                    setTimeout(() => setCopyText('Copy'), 2000);
-                });
-            };
-    
-            return (
-                React.createElement("div", { className: "message-content" },
-                    React.createElement("div", { className: "code-block-wrapper" },
-                        React.createElement("div", { className: "code-block-header" },
-                            React.createElement("span", null, language),
-                            React.createElement("button", { className: "copy-btn", onClick: handleCopy }, copyText)
-                        ),
-                        React.createElement("pre", null, React.createElement("code", null, code))
-                    )
-                )
-            );
-        }
-    
-        const [html, setHtml] = useState('');
-        useEffect(() => {
-            if (typeof marked !== 'undefined') {
-                marked.setOptions({ gfm: true, breaks: true, smartLists: true });
-                setHtml(marked.parse(content));
-            } else {
-                setHtml(content.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-            }
-        }, [content]);
-    
-        return React.createElement("div", { className: "message-content", dangerouslySetInnerHTML: { __html: html } });
-    };
-    
-    const MessageBubble = ({ message }) => {
-        const { role, parts } = message;
-        const isUser = role === 'user';
-        const wrapperClasses = isUser ? 'flex justify-end' : 'flex justify-start';
-        const bubbleClasses = isUser
-            ? 'message-bubble message-bubble-user text-white p-4 shadow-md rounded-tl-2xl rounded-tr-lg rounded-bl-2xl rounded-br-2xl'
-            : 'message-bubble message-bubble-bot p-4 shadow-md rounded-tl-lg rounded-tr-2xl rounded-br-2xl rounded-bl-2xl';
-    
-        return (
-            React.createElement("div", { className: wrapperClasses },
-                React.createElement("div", { className: bubbleClasses },
-                    parts.map((part, index) => {
-                        if (part.imageData) {
-                            return React.createElement("img", { key: index, src: part.imageData, alt: "Generated content", className: "rounded-lg" });
-                        }
-                        if (part.text) {
-                            return React.createElement(MarkdownRenderer, { key: index, content: part.text });
-                        }
-                        return null;
-                    })
-                )
-            )
-        );
-    };
-    
-    const ThinkingBubble = () => {
-        return (
-            React.createElement("div", { className: "flex justify-start" },
-                React.createElement("div", { className: "message-bubble p-4", style: { backgroundColor: 'transparent', boxShadow: 'none' } },
-                    React.createElement("div", { className: "thinking-bar" })
-                )
-            )
-        );
-    };
-    
-    const ChatHistory = ({ messages, isLoading, paddingTop, paddingBottom }) => {
-        const chatContainerRef = useRef(null);
-    
-        useEffect(() => {
-            if (chatContainerRef.current) {
-                const element = chatContainerRef.current;
-                element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
-            }
-        }, [messages, isLoading]);
-    
-        return (
-            React.createElement("div", {
-                ref: chatContainerRef,
-                className: "flex-1 overflow-y-auto chat-container space-y-4 p-4 sm:p-6 scroll-smooth",
-                style: { paddingTop: `${paddingTop}px`, paddingBottom: `${paddingBottom}px` }
-            },
-                messages.map((msg) => React.createElement(MessageBubble, { key: msg.id, message: msg })),
-                isLoading && React.createElement(ThinkingBubble, null)
-            )
-        );
-    };
-    
-    const MessageInput = forwardRef(({ onSendMessage, isLoading, currentModel }, ref) => {
-        const [inputValue, setInputValue] = useState('');
-        const [selectedFile, setSelectedFile] = useState(null);
-        const textareaRef = useRef(null);
-        const fileInputRef = useRef(null);
-    
-        useAutoResizeTextarea(textareaRef, inputValue);
-    
-        const handleFileChange = (event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    setSelectedFile({
-                        data: e.target?.result,
-                        mimeType: file.type,
-                        name: file.name,
-                    });
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-    
-        const handleSend = () => {
-            if ((inputValue.trim() || selectedFile) && !isLoading) {
-                onSendMessage(inputValue, selectedFile);
-                setInputValue('');
-                setSelectedFile(null);
-            }
-        };
-    
-        const handleKeyDown = (event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                handleSend();
-            }
-        };
-        
-        const placeholderText = currentModel === 'text' 
-            ? 'Type your message...' 
-            : 'Upload an image and/or describe...';
-    
-        return (
-            React.createElement("footer", { className: "absolute bottom-0 left-0 right-0 p-4 z-10", ref: ref },
-                selectedFile && React.createElement("div", { className: "px-1 pb-2" },
-                    React.createElement("div", { className: "glass-panel p-2 rounded-xl flex items-center justify-between animate-fade-in" },
-                        React.createElement("div", { className: "flex items-center gap-2 overflow-hidden" },
-                            React.createElement("img", { src: selectedFile.data, className: "w-10 h-10 rounded-lg object-cover flex-shrink-0", alt: "Image preview" }),
-                            React.createElement("span", { className: "text-sm text-[color:var(--text-secondary)] truncate" }, selectedFile.name)
-                        ),
-                        React.createElement("button", { onClick: () => setSelectedFile(null), className: "text-2xl text-[color:var(--text-secondary)] w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/20", "aria-label": "Remove image" }, "×")
-                    )
-                ),
-                React.createElement("div", { className: "flex items-end space-x-3" },
-                    currentModel === 'image' && React.createElement(React.Fragment, null,
-                        React.createElement("input", { type: "file", ref: fileInputRef, onChange: handleFileChange, accept: "image/png, image/jpeg, image/webp", hidden: true }),
-                        React.createElement("button", { onClick: () => fileInput.current?.click(), disabled: isLoading, className: "bg-gray-500/50 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-gray-600/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg disabled:bg-gray-400/50 disabled:cursor-not-allowed", "aria-label": "Upload image" },
-                            React.createElement("svg", { className: "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" }))
-                        )
-                    ),
-                    React.createElement("textarea", { ref: textareaRef, rows: 1, value: inputValue, onChange: (e) => setInputValue(e.target.value), onKeyDown: handleKeyDown, className: "glass-panel flex-1 p-3 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition text-[color:var(--text-primary)] placeholder-[color:var(--text-secondary)]", placeholder: placeholderText, disabled: isLoading }),
-                    React.createElement("button", { onClick: handleSend, disabled: isLoading || (!inputValue.trim() && !selectedFile), className: "bg-blue-500 text-white font-semibold p-3 rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed" },
-                        React.createElement("svg", { className: "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M12 19l9 2-9-18-9 18 9-2zm0 0v-8" }))
-                    )
-                )
-            )
-        );
-    });
-    
-    const Header = forwardRef(({ currentModel, onModelChange, onClearChat, theme, onThemeToggle }, ref) => {
-        const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-        const dropdownRef = useRef(null);
-        const isDark = theme === 'dark';
-    
-        const handleModelSelect = (model) => {
-            onModelChange(model);
-            setIsDropdownOpen(false);
-        };
-    
-        useEffect(() => {
-            const handleClickOutside = (event) => {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                    setIsDropdownOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }, []);
-    
-        const modelDisplayName = currentModel === 'text' ? "D'Ai - 2.5" : "D'Ai - Paint 🍌";
-    
-        return (
-            React.createElement("header", { className: "absolute top-0 left-0 right-0 p-3 z-10", ref: ref },
-                React.createElement("div", { className: "glass-panel p-2 rounded-3xl flex justify-between items-center" },
-                    React.createElement("div", { className: "relative", ref: dropdownRef },
-                        React.createElement("button", { onClick: () => setIsDropdownOpen(!isDropdownOpen), className: "flex items-center text-xl sm:text-2xl font-bold text-[color:var(--text-primary)] ml-2" },
-                            React.createElement("span", null, modelDisplayName),
-                            React.createElement("svg", { className: "w-5 h-5 ml-2 text-[color:var(--text-primary)]", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M19 9l-7 7-7-7" }))
-                        ),
-                        React.createElement("div", { className: `absolute top-full left-0 mt-2 w-48 dropdown-glass rounded-2xl shadow-lg dropdown-container ${isDropdownOpen ? 'dropdown-visible' : 'dropdown-hidden'}` },
-                            React.createElement("a", { href: "#", onClick: (e) => { e.preventDefault(); handleModelSelect('text'); }, className: "block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" }, "D'Ai - 2.5"),
-                            React.createElement("a", { href: "#", onClick: (e) => { e.preventDefault(); handleModelSelect('image'); }, className: "block px-4 py-2 text-[color:var(--text-primary)] hover:bg-black/10 dark:hover:bg-white/20" }, "D'Ai - Paint 🍌")
-                        )
-                    ),
-                    React.createElement("div", { className: "flex items-center space-x-2 sm:space-x-4" },
-                        React.createElement("label", { htmlFor: "theme-toggle", className: "flex items-center cursor-pointer" },
-                            React.createElement("div", { className: "relative" },
-                                React.createElement("input", { type: "checkbox", id: "theme-toggle", className: "sr-only peer", checked: isDark, onChange: onThemeToggle }),
-                                React.createElement("div", { className: "flex items-center justify-between bg-gray-600/50 w-14 h-8 rounded-full p-1" },
-                                    React.createElement("svg", { className: "w-6 h-6 text-gray-200", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" })),
-                                    React.createElement("svg", { className: "w-6 h-6 text-white", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" }))
-                                ),
-                                React.createElement("div", { className: "dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform peer-checked:translate-x-6" })
-                            )
-                        ),
-                        React.createElement("button", { onClick: onClearChat, className: "flex items-center text-[color:var(--text-primary)] font-semibold py-2 px-2 sm:px-4 rounded-2xl transition text-sm hover:bg-black/10 dark:hover:bg-white/20" },
-                            React.createElement("svg", { className: "w-5 h-5 mr-0 sm:mr-2", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" })),
-                            React.createElement("span", { className: "hidden sm:inline" }, "Clear Chat")
-                        )
-                    )
-                )
-            )
-        );
-    });
-    
-    const NanoBananaPopup = ({ onClose }) => {
-        return (
-            React.createElement("div", { className: "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4", onClick: onClose },
-                React.createElement("div", { className: "glass-panel p-8 rounded-3xl text-center max-w-sm shadow-2xl border border-white/10", onClick: (e) => e.stopPropagation() },
-                    React.createElement("h2", { className: "text-2xl font-bold text-[color:var(--text-primary)] mb-4" }, "D'Ai Paint Upgraded!"),
-                    React.createElement("p", { className: "text-lg text-[color:var(--text-secondary)]" }, "Now powered by Google's Nano Banana 🍌 for incredible image editing and creation."),
-                    React.createElement("button", { onClick: onClose, className: "mt-6 bg-blue-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-blue-600 active:bg-blue-700 transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50" }, "Try it!")
-                )
-            )
-        );
-    };
-    
-    const IntroPopup = ({ onClose, onTryNow }) => {
-        return (
-            React.createElement("div", { className: "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4", onClick: onClose },
-                React.createElement("div", { className: "glass-panel p-8 rounded-3xl text-center max-w-sm shadow-2xl border border-white/10", onClick: (e) => e.stopPropagation() },
-                    React.createElement("h2", { className: "text-2xl font-bold text-[color:var(--text-primary)] mb-4" }, "Discover D'Ai - Paint! 🍌"),
-                    React.createElement("p", { className: "text-lg text-[color:var(--text-secondary)]" }, "Edit photos or create images from scratch with the new Nano Banana model."),
-                    React.createElement("div", { className: "mt-6 flex justify-center space-x-4" },
-                        React.createElement("button", { onClick: onClose, className: "bg-gray-500/50 text-white font-semibold py-2 px-6 rounded-full hover:bg-gray-600/60 active:bg-gray-700/70 transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50" }, "Later"),
-                        React.createElement("button", { onClick: onTryNow, className: "bg-blue-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-blue-600 active:bg-blue-700 transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50" }, "Try Now")
-                    )
-                )
-            )
-        );
-    };
+<body class="flex flex-col h-screen">
+    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-3">
+        <div class="max-w-3xl mx-auto flex justify-between px-4 items-center">
+            <div class="flex items-center gap-3">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
+                <div><h1 class="font-bold leading-none">D'Ai</h1><p class="text-[10px] text-gray-500 uppercase">Fastest AI</p></div>
+            </div>
+            <button onclick="window.reset()" class="text-xs text-gray-500 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+    </header>
 
-    // --- MAIN APP COMPONENT ---
-    
-    const TEXT_WELCOME_MESSAGE = {
-        id: 'initial-welcome',
-        role: 'model',
-        parts: [{ text: `Hello! I'm **D'Ai (Gemini 2.5)** — your assistant for code and explanations. For image creation, please use the D'Ai - Paint model.` }]
-    };
-    
-    const PAINT_WELCOME_MESSAGE = {
-        id: 'initial-paint-welcome',
-        role: 'model',
-        parts: [{ text: `Welcome to **D'Ai - Paint**! 🍌\n\nI can create new images from your descriptions or edit photos you upload. Just describe what you want or drop in a file to get started.` }]
-    };
-    
-    function App() {
-        const { theme, toggleTheme } = useTheme();
-        const [messages, setMessages] = useState([TEXT_WELCOME_MESSAGE]);
-        const [isLoading, setIsLoading] = useState(false);
-        const [modelType, setModelType] = useState('text');
-        const [sessionId, setSessionId] = useState(`session-${Date.now()}`);
-        const [error, setError] = useState(null);
-        const [showNanoBananaPopup, setShowNanoBananaPopup] = useState(false);
-        const [showIntroPopup, setShowIntroPopup] = useState(false);
-    
-        const headerRef = useRef(null);
-        const footerRef = useRef(null);
-        const [chatPadding, setChatPadding] = useState({ top: 0, bottom: 0 });
-    
-        useEffect(() => {
-            if (!sessionStorage.getItem('introPopupShown')) {
-                setShowIntroPopup(true);
-            }
-        }, []);
-    
-        useEffect(() => {
-            if (modelType === 'text') {
-                setMessages([TEXT_WELCOME_MESSAGE]);
-            } else {
-                setMessages([PAINT_WELCOME_MESSAGE]);
-            }
-        }, [modelType]);
-    
-        const handleSendMessage = useCallback(async (inputText, imageFile) => {
-            if ((!inputText.trim() && !imageFile) || isLoading) return;
-    
-            const userMessageParts = [];
-            if (imageFile) {
-                userMessageParts.push({ imageData: imageFile.data });
-            }
-            if (inputText.trim()) {
-                userMessageParts.push({ text: inputText });
-            }
-    
-            const userMessage = {
-                id: `user-${Date.now()}`,
-                role: 'user',
-                parts: userMessageParts
-            };
-    
-            setMessages(prev => [...prev, userMessage]);
-            setIsLoading(true);
-            setError(null);
-    
-            try {
-                if (modelType === 'text') {
-                    const rawBotResponseParts = await sendMessageToModel(sessionId, inputText);
-                    const textMessage = {
-                        id: `model-${Date.now()}`,
-                        role: 'model',
-                        parts: rawBotResponseParts
-                    };
-                    setMessages(prev => [...prev, textMessage]);
-    
-                } else if (modelType === 'image') {
-                    const botResponseParts = await generateOrEditImageWithNanoBanana(inputText, imageFile);
-                    const responseMessage = {
-                        id: `model-${Date.now()}`,
-                        role: 'model',
-                        parts: botResponseParts
-                    };
-                    setMessages(prev => [...prev, responseMessage]);
-    
-                } else {
-                    throw new Error("Invalid model type.");
-                }
-    
-            } catch (err) {
-                console.error("Error communicating with API:", err);
-                const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-                setError(errorMessage);
-                const errorBotMessage = {
-                    id: `error-${Date.now()}`,
-                    role: 'model',
-                    parts: [{ text: `Sorry, something went wrong: ${errorMessage}` }]
-                };
-                setMessages(prev => [...prev, errorBotMessage]);
-            } finally {
-                setIsLoading(false);
-            }
-        }, [isLoading, modelType, sessionId]);
-    
-        const handleClearChat = useCallback(() => {
-            const welcomeMsg = modelType === 'text' ? TEXT_WELCOME_MESSAGE : PAINT_WELCOME_MESSAGE;
-            setMessages([welcomeMsg]);
-            setError(null);
-            if (modelType === 'text') {
-                clearServerChat(sessionId);
-                setSessionId(`session-${Date.now()}`); // Start a new session
-            }
-        }, [modelType, sessionId]);
-    
-        const handleModelChange = useCallback((newModel) => {
-            if (newModel === modelType) return;
-    
-            setModelType(newModel);
-            if (newModel === 'image' && !sessionStorage.getItem('nanoBananaPopupShown')) {
-                setShowNanoBananaPopup(true);
-                sessionStorage.setItem('nanoBananaPopupShown', 'true');
-            }
-        }, [modelType]);
-        
-        const handleTryPaintNow = () => {
-            sessionStorage.setItem('introPopupShown', 'true');
-            sessionStorage.setItem('nanoBananaPopupShown', 'true'); 
-            setModelType('image');
-            setShowIntroPopup(false);
-        };
-        
-        const handleCloseIntroPopup = () => {
-            setShowIntroPopup(false);
-            sessionStorage.setItem('introPopupShown', 'true');
-        };
-    
-        useEffect(() => {
-            const updatePadding = () => {
-                const extra = 16;
-                const top = (headerRef.current?.offsetHeight || 0) + extra;
-                const bottom = (footerRef.current?.offsetHeight || 0) + extra;
-                setChatPadding({ top, bottom });
-            };
-    
-            updatePadding();
-            const resizeObserver = new ResizeObserver(updatePadding);
-            if (headerRef.current) resizeObserver.observe(headerRef.current);
-            if (footerRef.current) resizeObserver.observe(footerRef.current);
-    
-            return () => resizeObserver.disconnect();
-        }, []);
-    
-        return (
-            React.createElement("div", { className: "animated-gradient-bg flex items-center justify-center min-h-screen p-2 sm:p-4" },
-                showIntroPopup && React.createElement(IntroPopup, { onClose: handleCloseIntroPopup, onTryNow: handleTryPaintNow }),
-                showNanoBananaPopup && React.createElement(NanoBananaPopup, { onClose: () => setShowNanoBananaPopup(false) }),
+    <!-- Key Modal (Fallback for Client-side mode) -->
+    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/95 transition-opacity duration-300">
+        <div class="bg-dark-surface border border-dark-border p-6 rounded-xl w-full max-w-sm">
+            <h2 class="text-xl font-bold text-white mb-4">Unlock Speed</h2>
+            <p class="text-xs text-gray-500 mb-4">Server access unavailable. Please enter a key manually.</p>
+            <form onsubmit="window.saveKey(event)" class="space-y-4">
+                <input id="key" type="password" class="w-full bg-black border border-dark-border rounded p-3 text-white focus:border-brand outline-none" placeholder="Cerebras API Key" required>
+                <button class="w-full bg-brand hover:opacity-90 text-white font-bold py-3 rounded">Enter</button>
+            </form>
+        </div>
+    </div>
+
+    <main class="flex-1 flex flex-col pt-16 w-full max-w-3xl mx-auto overflow-hidden">
+        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse" alt="Logo">
+                <h2 class="text-2xl font-bold text-white">D'Ai is ready.</h2>
+            </div>
+        </div>
+    </main>
+
+    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg to-transparent pb-6 pt-10 px-4">
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-xl border border-dark-border flex items-end p-2 focus-within:border-gray-600">
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3 max-h-40 resize-none outline-none" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <button id="btn" onclick="window.send()" class="p-3 text-gray-500 hover:text-brand disabled:opacity-50"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
+            md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
+            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
+            
+            const S={k:localStorage.getItem('ck'),msg:[],gen:false};
+            const E={m:document.getElementById('modal'),c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            
+            window.saveKey = function(e) { e.preventDefault(); const k=document.getElementById('key').value.trim(); if(k){localStorage.setItem('ck',k);S.k=k;E.m.classList.add('hidden');} };
+            window.reset = function() { S.msg=[];S.gen=false; E.c.innerHTML='';E.c.appendChild(E.h);E.h.classList.remove('hidden'); document.getElementById('btn').disabled=false; };
+            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333]">${t}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
+            
+            window.send = async function() {
+                const t=E.i.value.trim(); 
+                if(!t||S.gen) return;
                 
-                React.createElement("div", { className: "absolute inset-0 z-0" },
-                    React.createElement("div", { className: "shape shape1" }),
-                    React.createElement("div", { className: "shape shape2" })
-                ),
-    
-                React.createElement("div", { className: "relative w-full h-[100vh] sm:h-[90vh] sm:max-w-2xl rounded-none sm:rounded-[2.5rem] shadow-2xl glass-container overflow-hidden flex flex-col" },
-                    React.createElement(Header, { 
-                      ref: headerRef,
-                      currentModel: modelType,
-                      onModelChange: handleModelChange,
-                      onClearChat: handleClearChat,
-                      theme: theme,
-                      onThemeToggle: toggleTheme
-                    }),
+                S.gen=true; 
+                E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden');
+                document.getElementById('btn').disabled=true;
+                
+                if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
+                S.msg.push({role:"user",content:t}); add('user',t);
+                
+                const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
+                let buf="", disp="";
+                
+                try {
+                    // Strategy: Try Serverless Function first, fall back to Client Key
+                    let res;
+                    const payload = {model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7};
                     
-                    React.createElement(ChatHistory, {
-                        messages: messages,
-                        isLoading: isLoading,
-                        paddingTop: chatPadding.top,
-                        paddingBottom: chatPadding.bottom
-                    }),
-    
-                    React.createElement(MessageInput, {
-                        ref: footerRef,
-                        onSendMessage: handleSendMessage,
-                        isLoading: isLoading,
-                        currentModel: modelType
-                    })
-                )
-            )
-        );
-    }
+                    try {
+                        // Try Vercel Backend
+                        res = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+                        if(res.status === 404 || res.status === 500) throw new Error("Backend not found");
+                    } catch(err) {
+                        // Fallback to Client Key
+                        if(!S.k) { E.m.classList.remove('hidden'); S.gen=false; cur.remove(); document.getElementById('btn').disabled=false; return; }
+                        res = await fetch("https://api.cerebras.ai/v1/chat/completions", {method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${S.k}`},body:JSON.stringify(payload)});
+                    }
 
-    // --- RENDER APP ---
+                    if(!res.ok) throw new Error((await res.text()) || "API Error");
 
-    const rootElement = document.getElementById('root');
-    if (!rootElement) {
-      throw new Error("Could not find root element to mount to");
-    }
-    
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
-      React.createElement(React.StrictMode, null, React.createElement(App, null))
-    );
-    // ]]>
+                    const reader=res.body.getReader(), dec=new TextDecoder();
+                    const loop=()=>{
+                        if(buf.length>disp.length){
+                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
+                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                            E.c.scrollTop=E.c.scrollHeight;
+                        }
+                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
+                        else { if(cur)cur.remove(); S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
+                    };
+                    let active=true; requestAnimationFrame(loop);
+                    
+                    while(true){
+                        const {done,value}=await reader.read(); if(done)break;
+                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
+                    }
+                    active=false;
+                } catch(e){ el.innerText=`Error: ${e.message}`; if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; }
+            };
+        })();
     </script>
-  </body>
+</body>
 </html>
