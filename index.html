@@ -24,29 +24,23 @@
     </style>
 </head>
 <body class="flex flex-col h-screen">
-    <!-- Clean Header -->
     <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
-            <div class="text-center">
-                <h1 class="font-bold leading-none text-lg">D'Ai</h1>
-                <p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on Planet</p>
-            </div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on Planet</p></div>
         </div>
-        <button onclick="window.location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition"><i class="fa-solid fa-rotate-right"></i></button>
+        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <!-- Main Chat -->
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">How can I help?</h2>
+                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai is ready.</h2>
             </div>
         </div>
     </main>
 
-    <!-- Input -->
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4">
         <div class="max-w-3xl mx-auto bg-dark-surface rounded-2xl border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-colors">
             <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
@@ -56,14 +50,11 @@
 
     <script>
         (function() {
-            // Setup Markdown
             const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            const S={msg:[],gen:false};
-            const E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            
+            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
             
             window.send = async function() {
@@ -77,18 +68,15 @@
                 let buf="", disp="";
                 
                 try {
-                    // Direct Backend Call
+                    // Try to fetch from backend with credentials included to pass Vercel Auth
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
+                        credentials: "same-origin", 
                         body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
-                    if (!res.ok) {
-                        if(res.status === 403) throw new Error("Security Block (403). Check Hostinger/Cloudflare Firewall.");
-                        if(res.status === 500) throw new Error("Server Error. Check API Key in Vercel.");
-                        throw new Error(`Connection Error (${res.status})`);
-                    }
+                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
 
                     const reader=res.body.getReader(), dec=new TextDecoder();
                     const loop=()=>{
@@ -108,7 +96,7 @@
                     }
                     active=false;
                 } catch(e){ 
-                    el.innerHTML=`<div class="text-red-500 text-xs border border-red-900/50 bg-red-900/10 p-3 rounded"><strong>⚠️ Error:</strong> ${e.message}</div>`; 
+                    el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>Server Error:</strong> ${e.message}<br>Check Vercel logs.</div>`; 
                     if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
                 }
             };
