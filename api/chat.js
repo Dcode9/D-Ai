@@ -3,57 +3,60 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // 1. Handle CORS preflight requests
+  // 1. Get the request origin (e.g., https://ai.dverse.fun)
+  // Fallback to * if null (e.g. non-browser requests), but prefer explicit for browsers
+  const origin = req.headers.get('origin') || '*';
+
+  // 2. robust CORS Headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true', // Critical for "same-origin" credential mode
+  };
+
+  // 3. Handle Preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  // 2. Health Check
+  // 4. Health Check
   if (req.method === 'GET') {
-    return new Response(JSON.stringify({ status: 'D\'Ai Backend Online', method: 'GET' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    return new Response(JSON.stringify({ status: 'Online' }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }
 
-  // 3. Security Checks
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  // 5. Main Logic
+  if (req.method === 'POST') {
+    try {
+      const body = await req.json();
+      
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
 
-  if (!process.env.CEREBRAS_API_KEY) {
-    return new Response(JSON.stringify({ error: "Server Configuration Error: CEREBRAS_API_KEY is missing in Vercel." }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+      // Clone and attach CORS headers to the response
+      const newResponse = new Response(response.body, response);
+      Object.entries(corsHeaders).forEach(([key, value]) => {
+        newResponse.headers.set(key, value);
+      });
+      
+      return newResponse;
+
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
   }
 
-  try {
-    const body = await req.json();
-    
-    const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    // Proxy the response
-    const newResponse = new Response(response.body, response);
-    newResponse.headers.set('Access-Control-Allow-Origin', '*');
-    return newResponse;
-
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' }
-    });
-  }
+  return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
 }
