@@ -3,18 +3,30 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // Handle CORS preflight requests
+  // 1. Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   }
 
+  // 2. Health Check (New): Allows you to visit the URL in browser to check status
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ status: 'D\'Ai Backend Online', method: 'GET' }), {
+      status: 200,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*' 
+      }
+    });
+  }
+
+  // 3. Security: Reject anything else that isn't a POST
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   try {
