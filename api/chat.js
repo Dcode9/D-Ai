@@ -1,108 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D'Ai</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
-    <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
-        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
-        .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
-        .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
-        .cursor-blink{display:inline-block;width:6px;height:18px;background:#FF4F00;margin-left:4px;vertical-align:middle;animation:b 1s step-end infinite}@keyframes b{50%{opacity:0}}
-    </style>
-</head>
-<body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
-        <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on the Planet</p></div>
-        </div>
-        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition"><i class="fa-solid fa-rotate-right"></i></button>
-    </header>
+// Standard Node.js Serverless Function (Bypasses some Edge WAF rules)
+export default async function handler(req, res) {
+  // 1. Set Robust CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
-        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-20 h-20 rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)] animate-pulse" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai is ready.</h2>
-            </div>
-        </div>
-    </main>
+  // 2. Handle Preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-colors">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 pl-6 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
-        </div>
-    </div>
+  // 3. Health Check
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      status: 'Online', 
+      env_check: !!process.env.CEREBRAS_API_KEY 
+    });
+  }
 
-    <script>
-        (function() {
-            const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
-            md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
-            
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div><span class="cursor-blink"></span></div>`; E.c.appendChild(d); return d; };
-            
-            window.send = async function() {
-                const t=E.i.value.trim(); if(!t||S.gen) return;
-                S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
-                
-                if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
-                S.msg.push({role:"user",content:t}); add('user',t);
-                
-                const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
-                let buf="", disp="";
-                
-                try {
-                    // Force Backend (It handles the stream now)
-                    const res = await fetch("/api/chat", {
-                        method:"POST",
-                        headers:{"Content-Type":"application/json"},
-                        // Explicitly tell backend we want stream
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
-                    });
+  // 4. Main Logic
+  if (req.method === 'POST') {
+    try {
+      if (!process.env.CEREBRAS_API_KEY) {
+        return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
+      }
 
-                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
+      // Call Cerebras
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+        },
+        body: JSON.stringify(req.body),
+      });
 
-                    const reader=res.body.getReader(), dec=new TextDecoder();
-                    const loop=()=>{
-                        if(buf.length>disp.length){
-                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
-                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                            E.c.scrollTop=E.c.scrollHeight;
-                        }
-                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
-                        else { if(cur)cur.remove(); S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
-                    };
-                    let active=true; requestAnimationFrame(loop);
-                    
-                    while(true){
-                        const {done,value}=await reader.read(); if(done)break;
-                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
-                    }
-                    active=false;
-                } catch(e){ 
-                    // SAFE ERROR HANDLING: Append error, don't overwrite generated text
-                    const errHtml = `<div class="text-red-500 text-xs mt-2 p-2 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Network Error:</strong> ${e.message}</div>`;
-                    el.insertAdjacentHTML('beforeend', errHtml);
-                    if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
-                }
-            };
-        })();
-    </script>
-</body>
-</html>
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({ error: errorText });
+      }
+
+      // Stream the response back
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      });
+
+      const reader = response.body.getReader();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value); // Write chunks directly
+        }
+      } catch (streamError) {
+        console.error('Stream Error:', streamError);
+      } finally {
+        res.end();
+      }
+
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  } else {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+}
