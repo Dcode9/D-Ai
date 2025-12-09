@@ -1,68 +1,54 @@
-export const config = {
-  runtime: 'edge',
-};
+export default async function handler(req, res) {
+  // 1. CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
 
-export default async function handler(req) {
-  // SYSTEMATIC FIX: Public API Configuration
-  // 1. Allow '*' Origin (Simplest, least error-prone)
-  // 2. Do NOT allow Credentials (Cookies). This prevents 403s from strict security settings.
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*', 
-    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-
-  // Handle Preflight
+  // 2. Handle Options (Preflight)
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    res.status(200).end();
+    return;
   }
 
-  // Health Check
+  // 3. Health Check
   if (req.method === 'GET') {
-    return new Response(JSON.stringify({ status: 'Online' }), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
+    res.status(200).json({ status: 'Online' });
+    return;
   }
 
-  // Main Logic
+  // 4. API Call
   if (req.method === 'POST') {
     try {
-      const body = await req.json();
-      
+      if (!process.env.CEREBRAS_API_KEY) {
+        throw new Error('Missing Server API Key');
+      }
+
       const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(req.body),
       });
 
-      // Forward response status to help debugging
       if (!response.ok) {
-        const errorText = await response.text();
-        return new Response(JSON.stringify({ error: `Upstream Error: ${response.status}`, details: errorText }), {
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        const errText = await response.text();
+        throw new Error(`Cerebras Error: ${errText}`);
       }
 
-      // Clone response to attach CORS headers
-      const newResponse = new Response(response.body, response);
-      Object.entries(corsHeaders).forEach(([key, value]) => {
-        newResponse.headers.set(key, value);
-      });
+      // Stream the response back
+      const data = await response.json();
+      res.status(200).json(data);
       
-      return newResponse;
-
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
+      res.status(500).json({ error: error.message });
     }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
   }
-
-  return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
 }
