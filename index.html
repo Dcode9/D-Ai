@@ -65,38 +65,29 @@
                 S.msg.push({role:"user",content:t}); add('user',t);
                 
                 const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
-                let buf="", disp="";
                 
                 try {
-                    // Try to fetch from backend WITHOUT credentials to avoid 403s on public APIs
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:false,max_completion_tokens:4096,temperature:0.7})
                     });
 
-                    if (!res.ok) {
-                        const txt = await res.text();
-                        throw new Error(`Server Error (${res.status}): ${txt.substring(0, 100)}...`);
-                    }
+                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
 
-                    const reader=res.body.getReader(), dec=new TextDecoder();
-                    const loop=()=>{
-                        if(buf.length>disp.length){
-                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
-                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                            E.c.scrollTop=E.c.scrollHeight;
-                        }
-                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
-                        else { if(cur)cur.remove(); S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
-                    };
-                    let active=true; requestAnimationFrame(loop);
+                    const data = await res.json();
+                    const content = data.choices?.[0]?.message?.content || "No response.";
                     
-                    while(true){
-                        const {done,value}=await reader.read(); if(done)break;
-                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
-                    }
-                    active=false;
+                    // Render
+                    el.innerHTML = md.render(content.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                    
+                    S.msg.push({role:"assistant",content:content});
+                    
+                    if(cur) cur.remove();
+                    S.gen=false; 
+                    document.getElementById('btn').disabled=false;
+                    E.c.scrollTop=E.c.scrollHeight;
+
                 } catch(e){ 
                     el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Error:</strong> ${e.message}</div>`; 
                     if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
