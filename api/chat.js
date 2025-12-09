@@ -29,7 +29,7 @@ export default async function handler(req) {
       const body = await req.json();
 
       // ⚠️ Directly hard‑coded API key here
-      const CEREBRAS_API_KEY = "csk-2x9yckwv8695vm3fem9rw2f5tdj392wx5jt3jnwkp4y339jf";
+      const CEREBRAS_API_KEY = "csk-hn58d85rv5pcnwp5n3dk28y8j6rt8rnthh5cn6twx8ry8km2";
 
       const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
         method: 'POST',
