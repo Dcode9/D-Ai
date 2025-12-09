@@ -67,20 +67,33 @@
                 const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
                 
                 try {
+                    // console.log("Sending request to /api/chat...");
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:false,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({messages:S.msg}) // Backend handles model/params
                     });
 
-                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
+                    // console.log("Response status:", res.status);
+
+                    if (!res.ok) {
+                        const txt = await res.text();
+                        console.error("Backend Error Text:", txt);
+                        throw new Error(`Server Error (${res.status}): ${txt}`);
+                    }
 
                     const data = await res.json();
-                    const content = data.choices?.[0]?.message?.content || "No response.";
+                    // console.log("Data received:", data);
+
+                    const content = data.choices?.[0]?.message?.content;
+                    
+                    if (!content) {
+                        console.error("Empty content in response:", data);
+                        throw new Error("Empty response from AI");
+                    }
                     
                     // Render
                     el.innerHTML = md.render(content.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                    
                     S.msg.push({role:"assistant",content:content});
                     
                     if(cur) cur.remove();
@@ -88,7 +101,8 @@
                     document.getElementById('btn').disabled=false;
                     E.c.scrollTop=E.c.scrollHeight;
 
-                } catch(e){ 
+                } catch(e) { 
+                    console.error("Fetch Error:", e);
                     el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Error:</strong> ${e.message}</div>`; 
                     if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
                 }
