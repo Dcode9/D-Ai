@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
-    <!-- Suppress Tailwind Warning by using the specific script -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -28,7 +27,7 @@
     <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="w-8 h-8 rounded-lg shadow-lg bg-white/10" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on Planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on the Planet</p></div>
         </div>
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
@@ -43,9 +42,9 @@
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-2xl border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-colors">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-colors">
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 pl-6 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
 
@@ -69,18 +68,15 @@
                 let buf="", disp="";
                 
                 try {
+                    // Force Backend (It handles the stream now)
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        // Sending stream: true is crucial for the Edge Backend
+                        // Explicitly tell backend we want stream
                         body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
-                    if (!res.ok) {
-                        const txt = await res.text();
-                        // 500 = Server Error, 403 = WAF/Firewall
-                        throw new Error(`${res.status} Error: ${txt}`);
-                    }
+                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
 
                     const reader=res.body.getReader(), dec=new TextDecoder();
                     const loop=()=>{
@@ -100,7 +96,9 @@
                     }
                     active=false;
                 } catch(e){ 
-                    el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ System Error:</strong> ${e.message}</div>`; 
+                    // SAFE ERROR HANDLING: Append error, don't overwrite generated text
+                    const errHtml = `<div class="text-red-500 text-xs mt-2 p-2 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Network Error:</strong> ${e.message}</div>`;
+                    el.insertAdjacentHTML('beforeend', errHtml);
                     if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
                 }
             };
