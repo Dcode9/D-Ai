@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Suppress Tailwind Warning by using the specific script -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -65,45 +66,41 @@
                 S.msg.push({role:"user",content:t}); add('user',t);
                 
                 const {firstElementChild:el,lastElementChild:cur}=add('assistant','');
+                let buf="", disp="";
                 
                 try {
-                    // console.log("Sending request to /api/chat...");
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({messages:S.msg}) // Backend handles model/params
+                        // Sending stream: true is crucial for the Edge Backend
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
-
-                    // console.log("Response status:", res.status);
 
                     if (!res.ok) {
                         const txt = await res.text();
-                        console.error("Backend Error Text:", txt);
-                        throw new Error(`Server Error (${res.status}): ${txt}`);
+                        // 500 = Server Error, 403 = WAF/Firewall
+                        throw new Error(`${res.status} Error: ${txt}`);
                     }
 
-                    const data = await res.json();
-                    // console.log("Data received:", data);
-
-                    const content = data.choices?.[0]?.message?.content;
+                    const reader=res.body.getReader(), dec=new TextDecoder();
+                    const loop=()=>{
+                        if(buf.length>disp.length){
+                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
+                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                            E.c.scrollTop=E.c.scrollHeight;
+                        }
+                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
+                        else { if(cur)cur.remove(); S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
+                    };
+                    let active=true; requestAnimationFrame(loop);
                     
-                    if (!content) {
-                        console.error("Empty content in response:", data);
-                        throw new Error("Empty response from AI");
+                    while(true){
+                        const {done,value}=await reader.read(); if(done)break;
+                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
                     }
-                    
-                    // Render
-                    el.innerHTML = md.render(content.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                    S.msg.push({role:"assistant",content:content});
-                    
-                    if(cur) cur.remove();
-                    S.gen=false; 
-                    document.getElementById('btn').disabled=false;
-                    E.c.scrollTop=E.c.scrollHeight;
-
-                } catch(e) { 
-                    console.error("Fetch Error:", e);
-                    el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Error:</strong> ${e.message}</div>`; 
+                    active=false;
+                } catch(e){ 
+                    el.innerHTML=`<div class="text-red-500 text-xs p-3 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ System Error:</strong> ${e.message}</div>`; 
                     if(cur)cur.remove(); S.gen=false; document.getElementById('btn').disabled=false; 
                 }
             };
