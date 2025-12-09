@@ -3,11 +3,9 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // SYSTEMATIC FIX: Public API Configuration
-  // 1. Allow '*' Origin (Simplest, least error-prone)
-  // 2. Do NOT allow Credentials (Cookies). This prevents 403s from strict security settings.
+  // Public CORS headers
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
@@ -19,9 +17,9 @@ export default async function handler(req) {
 
   // Health Check
   if (req.method === 'GET') {
-    return new Response(JSON.stringify({ status: 'Online' }), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    return new Response(JSON.stringify({ status: 'Online' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -29,23 +27,28 @@ export default async function handler(req) {
   if (req.method === 'POST') {
     try {
       const body = await req.json();
-      
+
+      // ⚠️ Directly hard‑coded API key here
+      const CEREBRAS_API_KEY = "csk-hn58d85rv5pcnwp5n3dk28y8j6rt8rnthh5cn6twx8ry8km2";
+
       const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+          'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
         },
         body: JSON.stringify(body),
       });
 
-      // Forward response status to help debugging
       if (!response.ok) {
         const errorText = await response.text();
-        return new Response(JSON.stringify({ error: `Upstream Error: ${response.status}`, details: errorText }), {
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return new Response(
+          JSON.stringify({ error: `Upstream Error: ${response.status}`, details: errorText }),
+          {
+            status: response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       // Clone response to attach CORS headers
@@ -53,13 +56,13 @@ export default async function handler(req) {
       Object.entries(corsHeaders).forEach(([key, value]) => {
         newResponse.headers.set(key, value);
       });
-      
+
       return newResponse;
 
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
   }
