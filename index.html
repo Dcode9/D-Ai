@@ -1,104 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D'Ai</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
-    <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
-        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
-        .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
-        .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Fastest AI on the Planet</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: #fafbfc;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+    .header {
+      padding: 18px 16px;
+      background: #101a30;
+      color: #0edd53;
+      text-align: center;
+      font-size: 1.6em;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .market-msg {
+      background: #f1f6fb;
+      color: #2963fd;
+      text-align: center;
+      font-size: 1.15em;
+      padding: 10px 12px;
+      font-weight: 500;
+      border-bottom: 1px solid #dde9ee;
+    }
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 16px 90px 16px; /* Add enough bottom padding for input */
+      box-sizing: border-box;
+      background: #fff;
+      scroll-behavior: smooth;
+    }
+    .input-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      padding: 10px 6px 12px 6px;
+      box-shadow: 0 -3px 10px rgba(180,194,243,.16);
+      display: flex;
+      z-index: 4;
+    }
+    .input-bar input {
+      flex: 1;
+      font-size: 1.16em;
+      padding: 12px 10px;
+      border: 1px solid #cbd1f3;
+      border-radius: 20px;
+      outline: none;
+      margin-right: 8px;
+    }
+    .input-bar button {
+      background: #03e676;
+      color: #fff;
+      border: none;
+      padding: 0 22px;
+      border-radius: 20px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.14s;
+    }
+    .input-bar button:active {
+      background: #0e8052;
+    }
+    .ai-message, .user-message {
+      margin: 10px 0;
+      line-height: 1.56;
+    }
+    .ai-message {
+      color: #25367e;
+      background: #e6faef;
+      border-radius: 8px 8px 8px 0;
+      padding: 10px 14px;
+      max-width: 86vw;
+      display: inline-block;
+    }
+    .user-message {
+      color: #564fc3;
+      background: #e5e9fc;
+      border-radius: 8px 8px 0 8px;
+      padding: 10px 14px;
+      max-width: 86vw;
+      display: inline-block;
+      align-self: flex-end;
+    }
+  </style>
 </head>
-<body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
-        <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto rounded-lg shadow-lg bg-white/10" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on Planet</p></div>
-        </div>
-        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
-    </header>
-
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
-        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)]" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai is ready.</h2>
-            </div>
-        </div>
-    </main>
-
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 pl-6 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50"><i class="fa-solid fa-paper-plane text-lg"></i></button>
-        </div>
+<body>
+<div class="container">
+  <div class="header">The Fastest AI on the Planet</div>
+  <div class="market-msg" id="market-msg">
+    Experience real-time brilliance – Answers so fast, you'll think they're instant. 🚀
+  </div>
+  <div class="chat-area" id="chat-area">
+    <!-- Fill this with chat messages -->
+    <div class="ai-message">
+      Hi! I'm the world's fastest AI. Ask me anything – get insights instantly!
     </div>
+  </div>
+  <div class="input-bar">
+    <input id="user-input" type="text" placeholder="Type your question..." autocomplete="off" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
 
-    <script>
-        (function() {
-            const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
-            md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
-            
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
-            
-            window.send = async function() {
-                const t=E.i.value.trim(); if(!t||S.gen) return;
-                S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
-                
-                if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
-                S.msg.push({role:"user",content:t}); add('user',t);
-                
-                const {firstElementChild:el}=add('assistant','');
-                let buf="", disp="";
-                
-                try {
-                    const res = await fetch("/api/chat", {
-                        method:"POST",
-                        headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
-                    });
+<script>
+function scrollChatToBottom() {
+  // Scrolls chat to bottom, ensuring the input bar never covers content
+  const chat = document.getElementById('chat-area');
+  // Use setTimeout to ensure new messages are rendered before scrolling
+  setTimeout(() => {
+    chat.scrollTo({
+      top: chat.scrollHeight,
+      behavior: "smooth"
+    });
+  }, 60);
+}
 
-                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
+// Dummy AI response for demo
+function aiResponds(text) {
+  const chat = document.getElementById('chat-area');
+  const aiMsg = document.createElement('div');
+  aiMsg.className = 'ai-message';
+  aiMsg.innerText = text;
+  chat.appendChild(aiMsg);
+  scrollChatToBottom();
+}
 
-                    const reader=res.body.getReader(), dec=new TextDecoder();
-                    const loop=()=>{
-                        if(buf.length>disp.length){
-                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
-                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                            E.c.scrollTop=E.c.scrollHeight;
-                        }
-                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
-                        else { S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
-                    };
-                    let active=true; requestAnimationFrame(loop);
-                    
-                    while(true){
-                        const {done,value}=await reader.read(); if(done)break;
-                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
-                    }
-                    active=false;
-                } catch(e){ 
-                    const errHtml = `<div class="text-red-500 text-xs mt-2 p-2 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Network Error:</strong> ${e.message}</div>`;
-                    el.insertAdjacentHTML('beforeend', errHtml);
-                    S.gen=false; document.getElementById('btn').disabled=false; 
-                }
-            };
-        })();
-    </script>
+function sendMessage() {
+  const input = document.getElementById('user-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const chat = document.getElementById('chat-area');
+
+  // Show user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'user-message';
+  userMsg.innerText = val;
+  chat.appendChild(userMsg);
+  input.value = '';
+  scrollChatToBottom();
+
+  // Simulate blazing fast AI response
+  setTimeout(() => {
+    aiResponds(`⚡️[Instant] ${val.split(' ').slice(0,3).join(' ')}... — Solved in a blink!`);
+  }, 260); // Fast delay to simulate instant response
+}
+
+// Optional: auto-focus input on mobile
+document.getElementById('user-input').addEventListener('focus', scrollChatToBottom);
+
+// Fix for keyboard opening on iOS, makes sure chat scrolls after keyboard opens
+window.addEventListener('resize', scrollChatToBottom);
+</script>
 </body>
 </html>
