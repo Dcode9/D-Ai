@@ -20,6 +20,8 @@
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
         .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
         .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
+        /* Image styling for generated images */
+        .markdown-body img { border-radius: 8px; max-width: 100%; height: auto; border: 1px solid #333; margin-top: 10px; }
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -32,7 +34,6 @@
     </header>
 
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
-        <!-- Increased padding-bottom to pb-52 to prevent message box overlap -->
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-6 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)]" alt="Logo">
@@ -61,7 +62,18 @@
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($)."});
+                // --- SYSTEM PROMPT UPDATE ---
+                // Configured to use "putter.js" logic (via Pollinations API) for image generation
+                if(!S.msg.length) {
+                    S.msg.push({
+                        role: "system", 
+                        content: "You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($). " +
+                                 "IMAGE GENERATION: You have access to a tool called 'putter.js' to generate images using Gemini 2.5 Flash Image. " +
+                                 "If the user asks to generate an image, create a detailed, visual prompt and output a Markdown image link exactly like this: " +
+                                 "![Alt Text](https://image.pollinations.ai/prompt/{URL_ENCODED_PROMPT}?nologo=true) " +
+                                 "Example: User: 'Draw a cat' -> You: 'Here is a cat: ![A cute fluffy cat](https://image.pollinations.ai/prompt/A%20cute%20fluffy%20cat?nologo=true)'"
+                    });
+                }
                 S.msg.push({role:"user",content:t}); add('user',t);
                 
                 const {firstElementChild:el}=add('assistant','');
@@ -103,5 +115,3 @@
     </script>
 </body>
 </html>
-
-                                                                                                                                                      
