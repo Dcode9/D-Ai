@@ -20,8 +20,21 @@
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
         .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
         .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
-        /* Image styling for generated images */
-        .markdown-body img { border-radius: 8px; max-width: 100%; height: auto; border: 1px solid #333; margin-top: 10px; }
+
+        /* --- Image Generation UI --- */
+        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin-top: 1rem; border: 1px solid #333; background: #0a0a0a; display: inline-block; max-width: 100%; }
+        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; }
+        .dai-loader::after { content: ''; width: 24px; height: 24px; border: 2px solid #333; border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .dai-img { display: block; width: 100%; height: auto; opacity: 0; transition: opacity 0.3s; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
+        .dai-img.loaded { opacity: 1; animation: wipeDown 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        .dai-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 2; backdrop-filter: blur(2px); }
+        .dai-img-container:hover .dai-overlay { opacity: 1; }
+        .dai-btn { background: white; color: black; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: transform 0.1s; }
+        .dai-btn:hover { transform: scale(1.05); background: #eee; }
+        .dai-watermark { position: absolute; bottom: 8px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 1px; }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes wipeDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -51,16 +64,34 @@
 
     <script>
         (function() {
-            const md = window.markdownit({html:false,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
+            // Note: html:true enabled for Putter image injection
+            const md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            // --- Putter.js Logic ---
+            // --- Putter.js SDK (Enhanced) ---
             const Putter = {
-                generate: (prompt) => {
-                    // Simulates calling the Putter SDK which routes to Gemini 2.5 Flash Image / Pollinations
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true`;
-                    return `![Image: ${prompt}](${url})`;
+                generate: (input) => {
+                    const [prompt, ratio = "1:1"] = input.split('|').map(s => s.trim());
+                    
+                    const dims = {
+                        "1:1": {w:1024, h:1024}, "16:9": {w:1280, h:720}, "9:16": {w:720, h:1280},
+                        "4:3": {w:1024, h:768}, "3:4": {w:768, h:1024}, "landscape": {w:1280, h:720}, "portrait": {w:720, h:1280}
+                    };
+                    const {w, h} = dims[ratio.toLowerCase()] || dims["1:1"];
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+                    
+                    // Return raw HTML structure for the custom UI
+                    return `
+                    <div class="dai-img-container" style="aspect-ratio: ${w}/${h}">
+                        <div class="dai-loader"></div>
+                        <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div class=\'text-red-500 p-4 text-xs\'>Failed to load image</div>'">
+                        <div class="dai-overlay">
+                            <button class="dai-btn" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i> Copy Link</button>
+                            <button class="dai-btn" onclick="window.open('${url}', '_blank')"><i class="fa-solid fa-download"></i> Open</button>
+                        </div>
+                        <div class="dai-watermark">D'Ai</div>
+                    </div>`;
                 }
             };
 
@@ -71,15 +102,16 @@
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // --- SYSTEM PROMPT UPDATE ---
-                // Simplified prompt. The AI only needs to know the token format.
+                // --- SYSTEM PROMPT (Enhanced) ---
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
-                        content: "You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($). " +
+                        content: "You are D'Ai, a lightning fast AI. Be concise. Format math with LaTeX ($). " +
                                  "IMAGE GENERATION: You have the ability to generate images using the Putter.js SDK. " +
-                                 "To generate an image, you MUST use this specific format: <<GENERATE_IMAGE: detailed_prompt_here>>. " +
-                                 "Do not use markdown image syntax directly. The UI will interpret the command."
+                                 "To generate an image, you MUST use this specific format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "Aspect Ratios: 1:1 (default), 16:9, 9:16, 4:3, 3:4, landscape, portrait. " +
+                                 "Example: <<GENERATE_IMAGE: A futuristic city | 16:9>>. " +
+                                 "Do not use markdown image syntax directly."
                     });
                 }
                 S.msg.push({role:"user",content:t}); add('user',t);
@@ -102,10 +134,9 @@
                             disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
                             
                             // --- UI INTERPRETER ---
-                            // Intercept the token and replace with Putter.generate() result
                             const processedContent = disp.replace(
                                 /<<GENERATE_IMAGE:([^>]+)>>/g, 
-                                (match, prompt) => Putter.generate(prompt)
+                                (match, input) => Putter.generate(input)
                             );
 
                             el.innerHTML=md.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
