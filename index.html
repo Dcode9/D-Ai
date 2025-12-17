@@ -22,16 +22,17 @@
         .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
 
         /* --- Image Generation UI --- */
-        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin-top: 1rem; border: 1px solid #333; background: #0a0a0a; display: inline-block; max-width: 100%; }
-        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; }
-        .dai-loader::after { content: ''; width: 24px; height: 24px; border: 2px solid #333; border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .dai-img { display: block; width: 100%; height: auto; opacity: 0; transition: opacity 0.3s; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
-        .dai-img.loaded { opacity: 1; animation: wipeDown 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-        .dai-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 2; backdrop-filter: blur(2px); }
+        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 0.5rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; }
+        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
+        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.2); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
+        .dai-img.loaded { opacity: 1; animation: wipeDown 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+        .dai-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.2s; display: flex; justify-content: flex-end; align-items: flex-start; padding: 12px; gap: 8px; z-index: 2; }
         .dai-img-container:hover .dai-overlay { opacity: 1; }
-        .dai-btn { background: white; color: black; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: transform 0.1s; }
-        .dai-btn:hover { transform: scale(1.05); background: #eee; }
-        .dai-watermark { position: absolute; bottom: 8px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 1px; }
+        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: none; }
+        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; transform: scale(1.05); }
+        .dai-btn i { font-size: 14px; }
+        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 700; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes wipeDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
@@ -63,35 +64,51 @@
     </div>
 
     <script>
+        // Global helper for downloading with watermark
+        window.dlImg = async (url, id) => {
+            const btn = document.getElementById(id);
+            const ogHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const img = new Image(); img.crossOrigin="Anonymous"; img.src=url;
+                await new Promise(r=>img.onload=r);
+                const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
+                const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
+                
+                // Add Watermark
+                ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
+                ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
+                ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
+                ctx.fillText("D'Ai", img.width-20, img.height-20);
+
+                const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
+            } catch(e) { window.open(url,'_blank'); }
+            btn.innerHTML = ogHtml;
+        };
+
         (function() {
-            // Note: html:true enabled for Putter image injection
             const md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            // --- Putter.js SDK (Enhanced) ---
+            // --- Putter.js Logic ---
             const Putter = {
                 generate: (input) => {
-                    const [prompt, ratio = "1:1"] = input.split('|').map(s => s.trim());
-                    
-                    const dims = {
-                        "1:1": {w:1024, h:1024}, "16:9": {w:1280, h:720}, "9:16": {w:720, h:1280},
-                        "4:3": {w:1024, h:768}, "3:4": {w:768, h:1024}, "landscape": {w:1280, h:720}, "portrait": {w:720, h:1280}
-                    };
-                    const {w, h} = dims[ratio.toLowerCase()] || dims["1:1"];
+                    const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
+                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
+                    const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+                    const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
                     
-                    // Return raw HTML structure for the custom UI
-                    return `
-                    <div class="dai-img-container" style="aspect-ratio: ${w}/${h}">
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}">
                         <div class="dai-loader"></div>
                         <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div class=\'text-red-500 p-4 text-xs\'>Failed to load image</div>'">
                         <div class="dai-overlay">
-                            <button class="dai-btn" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i> Copy Link</button>
-                            <button class="dai-btn" onclick="window.open('${url}', '_blank')"><i class="fa-solid fa-download"></i> Open</button>
+                            <button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button>
+                            <button id="${btnId}" class="dai-btn" title="Download with Watermark" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
                         </div>
                         <div class="dai-watermark">D'Ai</div>
-                    </div>`;
+                    </div>\n`;
                 }
             };
 
@@ -102,16 +119,16 @@
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // --- SYSTEM PROMPT (Enhanced) ---
+                // --- SYSTEM PROMPT (Backend Agnostic) ---
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning fast AI. Be concise. Format math with LaTeX ($). " +
-                                 "IMAGE GENERATION: You have the ability to generate images using the Putter.js SDK. " +
-                                 "To generate an image, you MUST use this specific format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
-                                 "Aspect Ratios: 1:1 (default), 16:9, 9:16, 4:3, 3:4, landscape, portrait. " +
-                                 "Example: <<GENERATE_IMAGE: A futuristic city | 16:9>>. " +
-                                 "Do not use markdown image syntax directly."
+                                 "CAPABILITIES: You can generate high-quality images. " +
+                                 "PROTOCOL: If asked to generate an image, use this EXACT format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "Aspect Ratios: 1:1, 16:9, 9:16, 4:3, 3:4, landscape, portrait. " +
+                                 "Example: 'Here is the city: <<GENERATE_IMAGE: A cyberpunk city | 16:9>>'. " +
+                                 "Do not discuss internal tools or Putter.js."
                     });
                 }
                 S.msg.push({role:"user",content:t}); add('user',t);
