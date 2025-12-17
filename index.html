@@ -14,6 +14,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <!-- Puter.js Library -->
+    <script src="https://js.puter.com/v2/"></script>
     <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
@@ -41,7 +43,8 @@
 <body class="flex flex-col h-screen">
     <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto rounded-lg shadow-lg bg-white/10" alt="Logo">
+            <!-- Fixed Logo: Removed bg, shadow, rounded classes -->
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on the Planet</p></div>
         </div>
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
@@ -50,7 +53,8 @@
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-6 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto rounded-3xl mb-6 shadow-[0_0_40px_rgba(255,79,0,0.3)]" alt="Logo">
+                <!-- Fixed Hero Logo: Removed shadow and extra styles -->
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
                 <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
             </div>
         </div>
@@ -91,26 +95,69 @@
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            // --- Putter.js Logic ---
+            // --- Generation Cache System (Handles Async + Re-renders) ---
+            const genCache = new Map(); // Key: input_string, Value: { status, url }
+
+            const generateImage = async (input, dims) => {
+                if (genCache.has(input)) return; 
+                genCache.set(input, { status: 'pending', url: null });
+                
+                const [prompt, ratio] = input.split('|').map(s=>s.trim());
+                
+                try {
+                    // 1. Try Puter.js First (as requested)
+                    if (typeof puter !== 'undefined' && puter.ai && puter.ai.txt2img) {
+                        const imgEl = await puter.ai.txt2img(prompt);
+                        if(imgEl && imgEl.src) {
+                             genCache.set(input, { status: 'done', url: imgEl.src });
+                             return;
+                        }
+                    }
+                    throw new Error("Puter unavailable");
+                } catch(e) {
+                    // 2. Fallback to Pollinations (Flux Model)
+                    const {w, h} = dims;
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}&model=flux`;
+                    // Preload to avoid flicker
+                    const img = new Image();
+                    img.onload = () => genCache.set(input, { status: 'done', url: url });
+                    img.src = url;
+                }
+            };
+
             const Putter = {
                 generate: (input) => {
                     const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
-                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
-                    const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
-                    const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
+                    const dimsMap = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
+                    const dims = dimsMap[ratio.toLowerCase()] || dimsMap["1:1"];
+
+                    // Check cache status
+                    const cache = genCache.get(input);
                     
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}">
-                        <div class="dai-loader"></div>
-                        <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div class=\'text-red-500 p-4 text-xs\'>Failed to load image</div>'">
-                        <div class="dai-overlay">
-                            <button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button>
-                            <button id="${btnId}" class="dai-btn" title="Download with Watermark" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
-                        </div>
-                        <div class="dai-watermark">D'Ai</div>
-                    </div>\n`;
+                    if (!cache) {
+                        generateImage(input, dims); // Trigger async generation
+                        return renderPlaceholder(dims.w, dims.h);
+                    } else if (cache.status === 'pending') {
+                        return renderPlaceholder(dims.w, dims.h);
+                    } else {
+                        return renderImage(cache.url, prompt, dims.w, dims.h);
+                    }
                 }
             };
+
+            const renderPlaceholder = (w, h) => `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div></div>\n`;
+            
+            const renderImage = (url, prompt, w, h) => {
+                const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
+                return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}">
+                    <img src="${url}" class="dai-img loaded" alt="${prompt}">
+                    <div class="dai-overlay">
+                        <button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button>
+                        <button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
+                    </div>
+                    <div class="dai-watermark">D'Ai</div>
+                </div>\n`;
+            }
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
@@ -119,12 +166,12 @@
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // --- SYSTEM PROMPT (Backend Agnostic) ---
+                // --- SYSTEM PROMPT (Puter.js Aware) ---
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning fast AI Created by Dhairya Shah. Be concise. Format math with LaTeX ($). " +
-                                 "CAPABILITIES: You can generate high-quality images, write stories, poems, play text based games and more. " +
+                                 "CAPABILITIES: You generate visual content using the Gemini 2.5 Flash Image (Nano Banana) engine via Puter.js. " +
                                  "PROTOCOL: If asked to generate an image, use this EXACT format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
                                  "Aspect Ratios: 1:1, 16:9, 9:16, 4:3, 3:4, landscape, portrait. " +
                                  "Example: 'Here is the city: <<GENERATE_IMAGE: A cyberpunk city | 16:9>>'. " +
@@ -147,8 +194,9 @@
 
                     const reader=res.body.getReader(), dec=new TextDecoder();
                     const loop=()=>{
-                        if(buf.length>disp.length){
-                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
+                        // Always force update if new data arrived OR if we have pending images that might have finished
+                        if(disp !== buf || document.querySelector('.dai-loader')){
+                            disp = buf; 
                             
                             // --- UI INTERPRETER ---
                             const processedContent = disp.replace(
@@ -159,7 +207,10 @@
                             el.innerHTML=md.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
                             E.c.scrollTop=E.c.scrollHeight;
                         }
-                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
+                        
+                        // Keep loop alive if streaming OR if images are still pending loading
+                        const hasPending = Array.from(genCache.values()).some(v => v.status === 'pending');
+                        if(active || hasPending) requestAnimationFrame(loop);
                         else { S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
                     };
                     let active=true; requestAnimationFrame(loop);
