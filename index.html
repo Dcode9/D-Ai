@@ -55,6 +55,15 @@
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
             md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
+            // --- Putter.js Logic ---
+            const Putter = {
+                generate: (prompt) => {
+                    // Simulates calling the Putter SDK which routes to Gemini 2.5 Flash Image / Pollinations
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true`;
+                    return `![Image: ${prompt}](${url})`;
+                }
+            };
+
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
             
@@ -63,15 +72,14 @@
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
                 // --- SYSTEM PROMPT UPDATE ---
-                // Configured to use "putter.js" logic (via Pollinations API) for image generation
+                // Simplified prompt. The AI only needs to know the token format.
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning fast AI created by Dhairya Shah. Be concise. Format math with LaTeX ($). " +
-                                 "IMAGE GENERATION: You have access to a tool called 'putter.js' to generate images using Gemini 2.5 Flash Image. " +
-                                 "If the user asks to generate an image, create a detailed, visual prompt and output a Markdown image link exactly like this: " +
-                                 "![Alt Text](https://image.pollinations.ai/prompt/{URL_ENCODED_PROMPT}?nologo=true) " +
-                                 "Example: User: 'Draw a cat' -> You: 'Here is a cat: ![A cute fluffy cat](https://image.pollinations.ai/prompt/A%20cute%20fluffy%20cat?nologo=true)'"
+                                 "IMAGE GENERATION: You have the ability to generate images using the Putter.js SDK. " +
+                                 "To generate an image, you MUST use this specific format: <<GENERATE_IMAGE: detailed_prompt_here>>. " +
+                                 "Do not use markdown image syntax directly. The UI will interpret the command."
                     });
                 }
                 S.msg.push({role:"user",content:t}); add('user',t);
@@ -92,7 +100,15 @@
                     const loop=()=>{
                         if(buf.length>disp.length){
                             disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
-                            el.innerHTML=md.render(disp.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                            
+                            // --- UI INTERPRETER ---
+                            // Intercept the token and replace with Putter.generate() result
+                            const processedContent = disp.replace(
+                                /<<GENERATE_IMAGE:([^>]+)>>/g, 
+                                (match, prompt) => Putter.generate(prompt)
+                            );
+
+                            el.innerHTML=md.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
                             E.c.scrollTop=E.c.scrollHeight;
                         }
                         if(disp.length<buf.length||active) requestAnimationFrame(loop);
