@@ -104,7 +104,7 @@
                     
                     return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}">
                         <div class="dai-loader"></div>
-                        <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div class=\'text-red-500 p-4 text-xs\'>Failed to load image</div>'">
+                        <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div class=&quot;text-red-500 p-4 text-xs&quot;>Failed to load image</div>'">
                         <div class="dai-overlay">
                             <button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button>
                             <button id="${btnId}" class="dai-btn" title="Download with Watermark" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
