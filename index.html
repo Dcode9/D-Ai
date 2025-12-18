@@ -13,45 +13,64 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
-        .markdown-body{font-size:.95rem;line-height:1.6;color:#E0E0E0}.markdown-body p{margin-bottom:.8em}.markdown-body h1,.markdown-body h2{color:#FFF;font-weight:600;margin-top:1em}.markdown-body a{color:#FF4F00;text-decoration:underline}.markdown-body code{font-family:'JetBrains Mono',monospace;background:#2A1500;color:#FF7F50;padding:.2em .4em;border-radius:4px;font-size:.85em}.markdown-body pre{margin:1em 0;padding:0;background:0 0}.markdown-body pre code{background:0 0;padding:0;color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden;margin:.5em 0}
-        .code-box{margin:1em 0;background:#0F0F0F;border:1px solid #333;border-radius:8px;overflow:hidden}.code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888}.code-body{overflow-x:auto;padding:1rem}
+        
+        /* Enhanced Typography for Chat */
+        .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
+        .markdown-body p { margin-bottom: 1rem; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; }
+        .markdown-body h1 { font-size: 1.5rem; }
+        .markdown-body h2 { font-size: 1.25rem; }
+        .markdown-body h3 { font-size: 1.1rem; }
+        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); transition: border-color 0.2s; }
+        .markdown-body a:hover { border-bottom-color: #FF4F00; }
+        .markdown-body ul, .markdown-body ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .markdown-body li { margin-bottom: 0.5rem; }
+        .markdown-body li::marker { color: #666; }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
+        .markdown-body pre { margin: 1.5em 0; padding: 0; background: transparent; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .markdown-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; border: none; }
+        .markdown-body blockquote { border-left: 3px solid #333; padding-left: 1rem; color: #9ca3af; font-style: italic; margin: 1rem 0; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; margin: 1em 0; padding: 0.5em 0; }
 
-        /* --- Image Generation UI --- */
-        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 0.5rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; }
+        /* Code Box UI */
+        .code-box { margin: 1em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+        .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .code-body { padding: 0; }
+
+        /* Image Generation UI */
+        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
-        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.2); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
-        .dai-img.loaded { opacity: 1; animation: wipeDown 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
-        .dai-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.2s; display: flex; justify-content: flex-end; align-items: flex-start; padding: 12px; gap: 8px; z-index: 2; }
+        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.1); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-out; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
+        .dai-img.loaded { opacity: 1; animation: wipeDown 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 10; }
         .dai-img-container:hover .dai-overlay { opacity: 1; }
-        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: none; }
-        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; transform: scale(1.05); }
+        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: blur(4px); }
+        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; transform: scale(1.05); box-shadow: 0 2px 8px rgba(255,79,0,0.2); }
         .dai-btn i { font-size: 14px; }
-        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 700; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 700; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 2px; }
         
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes wipeDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
     </style>
 </head>
 <body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
+    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <!-- Logo cleaned: removed bg-white/10 and shadow-lg for transparency -->
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on the Planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
         </div>
-        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
+        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
-        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-6 scroll-smooth">
+        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <!-- Hero Logo cleaned: removed rounded-3xl and shadow -->
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
                 <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
             </div>
@@ -59,9 +78,14 @@
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 pl-6 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-3xl border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
+            <!-- Smart Search Toggle -->
+            <button id="web-btn" onclick="window.toggleWeb()" class="p-3.5 pl-5 text-gray-500 hover:text-brand transition-colors duration-300 group relative" title="Smart Search (Auto-enabled)">
+                <i class="fa-solid fa-globe text-lg"></i>
+                <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Search</span>
+            </button>
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
 
@@ -77,7 +101,6 @@
                 const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
                 const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
                 
-                // Add Watermark
                 ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
                 ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
                 ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
@@ -88,17 +111,15 @@
             btn.innerHTML = ogHtml;
         };
 
-        // Global helper for image load errors
         window.imgError = (el) => {
-            el.parentElement.innerHTML = '<div class="text-red-500 p-4 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10">Failed to load image</div>';
+            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
         };
 
         (function() {
             const md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
             md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
+            md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition-colors"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
             
-            // --- Putter.js Logic ---
             const Putter = {
                 generate: (input) => {
                     const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
@@ -112,16 +133,63 @@
                         <img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)">
                         <div class="dai-overlay">
                             <button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button>
-                            <button id="${btnId}" class="dai-btn" title="Download with Watermark" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
+                            <button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button>
                         </div>
                         <div class="dai-watermark">D'Ai</div>
                     </div>\n`;
                 }
             };
 
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
+            const searchTavily = async (query) => {
+                let key = ""; // Hardcode here if needed
+                if (!key) {
+                    key = localStorage.getItem('tavily_key');
+                    if (key) key = key.trim().replace(/^Bearer\s+/i, "");
+                    if (!key) {
+                        const input = prompt("Enter Tavily API Key for Smart Search:");
+                        if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); } 
+                        else return null;
+                    }
+                }
+                try {
+                    const res = await fetch('https://api.tavily.com/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
+                    });
+                    if(!res.ok) {
+                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('tavily_key'); alert("Invalid API Key. Cleared."); }
+                        throw new Error(`Tavily: ${res.status}`);
+                    }
+                    const data = await res.json();
+                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
+                } catch (e) { console.error(e); return null; }
+            };
+
+            const S={msg:[],gen:false, web:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero'), w:document.getElementById('web-btn')};
+            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
             
+            // Manual Toggle
+            window.toggleWeb = () => {
+                S.web = !S.web;
+                E.w.classList.toggle('text-brand', S.web);
+                E.w.classList.toggle('text-gray-500', !S.web);
+            };
+
+            // Smart Auto-Search Logic
+            const shouldSearch = (text) => {
+                if(S.web) return true; // Already forced
+                const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
+                const t = text.toLowerCase();
+                if(keywords.some(k => t.includes(k))) {
+                    S.web = true; // Auto-enable state for this turn
+                    E.w.classList.add('text-brand');
+                    E.w.classList.remove('text-gray-500');
+                    return true;
+                }
+                return false;
+            };
+
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
@@ -130,57 +198,78 @@
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
-                        content: "You are D'Ai, a lightning fast AI Created by Dhairya Shah. Be concise. Format math with LaTeX ($). " +
-                                 "CAPABILITIES: You can generate high-quality images, write stories, poems, play text based games and more. " +
-                                 "PROTOCOL: If asked to generate an image, use this EXACT format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
-                                 "Aspect Ratios: 1:1, 16:9, 9:16, 4:3, 3:4, landscape, portrait. " +
-                                 "Example: 'Here is the city: <<GENERATE_IMAGE: A cyberpunk city | 16:9>>'. " +
-                                 "Do not discuss internal tools or Putter.js and don't show how can you generate images."
+                        content: "You are D'Ai, a lightning-fast AI assistant created by Dhairya Shah. " +
+                                 "Chat naturally and casually. Never define simple words or greetings. " +
+                                 "Be concise, friendly, and direct. " +
+                                 "You can generate images and browse the web. " +
+                                 "IMAGE GEN: If user explicitly asks to generate/create/draw an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "Do not show this token when just explaining capabilities. " +
+                                 "WEB SEARCH: If provided with web results, integrate them seamlessly into your answer. Do not say 'According to search results'. Act like you know it."
                     });
                 }
-                S.msg.push({role:"user",content:t}); add('user',t);
                 
+                S.msg.push({role:"user",content:t}); add('user',t);
                 const {firstElementChild:el}=add('assistant','');
+
+                // --- SEARCH LOGIC ---
+                let searchContext = "";
+                if(shouldSearch(t)) {
+                    el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
+                    const results = await searchTavily(t);
+                    if(results) {
+                        searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily). Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
+                    }
+                    el.innerHTML = ""; // Clear loading text
+                }
                 
                 try {
+                    const messagesToSend = [...S.msg];
+                    if(searchContext) {
+                        messagesToSend[messagesToSend.length - 1] = { 
+                            role: messagesToSend[messagesToSend.length - 1].role, 
+                            content: messagesToSend[messagesToSend.length - 1].content + searchContext 
+                        };
+                    }
+
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
-                    if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
+                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
                     const reader = res.body.getReader();
                     const dec = new TextDecoder();
                     let fullText = "";
                     let buffer = "";
 
-                    // Direct Streaming Loop
+                    // Reset auto-toggle after search is initiated
+                    if(S.web) {
+                        // Optional: Keep it on? Or turn off? Let's keep visually on if it was used.
+                    }
+
+                    E.c.style.scrollBehavior = 'auto'; // Disable smooth scroll for perf
+
                     while (true) {
                         const {done, value} = await reader.read();
                         if (done) break;
 
-                        // Decode and append to buffer
                         buffer += dec.decode(value, {stream: true});
                         const lines = buffer.split('\n');
-                        
-                        // Keep the last partial line in the buffer
                         buffer = lines.pop();
 
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 try {
                                     const jsonStr = line.slice(6).trim();
-                                    if (jsonStr === "[DONE]") continue; // Standard SSE End
-
+                                    if (jsonStr === "[DONE]") continue;
                                     const json = JSON.parse(jsonStr);
                                     const delta = json.choices[0]?.delta?.content || "";
                                     
                                     if (delta) {
                                         fullText += delta;
-                                        
-                                        // --- RENDER IMMEDIATELY ---
+                                        // Direct Render
                                         const processedContent = fullText.replace(
                                             /<<GENERATE_IMAGE:([^>]+)>>/g, 
                                             (match, input) => Putter.generate(input)
@@ -192,24 +281,21 @@
                                             .replace(/(^|[^\\])\\\(/g,'$1$')
                                             .replace(/\\\)/g,'$')
                                         );
-                                        
                                         E.c.scrollTop = E.c.scrollHeight;
                                     }
-                                } catch (e) {
-                                    // Skip parse errors for empty/malformed chunks
-                                }
+                                } catch (e) {}
                             }
                         }
                     }
 
-                    // Done
+                    E.c.style.scrollBehavior = 'smooth'; // Re-enable smooth scroll
                     S.msg.push({role:"assistant",content:fullText}); 
                     S.gen=false; 
                     document.getElementById('btn').disabled=false;
 
                 } catch(e) { 
-                    const errHtml = `<div class="text-red-500 text-xs mt-2 p-2 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Network Error:</strong> ${e.message}</div>`;
-                    el.insertAdjacentHTML('beforeend', errHtml);
+                    const errHtml = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Error:</strong> ${e.message}</div>`;
+                    el.innerHTML = errHtml;
                     S.gen=false; document.getElementById('btn').disabled=false; 
                 }
             };
