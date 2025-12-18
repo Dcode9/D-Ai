@@ -60,7 +60,11 @@
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
         <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 pl-6 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <!-- Web Search Toggle Button -->
+            <button id="web-btn" onclick="window.toggleWeb()" class="p-3.5 pl-5 text-gray-500 hover:text-brand transition-colors" title="Toggle Linkup Search">
+                <i class="fa-solid fa-globe text-lg"></i>
+            </button>
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
             <button id="btn" onclick="window.send()" class="p-3.5 pr-5 text-gray-500 hover:text-brand disabled:opacity-50"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
@@ -119,9 +123,51 @@
                 }
             };
 
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            // --- Linkup Search Logic ---
+            const searchLinkup = async (query) => {
+                let key = localStorage.getItem('linkup_key');
+                if (!key) {
+                    key = prompt("Please enter your Linkup API Key to enable search:");
+                    if (key) localStorage.setItem('linkup_key', key);
+                    else return null;
+                }
+                
+                try {
+                    const res = await fetch('https://api.linkup.so/v1/search?q=' + encodeURIComponent(query), {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    });
+                    if(!res.ok) {
+                        if(res.status === 401) {
+                            localStorage.removeItem('linkup_key');
+                            alert("Invalid API Key. Please try again.");
+                        }
+                        throw new Error("Linkup API Error");
+                    }
+                    const data = await res.json();
+                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\nContent: ${r.content}`).join('\n\n') : null;
+                } catch (e) {
+                    console.error(e);
+                    return null;
+                }
+            };
+
+            const S={msg:[],gen:false, web:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero'), w:document.getElementById('web-btn')};
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${md.utils.escapeHtml(t)}</div>`:`<div class="w-full"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
             
+            // Web Toggle Function
+            window.toggleWeb = () => {
+                S.web = !S.web;
+                if(S.web) {
+                    E.w.classList.add('text-brand');
+                    E.w.classList.remove('text-gray-500');
+                    E.i.placeholder = "Ask D'Ai (Linkup Search Active)...";
+                } else {
+                    E.w.classList.remove('text-brand');
+                    E.w.classList.add('text-gray-500');
+                    E.i.placeholder = "Ask D'Ai...";
+                }
+            };
+
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
@@ -138,15 +184,44 @@
                                  "Do not discuss internal tools or Putter.js and don't show how can you generate images."
                     });
                 }
-                S.msg.push({role:"user",content:t}); add('user',t);
                 
+                S.msg.push({role:"user",content:t}); add('user',t);
                 const {firstElementChild:el}=add('assistant','');
+
+                // --- SEARCH INTERCEPTION ---
+                let searchContext = "";
+                if(S.web) {
+                    el.innerHTML = '<span class="text-brand text-xs animate-pulse"><i class="fa-solid fa-magnifying-glass"></i> Searching Linkup...</span>';
+                    const results = await searchLinkup(t);
+                    
+                    if(results) {
+                        // Silent Integration Prompting
+                        searchContext = `\n\n[SYSTEM INSTRUCTION: The following is live data retrieved from the web via Linkup. ` +
+                                        `Use this data to answer the user's request accurately and up-to-date. ` +
+                                        `Integrate this information SILENTLY and seamlessly into your response. ` +
+                                        `Do NOT say "Based on the search results" or "I found this online". ` +
+                                        `Just answer the question as if you possess this knowledge. ` +
+                                        `This live data takes precedence over your internal training to prevent hallucinations.]\n\n` +
+                                        `WEB DATA:\n${results}`;
+                    }
+                    el.innerHTML = ""; // Clear loading indicator
+                }
                 
                 try {
+                    // Create a temporary messages array with context injected into the LAST user message
+                    const messagesToSend = [...S.msg];
+                    if(searchContext) {
+                        const lastMsg = messagesToSend[messagesToSend.length - 1];
+                        messagesToSend[messagesToSend.length - 1] = { 
+                            role: lastMsg.role, 
+                            content: lastMsg.content + searchContext 
+                        };
+                    }
+
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
                     if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
