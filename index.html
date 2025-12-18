@@ -125,26 +125,39 @@
 
             // --- Linkup Search Logic ---
             const searchLinkup = async (query) => {
-                let key = localStorage.getItem('linkup_key');
+                // 1. HARDCODE OPTION: Paste your key inside the quotes below
+                let key = ""; 
+
+                // 2. Fallback: If no key above, check browser storage or ask user
                 if (!key) {
-                    key = prompt("Please enter your Linkup API Key to enable search:");
-                    if (key) localStorage.setItem('linkup_key', key);
-                    else return null;
+                    key = localStorage.getItem('linkup_key');
+                    if (!key) {
+                        key = prompt("Please enter your Linkup API Key to enable search:");
+                        if (key) localStorage.setItem('linkup_key', key);
+                        else return null;
+                    }
                 }
                 
                 try {
-                    const res = await fetch('https://api.linkup.so/v1/search?q=' + encodeURIComponent(query), {
-                        headers: { 'Authorization': `Bearer ${key}` }
+                    // Switched to POST request to fix 404 error
+                    const res = await fetch('https://api.linkup.so/v1/search', {
+                        method: 'POST',
+                        headers: { 
+                            'Authorization': `Bearer ${key}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ q: query, depth: "standard" }) 
                     });
+
                     if(!res.ok) {
                         if(res.status === 401) {
                             localStorage.removeItem('linkup_key');
                             alert("Invalid API Key. Please try again.");
                         }
-                        throw new Error("Linkup API Error");
+                        throw new Error(`Linkup API Error: ${res.status}`);
                     }
                     const data = await res.json();
-                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\nContent: ${r.content}`).join('\n\n') : null;
+                    return data.results ? data.results.map(r => `Source: ${r.name || r.title} (${r.url})\nContent: ${r.content}`).join('\n\n') : null;
                 } catch (e) {
                     console.error(e);
                     return null;
