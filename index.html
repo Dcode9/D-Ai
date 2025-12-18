@@ -88,7 +88,7 @@
             btn.innerHTML = ogHtml;
         };
 
-        // Global helper for image load errors - fixes quoting syntax errors
+        // Global helper for image load errors
         window.imgError = (el) => {
             el.parentElement.innerHTML = '<div class="text-red-500 p-4 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10">Failed to load image</div>';
         };
@@ -126,7 +126,7 @@
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 S.gen=true; E.i.value='';E.i.style.height='auto';E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // --- SYSTEM PROMPT (Backend Agnostic) ---
+                // --- SYSTEM PROMPT ---
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
@@ -141,7 +141,6 @@
                 S.msg.push({role:"user",content:t}); add('user',t);
                 
                 const {firstElementChild:el}=add('assistant','');
-                let buf="", disp="";
                 
                 try {
                     const res = await fetch("/api/chat", {
@@ -152,33 +151,63 @@
 
                     if (!res.ok) throw new Error(`Status ${res.status}: ${res.statusText}`);
 
-                    const reader=res.body.getReader(), dec=new TextDecoder();
-                    const loop=()=>{
-                        // Typewriter logic restored
-                        if(buf.length>disp.length){
-                            disp+=buf.substr(disp.length,Math.max(1,Math.ceil((buf.length-disp.length)/3)));
-                            
-                            // --- UI INTERPRETER ---
-                            const processedContent = disp.replace(
-                                /<<GENERATE_IMAGE:([^>]+)>>/g, 
-                                (match, input) => Putter.generate(input)
-                            );
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let fullText = "";
+                    let buffer = "";
 
-                            el.innerHTML=md.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                            E.c.scrollTop=E.c.scrollHeight;
-                        }
+                    // Direct Streaming Loop
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+
+                        // Decode and append to buffer
+                        buffer += dec.decode(value, {stream: true});
+                        const lines = buffer.split('\n');
                         
-                        if(disp.length<buf.length||active) requestAnimationFrame(loop);
-                        else { S.msg.push({role:"assistant",content:buf}); S.gen=false; document.getElementById('btn').disabled=false; }
-                    };
-                    let active=true; requestAnimationFrame(loop);
-                    
-                    while(true){
-                        const {done,value}=await reader.read(); if(done)break;
-                        dec.decode(value,{stream:true}).split('\n').forEach(l=>{if(l.startsWith('data: '))try{buf+=JSON.parse(l.slice(6)).choices[0]?.delta?.content||""}catch{}});
+                        // Keep the last partial line in the buffer
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const jsonStr = line.slice(6).trim();
+                                    if (jsonStr === "[DONE]") continue; // Standard SSE End
+
+                                    const json = JSON.parse(jsonStr);
+                                    const delta = json.choices[0]?.delta?.content || "";
+                                    
+                                    if (delta) {
+                                        fullText += delta;
+                                        
+                                        // --- RENDER IMMEDIATELY ---
+                                        const processedContent = fullText.replace(
+                                            /<<GENERATE_IMAGE:([^>]+)>>/g, 
+                                            (match, input) => Putter.generate(input)
+                                        );
+
+                                        el.innerHTML = md.render(processedContent
+                                            .replace(/(^|[^\\])\\\[/g,'$1$$$$')
+                                            .replace(/\\\]/g,'$$$$')
+                                            .replace(/(^|[^\\])\\\(/g,'$1$')
+                                            .replace(/\\\)/g,'$')
+                                        );
+                                        
+                                        E.c.scrollTop = E.c.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    // Skip parse errors for empty/malformed chunks
+                                }
+                            }
+                        }
                     }
-                    active=false;
-                } catch(e){ 
+
+                    // Done
+                    S.msg.push({role:"assistant",content:fullText}); 
+                    S.gen=false; 
+                    document.getElementById('btn').disabled=false;
+
+                } catch(e) { 
                     const errHtml = `<div class="text-red-500 text-xs mt-2 p-2 bg-red-900/10 border border-red-900/50 rounded"><strong>⚠️ Network Error:</strong> ${e.message}</div>`;
                     el.insertAdjacentHTML('beforeend', errHtml);
                     S.gen=false; document.getElementById('btn').disabled=false; 
