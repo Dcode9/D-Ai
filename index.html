@@ -41,7 +41,6 @@
 <body class="flex flex-col h-screen">
     <header class="fixed w-full z-20 bg-dark-bg/90 backdrop-blur border-b border-dark-border py-4">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <!-- Logo cleaned: removed bg-white/10 and shadow-lg for transparency -->
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Fastest AI on the Planet</p></div>
         </div>
@@ -51,7 +50,6 @@
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-6 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <!-- Hero Logo cleaned: removed rounded-3xl and shadow -->
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
                 <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
             </div>
@@ -60,8 +58,8 @@
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
         <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 focus-within:border-gray-600 shadow-2xl">
-            <!-- Web Search Toggle Button -->
-            <button id="web-btn" onclick="window.toggleWeb()" class="p-3.5 pl-5 text-gray-500 hover:text-brand transition-colors" title="Toggle Linkup Search">
+            <!-- Web Search Toggle Button (Tavily) -->
+            <button id="web-btn" onclick="window.toggleWeb()" class="p-3.5 pl-5 text-gray-500 hover:text-brand transition-colors" title="Toggle Tavily Search">
                 <i class="fa-solid fa-globe text-lg"></i>
             </button>
             <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
@@ -123,49 +121,52 @@
                 }
             };
 
-            // --- Linkup Search Logic ---
-            const searchLinkup = async (query) => {
-                // 1. HARDCODE OPTION: Paste your key inside the quotes below
+            // --- Tavily Search Logic ---
+            const searchTavily = async (query) => {
+                // 1. HARDCODE OPTION: Paste your key inside the quotes below if needed
                 let key = ""; 
 
                 // 2. Fallback: If no key above, check browser storage or ask user
                 if (!key) {
-                    key = localStorage.getItem('linkup_key');
+                    key = localStorage.getItem('tavily_key');
                     
                     // Sanitization helper
                     const clean = (k) => k ? k.trim().replace(/^Bearer\s+/i, "") : "";
 
-                    // Ensure stored key is clean
                     if (key) key = clean(key);
 
                     if (!key) {
-                        const input = prompt("Please enter your Linkup API Key to enable search:");
+                        const input = prompt("Please enter your Tavily API Key to enable search:");
                         if (input) {
                             key = clean(input);
-                            localStorage.setItem('linkup_key', key);
+                            localStorage.setItem('tavily_key', key);
                         } else return null;
                     }
                 }
                 
                 try {
-                    const res = await fetch('https://api.linkup.so/v1/search', {
+                    const res = await fetch('https://api.tavily.com/search', {
                         method: 'POST',
-                        headers: { 
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ q: query, depth: "standard" }) 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            api_key: key, 
+                            query: query, 
+                            search_depth: "basic",
+                            max_results: 5,
+                            include_answer: false,
+                            include_images: false
+                        }) 
                     });
 
                     if(!res.ok) {
-                        if(res.status === 401) {
-                            localStorage.removeItem('linkup_key');
-                            alert("Invalid API Key. It has been cleared. Please click send again to re-enter.");
+                        if(res.status === 401 || res.status === 403) {
+                            localStorage.removeItem('tavily_key');
+                            alert("Invalid Tavily API Key. It has been cleared. Please click send again to re-enter.");
                         }
-                        throw new Error(`Linkup API Error: ${res.status}`);
+                        throw new Error(`Tavily API Error: ${res.status}`);
                     }
                     const data = await res.json();
-                    return data.results ? data.results.map(r => `Source: ${r.name || r.title} (${r.url})\nContent: ${r.content}`).join('\n\n') : null;
+                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\nContent: ${r.content}`).join('\n\n') : null;
                 } catch (e) {
                     console.error(e);
                     return null;
@@ -181,7 +182,7 @@
                 if(S.web) {
                     E.w.classList.add('text-brand');
                     E.w.classList.remove('text-gray-500');
-                    E.i.placeholder = "Ask D'Ai (Linkup Search Active)...";
+                    E.i.placeholder = "Ask D'Ai (Tavily Search Active)...";
                 } else {
                     E.w.classList.remove('text-brand');
                     E.w.classList.add('text-gray-500');
@@ -209,15 +210,15 @@
                 S.msg.push({role:"user",content:t}); add('user',t);
                 const {firstElementChild:el}=add('assistant','');
 
-                // --- SEARCH INTERCEPTION ---
+                // --- SEARCH INTERCEPTION (TAVILY) ---
                 let searchContext = "";
                 if(S.web) {
-                    el.innerHTML = '<span class="text-brand text-xs animate-pulse"><i class="fa-solid fa-magnifying-glass"></i> Searching Linkup...</span>';
-                    const results = await searchLinkup(t);
+                    el.innerHTML = '<span class="text-brand text-xs animate-pulse"><i class="fa-solid fa-magnifying-glass"></i> Searching Tavily...</span>';
+                    const results = await searchTavily(t);
                     
                     if(results) {
                         // Silent Integration Prompting
-                        searchContext = `\n\n[SYSTEM INSTRUCTION: The following is live data retrieved from the web via Linkup. ` +
+                        searchContext = `\n\n[SYSTEM INSTRUCTION: The following is live data retrieved from the web via Tavily. ` +
                                         `Use this data to answer the user's request accurately and up-to-date. ` +
                                         `Integrate this information SILENTLY and seamlessly into your response. ` +
                                         `Do NOT say "Based on the search results" or "I found this online". ` +
