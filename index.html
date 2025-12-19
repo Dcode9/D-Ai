@@ -88,8 +88,8 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Vercel/Env Integration: Replace "" with process.env.TAVILY_API_KEY during build if needed
-        const VERCEL_TAVILY_ENV = ""; 
+        // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
+        const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
 
         // Global helper for downloading
         window.dlImg = async (url, id) => {
