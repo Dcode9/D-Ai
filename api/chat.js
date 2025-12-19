@@ -1,83 +1,70 @@
-// This file runs on the server (Vercel).
-// It securely uses the TAVILY_API_KEY from your Environment Variables.
+// Standard Node.js Serverless Function (Bypasses some Edge WAF rules)
+export default async function handler(req, res) {
+  // 1. Set Robust CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-export const config = {
-  runtime: 'edge', // Fast startup
-};
-
-const corsHeaders = {
-  'Access-Control-Allow-Credentials': 'false',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-  'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-};
-
-export default async function handler(req) {
-  // Handle CORS pre-flight request
+  // 2. Handle Preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return res.status(200).end();
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { 
-      status: 405,
-      headers: corsHeaders
+  // 3. Health Check
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      status: 'Online', 
+      env_check: !!process.env.CEREBRAS_API_KEY 
     });
   }
 
-  try {
-    const { query } = await req.json();
-    
-    // Get the key from Vercel Environment Variables
-    const apiKey = process.env.TAVILY_API_KEY;
+  // 4. Main Logic
+  if (req.method === 'POST') {
+    try {
+      if (!process.env.CEREBRAS_API_KEY) {
+        return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
+      }
 
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Server Error: TAVILY_API_KEY not configured" }), {
-        status: 500,
-        headers: { 
+      // Call Cerebras
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders
-        }
+          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+        },
+        body: JSON.stringify(req.body),
       });
-    }
 
-    // Call Tavily API
-    const response = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query: query,
-        search_depth: "basic", // "basic" is faster than "advanced"
-        max_results: 5,
-        include_answer: false,
-        include_images: false
-      })
-    });
-
-    if (!response.ok) {
-        throw new Error(`Tavily API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // Return the results to the client
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({ error: errorText });
       }
-    });
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders
+      // Stream the response back
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      });
+
+      const reader = response.body.getReader();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value); // Write chunks directly
+        }
+      } catch (streamError) {
+        console.error('Stream Error:', streamError);
+      } finally {
+        res.end();
       }
-    });
+
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  } else {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 }
