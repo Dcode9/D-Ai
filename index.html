@@ -31,14 +31,14 @@
         
         /* Canvas Sidebar UI */
         #canvas-sidebar { transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1); width: 0; border-left: 1px solid #1F1F1F; background: #0A0A0A; display: flex; flex-direction: column; overflow: hidden; }
-        #canvas-sidebar.open { width: 50%; } /* Responsive adjust via JS/Classes preferred but simple width toggle here works */
+        #canvas-sidebar.open { width: 50%; } 
         .editor-tab { padding: 8px 16px; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid transparent; color: #888; transition: all 0.2s; }
         .editor-tab.active { color: #FF4F00; border-bottom-color: #FF4F00; }
         .canvas-content { flex: 1; position: relative; overflow: hidden; }
         #code-editor { width: 100%; height: 100%; background: #0d0d0d; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; border: none; outline: none; padding: 1rem; resize: none; font-size: 14px; line-height: 1.5; white-space: pre; }
         #preview-frame { width: 100%; height: 100%; background: white; border: none; }
         
-        /* Image UI (Preserved) */
+        /* Image UI */
         .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
         .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.1); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -124,7 +124,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
-    <script>
+    <script type="text/javascript">
         // --- CONSTANTS ---
         const MAIN_MODEL = "gpt-oss-120b";
         const CODER_MODEL = "qwen-3-235b-a22b-instruct-2507";
@@ -210,12 +210,11 @@
             
             appendCode: function(chunk) {
                 this.editor.value += chunk;
-                // Auto-scroll logic could go here, but might annoy editing user
             }
         };
 
         // --- IMAGE & UTILS ---
-        window.dlImg = async (url, id) => { /* Same as before */
+        window.dlImg = async (url, id) => { 
             const btn = document.getElementById(id); const og = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             try { const img=new Image(); img.crossOrigin="Anonymous"; img.src=url; await new Promise(r=>img.onload=r); 
             const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; c.getContext('2d').drawImage(img,0,0);
@@ -226,17 +225,21 @@
         document.addEventListener("DOMContentLoaded", () => {
             Canvas.init();
             
-            // Markdown Init
+            // Markdown Init - Robust check
             let md = null;
             const getMd = () => {
-                if(md || !window.markdownit) return window.markdownit ? (md = window.markdownit({html:true,breaks:true}).use(window.texmath,{engine:window.katex,delimiters:'dollars'})) : null;
+                if(md) return md;
+                if(window.markdownit) {
+                    md = window.markdownit({html:true,breaks:true}).use(window.texmath,{engine:window.katex,delimiters:'dollars'});
+                    return md;
+                }
                 return null;
             };
 
             const Putter = {
                 generate: (input) => {
                     const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
-                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720} }; // simplified
+                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720} }; 
                     const {w,h} = dims[ratio] || dims["1:1"];
                     return `<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true" class="dai-img loaded"><div class="dai-watermark">D'Ai</div></div>`;
                 }
@@ -244,12 +247,13 @@
 
             const searchTavily = async (query) => {
                 let key = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
-                if (!key) return null; // Simplified: No prompt for key in this demo to focus on Canvas
+                if (!key) return null; 
                 try {
                     const res = await fetch('https://api.tavily.com/search', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ api_key: key, query: query, max_results: 3 }) 
                     });
+                    if (!res.ok) throw new Error("Search Failed");
                     const data = await res.json();
                     return data.results ? data.results.map(r => `${r.title}: ${r.content}`).join('\n') : null;
                 } catch (e) { return null; }
@@ -258,15 +262,28 @@
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
 
+            // --- SIMULATION DATA (Fallback if API fails) ---
+            const SIM_DELAY = 15;
+            const runSimulation = async (text, el, isCodeReq = false) => {
+                let displayed = "";
+                const chars = text.split("");
+                for (let i = 0; i < chars.length; i++) {
+                    displayed += chars[i];
+                    if (getMd()) el.innerHTML = getMd().render(displayed);
+                    E.c.scrollTop = E.c.scrollHeight;
+                    await new Promise(r => setTimeout(r, SIM_DELAY));
+                }
+                return displayed;
+            };
+
             // --- CODER LOGIC ---
             const runCoder = async (title, lang, prompt) => {
                 const loader = document.getElementById('canvas-loader');
                 loader.classList.remove('hidden');
                 Canvas.open(title, lang);
-                Canvas.setCode(""); // Clear previous
+                Canvas.setCode(""); 
 
                 try {
-                    // Coder System Prompt
                     const coderMsg = [
                         {role: "system", content: "You are a coding engine. Output ONLY raw code. No markdown backticks. No explanations. Just the code."},
                         {role: "user", content: `Write code for: ${prompt}. Language: ${lang}.`}
@@ -278,11 +295,13 @@
                         body:JSON.stringify({model: CODER_MODEL, messages: coderMsg, stream:true, temperature: 0.1})
                     });
 
+                    if (!res.ok) throw new Error("API Connection Failed");
+
                     const reader = res.body.getReader();
                     const dec = new TextDecoder();
                     let buffer = "";
 
-                    loader.classList.add('hidden'); // Hide loader once stream starts
+                    loader.classList.add('hidden'); 
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -296,7 +315,6 @@
                                 try {
                                     const json = JSON.parse(line.slice(6));
                                     const delta = json.choices[0]?.delta?.content || "";
-                                    // Strip potential markdown fences if model disobeys
                                     const clean = delta.replace(/```/g, ""); 
                                     Canvas.appendCode(clean);
                                 } catch(e){}
@@ -306,21 +324,31 @@
                     Canvas.updatePreview();
 
                 } catch(e) {
-                    console.error("Coder Error", e);
+                    console.warn("API Error (Coder), falling back to simulation code...", e);
                     loader.classList.add('hidden');
-                    Canvas.editor.value = "// Error generating code. Please try again.";
+                    // Fallback Simulation Code
+                    const mockCode = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;color:#fff;font-family:sans-serif;} .box{padding:20px;border:1px solid #333;border-radius:10px;text-align:center;}</style>\n</head>\n<body>\n<div class="box">\n<h1>Canvas Simulation</h1>\n<p><strong>Prompt:</strong> ${prompt}</p>\n<p><em>(Backend API not found, showing demo)</em></p>\n</div>\n</body>\n</html>`;
+                    let currentCode = "";
+                    for(let char of mockCode) {
+                         currentCode += char;
+                         Canvas.setCode(currentCode);
+                         await new Promise(r => setTimeout(r, 5));
+                    }
                 }
             };
 
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 
-                // Deps check
-                if(!window.markdownit){ setTimeout(window.send, 100); return; }
+                // Deps check with timeout
+                if(!window.markdownit){ 
+                    console.log("Waiting for markdown-it...");
+                    setTimeout(window.send, 100); 
+                    return; 
+                }
 
                 S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // System Prompt - Updated for Canvas
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
@@ -336,7 +364,6 @@
                 S.msg.push({role:"user",content:t}); add('user',t.replace(/</g,"&lt;"));
                 const {firstElementChild:el}=add('assistant','');
 
-                // Search (Simplified check)
                 if(t.toLowerCase().includes('search') || t.toLowerCase().includes('news')) {
                    const res = await searchTavily(t);
                    if(res) S.msg[S.msg.length-1].content += `\n[Context: ${res}]`;
@@ -349,6 +376,9 @@
                         body:JSON.stringify({model: MAIN_MODEL, messages:S.msg, stream:true})
                     });
 
+                    if (!res.ok) throw new Error("API Connection Failed");
+
+                    // API Success Logic
                     const reader = res.body.getReader();
                     const dec = new TextDecoder();
                     let fullText = "";
@@ -371,33 +401,52 @@
                                     if (delta) {
                                         fullText += delta;
                                         
-                                        // Check for Code Token
                                         const codeMatch = fullText.match(/<<GENERATE_CODE:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^>]+)>>/);
                                         if (codeMatch && !codeTokenDetected) {
                                             codeTokenDetected = true;
-                                            // Hide token from UI
-                                            const visibleText = fullText.replace(codeMatch[0], "Generating your code in Canvas...");
+                                            const visibleText = fullText.replace(codeMatch[0], "\n\nI'm opening the Canvas to write that code for you...");
                                             el.innerHTML = getMd().render(visibleText);
-                                            
-                                            // Trigger Coder Model
                                             runCoder(codeMatch[1].trim(), codeMatch[2].trim(), codeMatch[3].trim());
                                         } else if (!codeTokenDetected) {
-                                            // Normal Render (Image or Text)
                                             const processed = fullText.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,i)=>Putter.generate(i));
                                             el.innerHTML = getMd().render(processed);
                                         }
-                                        
                                         E.c.scrollTop = E.c.scrollHeight;
                                     }
                                 } catch (e) {}
                             }
                         }
                     }
-
                     S.msg.push({role:"assistant",content:fullText}); 
-                    S.gen=false; document.getElementById('btn').disabled=false;
 
-                } catch(e) { S.gen=false; document.getElementById('btn').disabled=false; }
+                } catch(e) { 
+                    // Fallback / Simulation Logic if API fails (Likely no backend)
+                    console.warn("API Request Failed. Falling back to Simulation Mode.", e);
+                    
+                    let simText = "I see you're interested in that. Since I can't connect to the backend right now, I'll simulate the Canvas feature for you.";
+                    let simCodeReq = false;
+
+                    // Rudimentary intent detection for simulation
+                    if (t.toLowerCase().includes("game") || t.toLowerCase().includes("code") || t.toLowerCase().includes("canvas")) {
+                        simText = "Certainly! I'll generate that code for you using the Canvas.";
+                        simCodeReq = true;
+                    }
+
+                    await runSimulation(simText, el);
+
+                    if (simCodeReq) {
+                        const mockTitle = "Demo Canvas";
+                        const mockLang = "html";
+                        const mockPrompt = "Create a simple demo page";
+                        
+                        el.innerHTML += getMd().render("\n\n*Initializing Canvas environment...*");
+                        runCoder(mockTitle, mockLang, mockPrompt);
+                    }
+                    
+                    S.msg.push({role:"assistant",content:simText}); 
+                } finally {
+                    S.gen=false; document.getElementById('btn').disabled=false;
+                }
             };
         });
     </script>
