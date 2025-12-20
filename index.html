@@ -6,81 +6,152 @@
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
-    <!-- Critical CSS & Tailwind (render blocking but necessary for UI structure) -->
+    <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
-    <!-- Deferred Libraries (Loads after UI is visible) -->
+    <!-- Deferred Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
-    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { brand: '#FF4F00', dark: { bg: '#050505', surface: '#0F0F0F', border: '#1F1F1F' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
     <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
+        body { background: #050505; color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
+
+        /* --- LAYOUT TRANSITIONS (70/30 Split) --- */
+        #app-container { display: flex; width: 100vw; height: 100vh; padding-top: 60px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* Chat Typography */
+        /* Chat Panel: 100% -> 30% */
+        #chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 10; border-right: 1px solid transparent; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        body.split-view #chat-panel { flex: 0 0 30%; border-right-color: #1F1F1F; }
+        body.split-view #input-wrapper { width: 30%; } /* Sync input width */
+
+        /* Canvas Panel: 0% -> 70% */
+        #canvas-panel { width: 0; opacity: 0; display: flex; flex-direction: column; background: #080808; overflow: hidden; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(20px); }
+        body.split-view #canvas-panel { width: 70%; opacity: 1; transform: translateX(0); }
+
+        /* Typography */
         .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
         .markdown-body p { margin-bottom: 1rem; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; }
-        .markdown-body h1 { font-size: 1.5rem; }
-        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); transition: border-color 0.2s; }
-        .markdown-body a:hover { border-bottom-color: #FF4F00; }
-        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
-        .markdown-body pre { margin: 1.5em 0; padding: 0; background: transparent; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
-        .markdown-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; border: none; }
-        .katex-display { overflow-x: auto; overflow-y: hidden; margin: 1em 0; padding: 0.5em 0; }
+        .markdown-body h1, .markdown-body h2 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); }
+        .markdown-body pre { background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 1em 0; }
+        .markdown-body code { font-family: 'JetBrains Mono'; background: rgba(255,255,255,0.1); padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; }
 
-        /* Code Box UI */
-        .code-box { margin: 1em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .code-body { padding: 0; }
+        /* Artifact Card (Replaces Code in Chat) */
+        .artifact-card { margin: 1rem 0; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .artifact-card:hover { border-color: #FF4F00; transform: translateY(-1px); }
+        .artifact-header { padding: 8px 12px; background: #181818; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: #888; letter-spacing: 0.05em; }
+        .artifact-body { padding: 12px; display: flex; align-items: center; gap: 12px; }
+        .icon-box { width: 36px; height: 36px; background: #222; color: #FF4F00; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; }
 
-        /* Image Generation UI */
-        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
-        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.1); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-out; position: relative; z-index: 1; clip-path: inset(0 0 100% 0); }
-        .dai-img.loaded { opacity: 1; animation: wipeDown 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-        .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 10; }
-        .dai-img-container:hover .dai-overlay { opacity: 1; }
-        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: blur(4px); }
-        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; transform: scale(1.05); box-shadow: 0 2px 8px rgba(255,79,0,0.2); }
-        .dai-btn i { font-size: 14px; }
-        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 700; pointer-events: none; z-index: 2; text-transform: uppercase; letter-spacing: 2px; }
+        /* Files Drawer */
+        #files-drawer { position: absolute; top: 55px; right: 80px; width: 260px; background: #111; border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 50; opacity: 0; pointer-events: none; transform: translateY(-10px); transition: all 0.2s; }
+        #files-drawer.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .file-item { padding: 10px 14px; border-bottom: 1px solid #222; font-size: 13px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+        .file-item:hover { background: #1A1A1A; color: white; }
+        .file-item.active { color: #FF4F00; background: #1A1A1A; border-left: 2px solid #FF4F00; }
+
+        /* Image Gen UI */
+        .dai-img-container { position: relative; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; overflow: hidden; }
+        .dai-img { width: 100%; height: auto; display: block; }
         
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes wipeDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+        /* Canvas Editor/Preview */
+        .tab-btn { padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tab-btn.active { color: #FF4F00; border-bottom-color: #FF4F00; }
+        #code-editor { width: 100%; height: 100%; background: #0B0B0B; color: #e0e0e0; font-family: 'JetBrains Mono'; font-size: 13px; padding: 20px; border: none; resize: none; outline: none; }
     </style>
 </head>
-<body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
-        <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
-        </div>
-        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
-    </header>
+<body class="bg-dark-bg">
 
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
-        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
+    <!-- Header -->
+    <header class="fixed top-0 left-0 w-full z-50 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border h-[60px] flex items-center justify-between px-6 transition-all duration-500">
+        <div class="flex items-center gap-3">
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
+            <div class="text-left"><h1 class="font-bold leading-none text-lg tracking-tight text-white">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
+        </div>
+        <div class="flex items-center gap-5">
+            <!-- Files Button -->
+            <button onclick="App.toggleFiles()" class="text-gray-400 hover:text-white transition-colors relative group" title="Project Files">
+                <i class="fa-regular fa-folder-open text-lg group-hover:text-brand transition-colors"></i>
+                <span id="file-badge" class="absolute -top-2 -right-2 bg-brand text-white text-[9px] font-bold px-1.5 rounded-full hidden">0</span>
+            </button>
+            <!-- Refresh -->
+            <button onclick="location.reload()" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Files Drawer (Dropdown) -->
+        <div id="files-drawer">
+            <div class="p-3 border-b border-[#222] text-xs font-bold text-gray-500 uppercase tracking-wider bg-[#151515] rounded-t-lg">Created Artifacts</div>
+            <div id="file-list" class="max-h-[300px] overflow-y-auto">
+                <div class="p-4 text-center text-xs text-gray-600 italic">No files created yet.</div>
             </div>
         </div>
-    </main>
+    </header>
 
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <!-- Input Area: Pill Shaped -->
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+    <!-- Main Container -->
+    <div id="app-container">
+        
+        <!-- Chat Panel -->
+        <div id="chat-panel">
+            <div id="chat-scroll" class="flex-1 overflow-y-auto p-4 pb-32 scroll-smooth">
+                <div id="hero" class="h-[60vh] flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
+                    <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div id="input-wrapper" class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-dark-bg via-dark-bg to-transparent z-20 transition-all duration-400 ease-out">
+                <div class="max-w-3xl mx-auto w-full bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 shadow-2xl relative transition-all duration-300">
+                    <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();App.send()}"></textarea>
+                    <button id="send-btn" onclick="App.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+                </div>
+            </div>
         </div>
+
+        <!-- Canvas Panel (Right Sidebar) -->
+        <div id="canvas-panel">
+            <!-- Canvas Toolbar -->
+            <div class="h-12 border-b border-dark-border flex items-center justify-between px-4 bg-[#0F0F0F]">
+                <div class="flex h-full gap-2">
+                    <button class="tab-btn active" onclick="App.switchTab('preview')"><i class="fa-solid fa-play mr-2 text-xs"></i>Preview</button>
+                    <button class="tab-btn" onclick="App.switchTab('code')"><i class="fa-solid fa-code mr-2 text-xs"></i>Code</button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="active-file-label" class="text-xs text-gray-500 font-mono border border-[#333] px-2 py-1 rounded">index.html</span>
+                    <button onclick="App.closeCanvas()" class="text-gray-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            
+            <!-- Canvas Content -->
+            <div class="flex-1 relative overflow-hidden">
+                <div id="view-preview" class="absolute inset-0 w-full h-full bg-white z-10">
+                    <iframe id="preview-frame" class="w-full h-full border-none"></iframe>
+                </div>
+                <div id="view-code" class="absolute inset-0 w-full h-full bg-[#080808] z-0 hidden">
+                    <textarea id="code-editor" spellcheck="false" oninput="App.updateCode(this.value)"></textarea>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- AI Logic Scripts (Deferred for Performance) -->
+    <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
@@ -88,211 +159,269 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
 
-        // Global helper for downloading
-        window.dlImg = async (url, id) => {
-            const btn = document.getElementById(id);
-            const ogHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            try {
-                const img = new Image(); img.crossOrigin="Anonymous"; img.src=url;
-                await new Promise(r=>img.onload=r);
-                const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
-                const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
-                
-                ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
-                ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
-                ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
-                ctx.fillText("D'Ai", img.width-20, img.height-20);
+        const App = {
+            files: {}, // { "filename": "content" }
+            activeFile: null,
+            msgHistory: [],
+            isGen: false,
+            md: null,
 
-                const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
-            } catch(e) { window.open(url,'_blank'); }
-            btn.innerHTML = ogHtml;
-        };
-
-        window.imgError = (el) => {
-            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
-        };
-
-        document.addEventListener("DOMContentLoaded", () => {
-            // Initialize dependencies check
-            const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
-            
-            // Markdown Renderer Init (Lazy)
-            let md = null;
-            const getMd = () => {
-                if(md) return md;
-                if(!checkDeps()) return null;
-                md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
-                md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-                md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition-colors"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
-                return md;
-            };
-
-            const Putter = {
-                generate: (input) => {
-                    const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
-                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
-                    const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
-                    const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
-                }
-            };
-
-            const searchTavily = async (query) => {
-                let key = VERCEL_TAVILY_ENV; 
-                if (!key) {
-                    key = localStorage.getItem('tavily_key');
-                    if (key) key = key.trim().replace(/^Bearer\s+/i, "");
-                    if (!key) {
-                        const input = prompt("Enter Tavily API Key for Smart Search:");
-                        if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); } 
-                        else return null;
+            init: () => {
+                // Defer Markdown init
+                const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
+                const interval = setInterval(() => {
+                    if (checkDeps()) {
+                        clearInterval(interval);
+                        App.md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''})
+                                .use(texmath,{engine:katex,delimiters:'dollars'});
+                        // Custom Code Block Renderer
+                        App.md.renderer.rules.fence = (t,i) => {
+                            const lang = (t[i].info||'text').split(' ')[0];
+                            return `<div class="code-box"><div class="code-head"><span>${lang}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${lang}">${App.md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`;
+                        };
                     }
+                }, 100);
+            },
+
+            // --- CANVAS LOGIC ---
+            toggleFiles: () => {
+                document.getElementById('files-drawer').classList.toggle('open');
+            },
+
+            closeCanvas: () => {
+                document.body.classList.remove('split-view');
+                document.getElementById('input-wrapper').style.width = '100%';
+            },
+
+            openCanvas: (filename) => {
+                if (!App.files[filename]) return;
+                App.activeFile = filename;
+                
+                document.getElementById('active-file-label').innerText = filename;
+                document.getElementById('code-editor').value = App.files[filename];
+                App.renderPreview(App.files[filename]);
+                
+                document.body.classList.add('split-view');
+                document.getElementById('files-drawer').classList.remove('open');
+                
+                // Refresh list highlight
+                App.updateFileList();
+            },
+
+            switchTab: (tab) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+                const prev = document.getElementById('view-preview');
+                const code = document.getElementById('view-code');
+                
+                if (tab === 'preview') {
+                    prev.classList.remove('hidden'); code.classList.add('hidden');
+                    App.renderPreview(App.files[App.activeFile]);
+                } else {
+                    prev.classList.add('hidden'); code.classList.remove('hidden');
+                    // Sync editor just in case
+                    document.getElementById('code-editor').value = App.files[App.activeFile];
+                }
+            },
+
+            updateCode: (val) => {
+                if (App.activeFile) App.files[App.activeFile] = val;
+            },
+
+            renderPreview: (code) => {
+                const frame = document.getElementById('preview-frame');
+                const doc = frame.contentWindow.document;
+                doc.open();
+                doc.write(code);
+                doc.close();
+            },
+
+            addFile: (name, content) => {
+                App.files[name] = content;
+                App.updateFileList();
+            },
+
+            updateFileList: () => {
+                const list = document.getElementById('file-list');
+                const badge = document.getElementById('file-badge');
+                const keys = Object.keys(App.files);
+                
+                if (keys.length > 0) {
+                    badge.innerText = keys.length;
+                    badge.classList.remove('hidden');
+                    list.innerHTML = keys.map(k => `
+                        <div class="file-item ${k===App.activeFile ? 'active' : ''}" onclick="App.openCanvas('${k}')">
+                            <i class="fa-brands fa-html5 text-orange-600"></i>
+                            <span class="flex-1">${k}</span>
+                            ${k===App.activeFile ? '<i class="fa-solid fa-circle text-[6px] text-brand"></i>' : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    badge.classList.add('hidden');
+                    list.innerHTML = '<div class="p-4 text-center text-xs text-gray-600 italic">No files created yet.</div>';
+                }
+            },
+
+            // --- CHAT & AI LOGIC ---
+            searchTavily: async (query) => {
+                let key = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
+                if (!key) {
+                    const input = prompt("Enter Tavily API Key for Smart Search:");
+                    if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); }
+                    else return null;
                 }
                 try {
                     const res = await fetch('https://api.tavily.com/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
+                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5 }) 
                     });
-                    if(!res.ok) {
-                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('tavily_key'); alert("Invalid API Key. Cleared."); }
-                        throw new Error(`Tavily: ${res.status}`);
-                    }
                     const data = await res.json();
                     return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
                 } catch (e) { console.error(e); return null; }
-            };
+            },
 
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
-            
-            const shouldSearch = (text) => {
-                const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
-                return keywords.some(k => text.toLowerCase().includes(k));
-            };
+            generateImage: (input) => {
+                const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
+                const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280} };
+                const {w,h} = dims[ratio] || dims["1:1"];
+                const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+                return `<div class="dai-img-container"><img src="${url}" class="dai-img" alt="${prompt}"></div>`;
+            },
 
-            window.send = async function() {
-                const t=E.i.value.trim(); if(!t||S.gen) return;
+            send: async () => {
+                const inputEl = document.getElementById('in');
+                const t = inputEl.value.trim();
+                if (!t || App.isGen || !App.md) return;
+
+                App.isGen = true;
+                inputEl.value = '';
+                document.getElementById('hero').classList.add('opacity-0');
                 
-                // Wait for deferred scripts if user is too fast
-                if(!getMd()){
-                    const btn = document.getElementById('btn');
-                    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-                    setTimeout(window.send, 100); 
-                    return;
-                }
+                // Add User Bubble
+                const chat = document.getElementById('chat-scroll');
+                const userDiv = document.createElement('div');
+                userDiv.className = "flex justify-end mb-6";
+                userDiv.innerHTML = `<div class="bg-[#1A1A1A] text-white px-5 py-3 rounded-2xl rounded-tr-sm border border-[#333] text-sm max-w-[85%] leading-relaxed">${t.replace(/</g,'&lt;')}</div>`;
+                chat.appendChild(userDiv);
 
-                S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
-                
-                // System Prompt
-                if(!S.msg.length) {
-                    S.msg.push({
-                        role: "system", 
-                        content: "You are D'Ai, a lightning-fast AI assistant created by Dhairya Shah. " +
-                                 "Chat naturally and casually. Never define simple words or greetings. " +
-                                 "Be concise, friendly, and direct. " +
-                                 "You can generate images and browse the web. " +
-                                 "IMAGE GEN: If user explicitly asks to generate/create/draw an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
-                                 "Do not show this token when just explaining capabilities. " +
-                                 "WEB SEARCH: If provided with web results, integrate them seamlessly into your answer. Do not say 'According to search results'. Act like you know it."
+                // Add Bot Placeholder
+                const botDiv = document.createElement('div');
+                botDiv.className = "flex justify-start mb-6 w-full";
+                botDiv.innerHTML = `<div class="w-full pl-2 markdown-body"><i class="fa-solid fa-circle-notch fa-spin text-brand"></i></div>`;
+                chat.appendChild(botDiv);
+                const botContent = botDiv.querySelector('.markdown-body');
+
+                // History & System Prompt
+                if (App.msgHistory.length === 0) {
+                    App.msgHistory.push({
+                        role: "system",
+                        content: `You are D'Ai. 
+                        CRITICAL: When generating HTML/Web apps, YOU MUST USE THIS EXACT FORMAT:
+                        |||"filename.html"||<!DOCTYPE html><html>...</html>|||
+                        
+                        Rules:
+                        1. Put the entire HTML code inside the second || section.
+                        2. Do NOT use markdown code blocks (\`\`\`) for HTML.
+                        3. For other languages or explanations, use normal markdown.
+                        4. Image Gen: <<GENERATE_IMAGE: prompt | 1:1>>
+                        `
                     });
                 }
-                
-                // User Message
-                // For user messages, we simple escape HTML to prevent injection in the user bubble, 
-                // but we don't render markdown there to keep it looking like raw input.
-                const safeUserText = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                S.msg.push({role:"user",content:t}); add('user',safeUserText);
-                
-                const {firstElementChild:el}=add('assistant','');
+                App.msgHistory.push({ role: "user", content: t });
 
-                // Search Logic
-                let searchContext = "";
-                if(shouldSearch(t)) {
-                    el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
-                    const results = await searchTavily(t);
-                    if(results) {
-                        searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily). Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
+                // Search Check
+                if (/latest|news|today|who is|price/i.test(t)) {
+                    botContent.innerHTML = `<span class="text-xs font-mono text-brand animate-pulse">SEARCHING WEB...</span>`;
+                    const searchRes = await App.searchTavily(t);
+                    if (searchRes) {
+                        App.msgHistory[App.msgHistory.length-1].content += `\n\n[SEARCH RESULTS]:\n${searchRes}`;
                     }
-                    el.innerHTML = ""; 
                 }
-                
+
                 try {
-                    const messagesToSend = [...S.msg];
-                    if(searchContext) {
-                        messagesToSend[messagesToSend.length - 1] = { 
-                            role: messagesToSend[messagesToSend.length - 1].role, 
-                            content: messagesToSend[messagesToSend.length - 1].content + searchContext 
-                        };
-                    }
-
                     const res = await fetch("/api/chat", {
-                        method:"POST",
-                        headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ model: "gpt-oss-120b", messages: App.msgHistory, stream: true })
                     });
-
-                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
                     const reader = res.body.getReader();
-                    const dec = new TextDecoder();
+                    const decoder = new TextDecoder();
                     let fullText = "";
-                    let buffer = "";
-                    const mdRenderer = getMd();
-
-                    E.c.style.scrollBehavior = 'auto'; // Perf boost
-
+                    
                     while (true) {
-                        const {done, value} = await reader.read();
+                        const { done, value } = await reader.read();
                         if (done) break;
-
-                        buffer += dec.decode(value, {stream: true});
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop();
-
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        
+                        chunk.split('\n').forEach(line => {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
                                 try {
-                                    const jsonStr = line.slice(6).trim();
-                                    if (jsonStr === "[DONE]") continue;
-                                    const json = JSON.parse(jsonStr);
-                                    const delta = json.choices[0]?.delta?.content || "";
+                                    const delta = JSON.parse(line.slice(6)).choices[0]?.delta?.content || "";
+                                    fullText += delta;
+
+                                    // --- PROTOCOL PARSING ---
+                                    // Regex: |||"name"||content|||
+                                    // We replace the raw protocol with a UI Card in the chat stream
+                                    let displayText = fullText;
+                                    const artifactRegex = /\|\|\|"([^"]+)"\|\|([\s\S]*?)(\|\|\||$)/g;
                                     
-                                    if (delta) {
-                                        fullText += delta;
-                                        const processedContent = fullText.replace(
-                                            /<<GENERATE_IMAGE:([^>]+)>>/g, 
-                                            (match, input) => Putter.generate(input)
-                                        );
-                                        el.innerHTML = mdRenderer.render(processedContent
-                                            .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
-                                            .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
-                                        );
-                                        E.c.scrollTop = E.c.scrollHeight;
+                                    let match;
+                                    while ((match = artifactRegex.exec(fullText)) !== null) {
+                                        const [fullMatch, filename, content, closer] = match;
+                                        
+                                        // Update File State
+                                        if (content.length > 20) {
+                                            if (!App.files[filename] || App.files[filename] !== content) {
+                                                App.addFile(filename, content);
+                                                // Auto-open if specific closer found or long enough
+                                                if (closer === '|||') App.openCanvas(filename);
+                                            }
+                                        }
+
+                                        // Replace text with Card
+                                        const card = `
+                                            <div class="artifact-card" onclick="App.openCanvas('${filename}')">
+                                                <div class="artifact-header">
+                                                    <span>CREATED ARTIFACT</span>
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-brand"></i>
+                                                </div>
+                                                <div class="artifact-body">
+                                                    <div class="icon-box"><i class="fa-brands fa-html5"></i></div>
+                                                    <div>
+                                                        <div class="text-white font-bold text-sm">${filename}</div>
+                                                        <div class="text-[10px] text-gray-500">Click to open Canvas</div>
+                                                    </div>
+                                                </div>
+                                            </div>`;
+                                        displayText = displayText.replace(fullMatch, card);
                                     }
-                                } catch (e) {}
+
+                                    // Image Gen Parsing
+                                    displayText = displayText.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,i) => App.generateImage(i));
+
+                                    botContent.innerHTML = App.md.render(displayText);
+                                    chat.scrollTop = chat.scrollHeight;
+
+                                } catch(e){}
                             }
-                        }
+                        });
                     }
+                    
+                    App.msgHistory.push({ role: "assistant", content: fullText });
+                    App.isGen = false;
 
-                    E.c.style.scrollBehavior = 'smooth';
-                    S.msg.push({role:"assistant",content:fullText}); 
-                    S.gen=false; 
-                    document.getElementById('btn').disabled=false;
-                    document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
-
-                } catch(e) { 
-                    el.innerHTML = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Error:</strong> ${e.message}</div>`;
-                    S.gen=false; document.getElementById('btn').disabled=false; 
-                    document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+                } catch (e) {
+                    botContent.innerHTML = `<div class="text-red-500">Error: ${e.message}</div>`;
+                    App.isGen = false;
                 }
-            };
-        });
+            }
+        };
+
+        App.init();
     </script>
 </body>
 </html>
