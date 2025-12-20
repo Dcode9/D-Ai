@@ -3,400 +3,403 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D'Ai</title>
+    <title>D'Ai Canvas</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
-    <!-- Dependencies -->
+    <!-- Critical CSS & Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
-    <!-- Libraries -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Deferred Libraries -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
-    <script>
-        const twConfig = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: { brand: '#FF4F00', dark: { bg: '#050505', surface: '#0F0F0F', border: '#1F1F1F' } },
-                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
-                }
-            }
-        };
-        
-        // Robust Tailwind Initialization
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = twConfig;
-        } else {
-            window.addEventListener('DOMContentLoaded', () => {
-                if (typeof tailwind !== 'undefined') {
-                    tailwind.config = twConfig;
-                }
-            });
-            // Fallback for async load
-            window.addEventListener('load', () => {
-                if (typeof tailwind !== 'undefined' && !tailwind.config) {
-                    tailwind.config = twConfig;
-                }
-            });
-        }
-    </script>
+    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
-        body { background: #050505; color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
+        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
-
-        /* --- SPLIT LAYOUT ENGINE --- */
-        #app-container { display: flex; width: 100vw; height: 100vh; padding-top: 60px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* CHAT SECTION (Left) */
-        #chat-section { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            min-width: 0; 
-            border-right: 1px solid transparent; 
-            transition: all 0.4s ease; 
-            position: relative;
-        }
+        /* Chat Typography */
+        .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
+        .markdown-body p { margin-bottom: 1rem; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; }
+        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); transition: border-color 0.2s; }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
+        .markdown-body pre { margin: 1.5em 0; padding: 0; background: transparent; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .markdown-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; border: none; }
         
-        /* CANVAS SECTION (Right) */
-        #canvas-section { 
-            width: 0; 
-            opacity: 0; 
-            display: flex; 
-            flex-direction: column; 
-            background: #080808; 
-            overflow: hidden; 
-            transition: all 0.4s ease; 
-            transform: translateX(20px); 
-        }
-
-        /* SPLIT STATE ACTIVE */
-        body.split-view #chat-section { flex: 0 0 30%; border-right-color: #1F1F1F; }
-        body.split-view #canvas-section { width: 70%; opacity: 1; transform: translateX(0); }
+        /* Canvas Sidebar UI */
+        #canvas-sidebar { transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1); width: 0; border-left: 1px solid #1F1F1F; background: #0A0A0A; display: flex; flex-direction: column; overflow: hidden; }
+        #canvas-sidebar.open { width: 50%; } /* Responsive adjust via JS/Classes preferred but simple width toggle here works */
+        .editor-tab { padding: 8px 16px; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid transparent; color: #888; transition: all 0.2s; }
+        .editor-tab.active { color: #FF4F00; border-bottom-color: #FF4F00; }
+        .canvas-content { flex: 1; position: relative; overflow: hidden; }
+        #code-editor { width: 100%; height: 100%; background: #0d0d0d; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; border: none; outline: none; padding: 1rem; resize: none; font-size: 14px; line-height: 1.5; white-space: pre; }
+        #preview-frame { width: 100%; height: 100%; background: white; border: none; }
         
-        /* Centering Logic for Chat */
-        .chat-container-inner { max-width: 48rem; margin: 0 auto; width: 100%; transition: max-width 0.4s; }
-        body.split-view .chat-container-inner { max-width: 100%; padding: 0 1rem; }
-        
-        /* Markdown & UI */
-        .markdown-body { font-size: 0.95rem; line-height: 1.6; color: #d1d5db; }
-        .markdown-body p { margin-bottom: 0.8rem; }
-        .markdown-body pre { background: #111; padding: 10px; border-radius: 6px; border: 1px solid #222; overflow-x: auto; font-size: 0.85em; }
-        .markdown-body code { font-family: 'JetBrains Mono'; background: rgba(255,255,255,0.1); padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; }
-
-        /* Artifact Card */
-        .artifact-card { background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 0.5rem 0; cursor: pointer; transition: all 0.2s; }
-        .artifact-card:hover { border-color: #FF4F00; }
-        .artifact-header { background: #161616; padding: 8px 12px; font-size: 10px; font-weight: 700; color: #666; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #222; }
-        .artifact-body { padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
-        .icon-box { width: 32px; height: 32px; background: #222; color: #FF4F00; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
-
-        /* Files Drawer */
-        #files-drawer { position: absolute; top: 60px; right: 80px; width: 240px; background: #111; border: 1px solid #333; border-radius: 8px; z-index: 50; opacity: 0; pointer-events: none; transform: translateY(-5px); transition: 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        #files-drawer.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        .file-entry { padding: 8px 12px; border-bottom: 1px solid #222; font-size: 13px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .file-entry:hover { background: #1A1A1A; color: white; }
-        
-        /* Editor Tabs */
-        .tab-btn { padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 12px; font-weight: 500; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
-        .tab-btn.active { color: #FF4F00; border-bottom-color: #FF4F00; }
-        
-        /* Image Gen */
-        .dai-img-container { position: relative; border-radius: 8px; overflow: hidden; margin: 10px 0; border: 1px solid #333; }
+        /* Image UI (Preserved) */
+        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
+        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.1); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-out; position: relative; z-index: 1; }
+        .dai-img.loaded { opacity: 1; }
+        .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 10; }
+        .dai-img-container:hover .dai-overlay { opacity: 1; }
+        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-dark-bg">
-
+<body class="flex flex-col h-screen overflow-hidden">
     <!-- Header -->
-    <header class="fixed top-0 left-0 w-full z-50 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border h-[60px] flex items-center justify-between px-6 transition-all duration-500">
-        <div class="flex items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto">
-            <div><h1 class="font-bold leading-none text-white text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Canvas</p></div>
-        </div>
-        <div class="flex items-center gap-4">
-            <button onclick="App.toggleFiles()" class="text-gray-400 hover:text-white transition-colors relative" title="Files">
-                <i class="fa-regular fa-folder-open text-lg"></i>
-                <span id="file-count" class="absolute -top-2 -right-2 bg-brand text-white text-[9px] px-1 rounded-full hidden">0</span>
-            </button>
-            <button onclick="location.reload()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-rotate-right text-lg"></i></button>
-        </div>
-
-        <!-- Files List -->
-        <div id="files-drawer">
-            <div class="p-2 border-b border-[#222] text-[10px] font-bold text-gray-500 uppercase">Created Files</div>
-            <div id="file-list-container" class="max-h-60 overflow-y-auto">
-                <div class="p-3 text-center text-xs text-gray-600 italic">No files yet</div>
+    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-3 transition-all">
+        <div class="flex justify-between items-center px-6">
+            <div class="flex items-center gap-3">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
+                <div><h1 class="font-bold leading-none text-md tracking-tight">D'Ai</h1></div>
+            </div>
+            <div class="flex gap-2">
+                <button id="toggle-canvas-btn" onclick="Canvas.toggle()" class="hidden text-gray-500 hover:text-white px-3 py-1 border border-dark-border rounded text-xs transition-colors"><i class="fa-solid fa-columns"></i> Canvas</button>
+                <button onclick="location.reload()" class="text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
         </div>
     </header>
 
-    <!-- Main App -->
-    <div id="app-container">
-        
-        <!-- Left: Chat -->
-        <div id="chat-section">
-            <div id="chat-scroll" class="flex-1 overflow-y-auto p-4 pb-32 scroll-smooth">
-                <div class="chat-container-inner h-full flex flex-col">
-                    <div id="hero" class="flex-1 flex flex-col items-center justify-center opacity-70 select-none">
-                        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4 grayscale">
-                        <p class="text-sm text-gray-500 font-mono">Ready to code.</p>
-                    </div>
-                    <!-- Messages Injected Here -->
+    <!-- Main Workspace -->
+    <div class="flex-1 flex pt-14 overflow-hidden relative w-full">
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col relative min-w-0">
+            <div id="chat" class="flex-1 overflow-y-auto p-4 pb-40 space-y-6 scroll-smooth max-w-3xl mx-auto w-full">
+                <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4" alt="Logo">
+                    <h2 class="text-xl font-bold text-white tracking-tight">How can I help you today?</h2>
                 </div>
             </div>
             
-            <!-- Input -->
-            <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-dark-bg via-dark-bg to-transparent z-20">
-                <div class="chat-container-inner">
-                    <div class="bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 shadow-2xl relative transition-all duration-300">
-                        <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[14px]" placeholder="Ask D'Ai..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();App.send()}"></textarea>
-                        <button onclick="App.send()" id="send-btn" class="p-3 text-gray-500 hover:text-brand transition-colors"><i class="fa-solid fa-paper-plane"></i></button>
+            <!-- Input Area -->
+            <div class="absolute bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-10 px-4 z-10">
+                <div class="max-w-3xl mx-auto bg-dark-surface rounded-3xl border border-dark-border flex items-end p-2 px-4 shadow-2xl transition-all duration-300 focus-within:border-gray-600">
+                    <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                    <button id="btn" onclick="window.send()" class="p-3 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-arrow-up"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Sidebar (Right) -->
+        <div id="canvas-sidebar">
+            <div class="flex items-center justify-between bg-[#151515] border-b border-dark-border px-4 py-2 select-none">
+                <div class="flex items-center gap-2">
+                    <span id="canvas-title" class="text-xs font-mono text-gray-400 uppercase tracking-wider truncate max-w-[150px]">Untitled</span>
+                    <span id="canvas-lang" class="text-[10px] bg-[#222] text-gray-500 px-1.5 py-0.5 rounded">TXT</span>
+                </div>
+                <div class="flex gap-4">
+                    <div class="editor-tab active" onclick="Canvas.switchTab('code')">Code</div>
+                    <div class="editor-tab" onclick="Canvas.switchTab('preview')" id="tab-preview">Preview</div>
+                </div>
+            </div>
+            <div class="canvas-content">
+                <!-- Code Editor -->
+                <div id="view-code" class="w-full h-full absolute inset-0 z-10">
+                    <textarea id="code-editor" spellcheck="false"></textarea>
+                </div>
+                <!-- Preview (Iframe) -->
+                <div id="view-preview" class="w-full h-full absolute inset-0 z-0 bg-white hidden">
+                    <iframe id="preview-frame" sandbox="allow-scripts" src="about:blank"></iframe>
+                </div>
+                <!-- Loading State for Coder -->
+                <div id="canvas-loader" class="absolute inset-0 bg-dark-bg/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+                    <div class="flex flex-col items-center gap-3">
+                        <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+                        <span class="text-xs text-gray-400 font-mono tracking-widest uppercase">Generating Code...</span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Right: Canvas (70/30 Split) -->
-        <div id="canvas-section">
-            <!-- Canvas Header -->
-            <div class="h-10 border-b border-dark-border flex items-center justify-between px-4 bg-[#0F0F0F]">
-                <div class="flex h-full gap-2">
-                    <button class="tab-btn active" onclick="App.switchTab('preview')"><i class="fa-solid fa-play mr-2 text-[10px]"></i>Preview</button>
-                    <button class="tab-btn" onclick="App.switchTab('code')"><i class="fa-solid fa-code mr-2 text-[10px]"></i>Code</button>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="active-filename" class="text-xs font-mono text-gray-500 border border-[#222] px-2 py-0.5 rounded">index.html</span>
-                    <button onclick="App.closeCanvas()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-            </div>
-            <!-- Canvas Body -->
-            <div class="flex-1 relative">
-                <div id="view-preview" class="absolute inset-0 w-full h-full bg-white z-10">
-                    <iframe id="preview-frame" class="w-full h-full border-none"></iframe>
-                </div>
-                <div id="view-code" class="absolute inset-0 w-full h-full bg-[#080808] z-0 hidden">
-                    <textarea id="code-editor" class="w-full h-full bg-[#0B0B0B] text-[#e0e0e0] font-mono text-xs p-4 resize-none outline-none border-none" spellcheck="false" oninput="App.updateCode(this.value)"></textarea>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Logic -->
+    <!-- Logic Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
     <script>
+        // --- CONSTANTS ---
+        const MAIN_MODEL = "gpt-oss-120b";
+        const CODER_MODEL = "qwen-3-235b-a22b-instruct-2507";
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
 
-        const App = {
-            files: {}, 
-            activeFile: null,
-            msgHistory: [],
-            isGen: false,
-            md: null,
-
-            init: () => {
-                const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
-                const i = setInterval(() => {
-                    if (checkDeps()) {
-                        clearInterval(i);
-                        App.md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''})
-                                .use(texmath,{engine:katex,delimiters:'dollars'});
-                    }
-                }, 100);
-            },
-
-            // --- LAYOUT & CANVAS ---
-            toggleFiles: () => document.getElementById('files-drawer').classList.toggle('open'),
+        // --- CANVAS MANAGER ---
+        const Canvas = {
+            sidebar: null,
+            editor: null,
+            iframe: null,
+            isOpen: false,
+            currentLang: 'text',
             
-            closeCanvas: () => {
-                document.body.classList.remove('split-view');
-            },
-
-            openCanvas: (name) => {
-                if(!App.files[name]) return;
-                App.activeFile = name;
-                document.getElementById('active-filename').innerText = name;
-                document.getElementById('code-editor').value = App.files[name];
-                App.renderPreview(App.files[name]);
-                document.body.classList.add('split-view');
-                document.getElementById('files-drawer').classList.remove('open');
-                App.updateFileList();
-            },
-
-            switchTab: (t) => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                event.currentTarget.classList.add('active');
-                const p = document.getElementById('view-preview');
-                const c = document.getElementById('view-code');
-                if(t==='preview') { p.classList.remove('hidden'); c.classList.add('hidden'); App.renderPreview(App.files[App.activeFile]); }
-                else { p.classList.add('hidden'); c.classList.remove('hidden'); document.getElementById('code-editor').value = App.files[App.activeFile]; }
-            },
-
-            updateCode: (val) => { if(App.activeFile) App.files[App.activeFile] = val; },
-
-            renderPreview: (code) => {
-                const doc = document.getElementById('preview-frame').contentWindow.document;
-                doc.open(); doc.write(code); doc.close();
-            },
-
-            addFile: (name, content) => {
-                App.files[name] = content;
-                App.updateFileList();
-            },
-
-            updateFileList: () => {
-                const c = document.getElementById('file-list-container');
-                const keys = Object.keys(App.files);
-                document.getElementById('file-count').innerText = keys.length;
-                document.getElementById('file-count').classList.toggle('hidden', keys.length===0);
+            init: function() {
+                this.sidebar = document.getElementById('canvas-sidebar');
+                this.editor = document.getElementById('code-editor');
+                this.iframe = document.getElementById('preview-frame');
                 
-                if(keys.length===0) { c.innerHTML = '<div class="p-3 text-center text-xs text-gray-600 italic">No files yet</div>'; return; }
-                
-                c.innerHTML = keys.map(k => `
-                    <div class="file-entry" onclick="App.openCanvas('${k}')">
-                        <i class="fa-brands fa-html5 text-brand"></i>
-                        <span class="flex-1 ${k===App.activeFile?'text-white font-bold':'text-gray-400'}">${k}</span>
-                    </div>
-                `).join('');
+                // Live preview update
+                let timeout;
+                this.editor.addEventListener('input', () => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => this.updatePreview(), 1000);
+                });
             },
 
-            // --- AI LOGIC ---
-            searchTavily: async (q) => {
-                let k = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
-                if(!k) { k=prompt("Tavily API Key:"); if(k) localStorage.setItem('tavily_key',k); else return null; }
-                try {
-                    const r = await fetch('https://api.tavily.com/search', {
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body:JSON.stringify({api_key:k, query:q, search_depth:"basic", max_results:5})
-                    });
-                    const d = await r.json();
-                    return d.results?.map(x=>`Src: ${x.title}\n${x.content}`).join('\n\n') || null;
-                } catch(e) { return null; }
+            open: function(title, lang) {
+                this.isOpen = true;
+                this.sidebar.classList.add('open');
+                document.getElementById('toggle-canvas-btn').classList.remove('hidden');
+                document.getElementById('canvas-title').innerText = title || "Untitled";
+                document.getElementById('canvas-lang').innerText = lang || "TXT";
+                this.currentLang = lang ? lang.toLowerCase() : 'text';
+                
+                // Show/Hide preview tab based on language
+                const canPreview = ['html', 'svg'].includes(this.currentLang);
+                document.getElementById('tab-preview').style.display = canPreview ? 'block' : 'none';
+                
+                if(canPreview) this.switchTab('preview');
+                else this.switchTab('code');
             },
 
-            genImage: (p) => {
-                const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&seed=${Math.random()}`;
-                return `<div class="dai-img-container"><img src="${url}" class="w-full"></div>`;
+            close: function() {
+                this.isOpen = false;
+                this.sidebar.classList.remove('open');
             },
 
-            send: async () => {
-                const el = document.getElementById('in');
-                const t = el.value.trim();
-                if(!t || App.isGen || !App.md) return;
-                
-                App.isGen = true;
-                el.value = '';
-                document.getElementById('hero').classList.add('hidden');
+            toggle: function() {
+                this.isOpen ? this.close() : this.sidebar.classList.add('open');
+                this.isOpen = !this.isOpen;
+            },
 
-                const container = document.querySelector('.chat-container-inner'); // Target the centered container
+            switchTab: function(tab) {
+                const codeView = document.getElementById('view-code');
+                const prevView = document.getElementById('view-preview');
+                const tabs = document.querySelectorAll('.editor-tab');
                 
-                // User Bubble
-                container.innerHTML += `<div class="flex justify-end mb-6"><div class="bg-[#1A1A1A] border border-[#333] px-5 py-3 rounded-2xl rounded-tr-sm text-sm text-white max-w-[90%]">${t.replace(/</g,'&lt;')}</div></div>`;
+                tabs.forEach(t => t.classList.remove('active'));
                 
-                // Bot Placeholder
-                const botId = `bot-${Date.now()}`;
-                container.innerHTML += `<div class="flex justify-start mb-6 w-full"><div id="${botId}" class="markdown-body w-full pl-2"><i class="fa-solid fa-circle-notch fa-spin text-brand"></i></div></div>`;
-                const botEl = document.getElementById(botId);
-                
-                // System Prompt - ADDITIVE
-                if(App.msgHistory.length === 0) {
-                    App.msgHistory.push({
-                        role: "system",
-                        content: `You are D'Ai, a fast AI assistant. 
-                        CAPABILITIES:
-                        1. Web Search: If asked about current events/news, use the search tool.
-                        2. Image Gen: If asked to draw/generate, use format: <<GENERATE_IMAGE: prompt>>
-                        3. VIBE CODING (HTML/Apps): 
-                           - You MUST use this EXACT protocol for files: |||"filename.html"||...HTML CODE...|||
-                           - The HTML code must be inside the second set of pipes.
-                           - Do NOT use markdown code blocks (\`\`\`) for the HTML file content.
-                           - You can write normal text outside the pipes.`
-                    });
+                if(tab === 'code') {
+                    codeView.classList.remove('hidden');
+                    prevView.classList.add('hidden');
+                    tabs[0].classList.add('active'); // Index 0 is Code
+                } else {
+                    codeView.classList.add('hidden');
+                    prevView.classList.remove('hidden');
+                    tabs[1].classList.add('active'); // Index 1 is Preview
+                    this.updatePreview();
                 }
-                App.msgHistory.push({role:"user", content:t});
+            },
 
-                // Search Hook
-                if(/latest|news|today|price|who is/i.test(t)) {
-                    botEl.innerHTML = `<span class="text-brand text-xs font-mono animate-pulse">SEARCHING WEB...</span>`;
-                    const s = await App.searchTavily(t);
-                    if(s) App.msgHistory[App.msgHistory.length-1].content += `\n\n[SEARCH CONTEXT]:\n${s}`;
+            updatePreview: function() {
+                if (this.currentLang === 'html' || this.currentLang === 'svg') {
+                    const content = this.editor.value;
+                    this.iframe.srcdoc = content;
                 }
+            },
 
-                try {
-                    const res = await fetch("/api/chat", {
-                        method: "POST", headers: {"Content-Type":"application/json"},
-                        body: JSON.stringify({ model: "gpt-oss-120b", messages: App.msgHistory, stream: true })
-                    });
-                    
-                    const reader = res.body.getReader();
-                    const dec = new TextDecoder();
-                    let full = "";
-
-                    while(true) {
-                        const {done, value} = await reader.read();
-                        if(done) break;
-                        
-                        const chunk = dec.decode(value, {stream:true});
-                        const lines = chunk.split('\n');
-                        for(const line of lines) {
-                            if(line.startsWith('data: ') && line !== 'data: [DONE]') {
-                                const delta = JSON.parse(line.slice(6)).choices[0]?.delta?.content || "";
-                                full += delta;
-                                
-                                // Protocol Parsing & Stripping
-                                // Regex: |||"name"||content|||
-                                // We replace the entire block with a card for the display
-                                let display = full;
-                                const regex = /\|\|\|"([^"]+)"\|\|([\s\S]*?)(\|\|\||$)/g;
-                                let match;
-                                while((match = regex.exec(full)) !== null) {
-                                    const [block, fname, code, closer] = match;
-                                    
-                                    // Store File
-                                    if(code.length > 10) {
-                                        if(!App.files[fname] || App.files[fname]!==code) {
-                                            App.addFile(fname, code);
-                                            // Auto-open if specific closer found
-                                            if(closer==='|||') App.openCanvas(fname); 
-                                        }
-                                    }
-
-                                    // Replace in Chat UI
-                                    const card = `<div class="artifact-card" onclick="App.openCanvas('${fname}')">
-                                        <div class="artifact-header"><span>Artifact Created</span><i class="fa-solid fa-arrow-up-right-from-square text-brand"></i></div>
-                                        <div class="artifact-body">
-                                            <div class="icon-box"><i class="fa-brands fa-html5"></i></div>
-                                            <div><div class="text-white font-bold text-sm">${fname}</div><div class="text-[10px] text-gray-500">Click to view Code & Preview</div></div>
-                                        </div>
-                                    </div>`;
-                                    display = display.replace(block, card);
-                                }
-
-                                // Image
-                                display = display.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,p) => App.genImage(p));
-
-                                botEl.innerHTML = App.md.render(display);
-                                document.getElementById('chat-scroll').scrollTop = document.getElementById('chat-scroll').scrollHeight;
-                            }
-                        }
-                    }
-                    App.msgHistory.push({role:"assistant", content:full});
-                    App.isGen = false;
-                } catch(e) {
-                    botEl.innerHTML = `<span class="text-red-500">Error: ${e.message}</span>`;
-                    App.isGen = false;
-                }
+            setCode: function(code) {
+                this.editor.value = code;
+                this.updatePreview();
+            },
+            
+            appendCode: function(chunk) {
+                this.editor.value += chunk;
+                // Auto-scroll logic could go here, but might annoy editing user
             }
         };
 
-        App.init();
+        // --- IMAGE & UTILS ---
+        window.dlImg = async (url, id) => { /* Same as before */
+            const btn = document.getElementById(id); const og = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try { const img=new Image(); img.crossOrigin="Anonymous"; img.src=url; await new Promise(r=>img.onload=r); 
+            const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; c.getContext('2d').drawImage(img,0,0);
+            const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click(); } 
+            catch(e){window.open(url,'_blank');} btn.innerHTML = og;
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            Canvas.init();
+            
+            // Markdown Init
+            let md = null;
+            const getMd = () => {
+                if(md || !window.markdownit) return window.markdownit ? (md = window.markdownit({html:true,breaks:true}).use(window.texmath,{engine:window.katex,delimiters:'dollars'})) : null;
+                return null;
+            };
+
+            const Putter = {
+                generate: (input) => {
+                    const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
+                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720} }; // simplified
+                    const {w,h} = dims[ratio] || dims["1:1"];
+                    return `<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true" class="dai-img loaded"><div class="dai-watermark">D'Ai</div></div>`;
+                }
+            };
+
+            const searchTavily = async (query) => {
+                let key = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
+                if (!key) return null; // Simplified: No prompt for key in this demo to focus on Canvas
+                try {
+                    const res = await fetch('https://api.tavily.com/search', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: key, query: query, max_results: 3 }) 
+                    });
+                    const data = await res.json();
+                    return data.results ? data.results.map(r => `${r.title}: ${r.content}`).join('\n') : null;
+                } catch (e) { return null; }
+            };
+
+            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
+
+            // --- CODER LOGIC ---
+            const runCoder = async (title, lang, prompt) => {
+                const loader = document.getElementById('canvas-loader');
+                loader.classList.remove('hidden');
+                Canvas.open(title, lang);
+                Canvas.setCode(""); // Clear previous
+
+                try {
+                    // Coder System Prompt
+                    const coderMsg = [
+                        {role: "system", content: "You are a coding engine. Output ONLY raw code. No markdown backticks. No explanations. Just the code."},
+                        {role: "user", content: `Write code for: ${prompt}. Language: ${lang}.`}
+                    ];
+
+                    const res = await fetch("/api/chat", {
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({model: CODER_MODEL, messages: coderMsg, stream:true, temperature: 0.1})
+                    });
+
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let buffer = "";
+
+                    loader.classList.add('hidden'); // Hide loader once stream starts
+
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+                        buffer += dec.decode(value, {stream: true});
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const json = JSON.parse(line.slice(6));
+                                    const delta = json.choices[0]?.delta?.content || "";
+                                    // Strip potential markdown fences if model disobeys
+                                    const clean = delta.replace(/```/g, ""); 
+                                    Canvas.appendCode(clean);
+                                } catch(e){}
+                            }
+                        }
+                    }
+                    Canvas.updatePreview();
+
+                } catch(e) {
+                    console.error("Coder Error", e);
+                    loader.classList.add('hidden');
+                    Canvas.editor.value = "// Error generating code. Please try again.";
+                }
+            };
+
+            window.send = async function() {
+                const t=E.i.value.trim(); if(!t||S.gen) return;
+                
+                // Deps check
+                if(!window.markdownit){ setTimeout(window.send, 100); return; }
+
+                S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
+                
+                // System Prompt - Updated for Canvas
+                if(!S.msg.length) {
+                    S.msg.push({
+                        role: "system", 
+                        content: "You are D'Ai. " +
+                                 "If user asks for code/app/game, DO NOT write it here. Use token: <<GENERATE_CODE: Title | Language | Detailed Prompt>>. " +
+                                 "Language example: html, python, javascript. " +
+                                 "For HTML, always ask for a single file with styles/scripts included. " +
+                                 "GENERATE_IMAGE: <<GENERATE_IMAGE: prompt | ratio>>. " +
+                                 "Be conversational for everything else."
+                    });
+                }
+                
+                S.msg.push({role:"user",content:t}); add('user',t.replace(/</g,"&lt;"));
+                const {firstElementChild:el}=add('assistant','');
+
+                // Search (Simplified check)
+                if(t.toLowerCase().includes('search') || t.toLowerCase().includes('news')) {
+                   const res = await searchTavily(t);
+                   if(res) S.msg[S.msg.length-1].content += `\n[Context: ${res}]`;
+                }
+                
+                try {
+                    const res = await fetch("/api/chat", {
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({model: MAIN_MODEL, messages:S.msg, stream:true})
+                    });
+
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let fullText = "";
+                    let buffer = "";
+                    let codeTokenDetected = false;
+
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+
+                        buffer += dec.decode(value, {stream: true});
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const json = JSON.parse(line.slice(6));
+                                    const delta = json.choices[0]?.delta?.content || "";
+                                    if (delta) {
+                                        fullText += delta;
+                                        
+                                        // Check for Code Token
+                                        const codeMatch = fullText.match(/<<GENERATE_CODE:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^>]+)>>/);
+                                        if (codeMatch && !codeTokenDetected) {
+                                            codeTokenDetected = true;
+                                            // Hide token from UI
+                                            const visibleText = fullText.replace(codeMatch[0], "Generating your code in Canvas...");
+                                            el.innerHTML = getMd().render(visibleText);
+                                            
+                                            // Trigger Coder Model
+                                            runCoder(codeMatch[1].trim(), codeMatch[2].trim(), codeMatch[3].trim());
+                                        } else if (!codeTokenDetected) {
+                                            // Normal Render (Image or Text)
+                                            const processed = fullText.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,i)=>Putter.generate(i));
+                                            el.innerHTML = getMd().render(processed);
+                                        }
+                                        
+                                        E.c.scrollTop = E.c.scrollHeight;
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    S.msg.push({role:"assistant",content:fullText}); 
+                    S.gen=false; document.getElementById('btn').disabled=false;
+
+                } catch(e) { S.gen=false; document.getElementById('btn').disabled=false; }
+            };
+        });
     </script>
 </body>
 </html>
