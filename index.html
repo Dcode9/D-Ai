@@ -11,9 +11,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
-    <!-- Deferred Libraries -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    <!-- Libraries -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     
     <script>
         tailwind.config = {
@@ -30,48 +30,65 @@
         body { background: #050505; color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
 
-        /* --- LAYOUT TRANSITIONS (70/30 Split) --- */
+        /* --- SPLIT LAYOUT ENGINE --- */
         #app-container { display: flex; width: 100vw; height: 100vh; padding-top: 60px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* Chat Panel: 100% -> 30% */
-        #chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 10; border-right: 1px solid transparent; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        body.split-view #chat-panel { flex: 0 0 30%; border-right-color: #1F1F1F; }
-        body.split-view #input-wrapper { width: 30%; } /* Sync input width */
+        /* CHAT SECTION (Left) */
+        #chat-section { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-width: 0; 
+            border-right: 1px solid transparent; 
+            transition: all 0.4s ease; 
+            position: relative;
+        }
+        
+        /* CANVAS SECTION (Right) */
+        #canvas-section { 
+            width: 0; 
+            opacity: 0; 
+            display: flex; 
+            flex-direction: column; 
+            background: #080808; 
+            overflow: hidden; 
+            transition: all 0.4s ease; 
+            transform: translateX(20px); 
+        }
 
-        /* Canvas Panel: 0% -> 70% */
-        #canvas-panel { width: 0; opacity: 0; display: flex; flex-direction: column; background: #080808; overflow: hidden; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(20px); }
-        body.split-view #canvas-panel { width: 70%; opacity: 1; transform: translateX(0); }
-
-        /* Typography */
-        .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
-        .markdown-body p { margin-bottom: 1rem; }
-        .markdown-body h1, .markdown-body h2 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); }
-        .markdown-body pre { background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 1em 0; }
+        /* SPLIT STATE ACTIVE */
+        body.split-view #chat-section { flex: 0 0 30%; border-right-color: #1F1F1F; }
+        body.split-view #canvas-section { width: 70%; opacity: 1; transform: translateX(0); }
+        
+        /* Centering Logic for Chat */
+        .chat-container-inner { max-width: 48rem; margin: 0 auto; width: 100%; transition: max-width 0.4s; }
+        body.split-view .chat-container-inner { max-width: 100%; padding: 0 1rem; }
+        
+        /* Markdown & UI */
+        .markdown-body { font-size: 0.95rem; line-height: 1.6; color: #d1d5db; }
+        .markdown-body p { margin-bottom: 0.8rem; }
+        .markdown-body pre { background: #111; padding: 10px; border-radius: 6px; border: 1px solid #222; overflow-x: auto; font-size: 0.85em; }
         .markdown-body code { font-family: 'JetBrains Mono'; background: rgba(255,255,255,0.1); padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; }
 
-        /* Artifact Card (Replaces Code in Chat) */
-        .artifact-card { margin: 1rem 0; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
-        .artifact-card:hover { border-color: #FF4F00; transform: translateY(-1px); }
-        .artifact-header { padding: 8px 12px; background: #181818; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: #888; letter-spacing: 0.05em; }
-        .artifact-body { padding: 12px; display: flex; align-items: center; gap: 12px; }
-        .icon-box { width: 36px; height: 36px; background: #222; color: #FF4F00; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; }
+        /* Artifact Card */
+        .artifact-card { background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; margin: 0.5rem 0; cursor: pointer; transition: all 0.2s; }
+        .artifact-card:hover { border-color: #FF4F00; }
+        .artifact-header { background: #161616; padding: 8px 12px; font-size: 10px; font-weight: 700; color: #666; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #222; }
+        .artifact-body { padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+        .icon-box { width: 32px; height: 32px; background: #222; color: #FF4F00; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
 
         /* Files Drawer */
-        #files-drawer { position: absolute; top: 55px; right: 80px; width: 260px; background: #111; border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 50; opacity: 0; pointer-events: none; transform: translateY(-10px); transition: all 0.2s; }
+        #files-drawer { position: absolute; top: 60px; right: 80px; width: 240px; background: #111; border: 1px solid #333; border-radius: 8px; z-index: 50; opacity: 0; pointer-events: none; transform: translateY(-5px); transition: 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         #files-drawer.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        .file-item { padding: 10px 14px; border-bottom: 1px solid #222; font-size: 13px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
-        .file-item:hover { background: #1A1A1A; color: white; }
-        .file-item.active { color: #FF4F00; background: #1A1A1A; border-left: 2px solid #FF4F00; }
-
-        /* Image Gen UI */
-        .dai-img-container { position: relative; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; overflow: hidden; }
-        .dai-img { width: 100%; height: auto; display: block; }
+        .file-entry { padding: 8px 12px; border-bottom: 1px solid #222; font-size: 13px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .file-entry:hover { background: #1A1A1A; color: white; }
         
-        /* Canvas Editor/Preview */
-        .tab-btn { padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+        /* Editor Tabs */
+        .tab-btn { padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 12px; font-weight: 500; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
         .tab-btn.active { color: #FF4F00; border-bottom-color: #FF4F00; }
-        #code-editor { width: 100%; height: 100%; background: #0B0B0B; color: #e0e0e0; font-family: 'JetBrains Mono'; font-size: 13px; padding: 20px; border: none; resize: none; outline: none; }
+        
+        /* Image Gen */
+        .dai-img-container { position: relative; border-radius: 8px; overflow: hidden; margin: 10px 0; border: 1px solid #333; }
     </style>
 </head>
 <body class="bg-dark-bg">
@@ -79,163 +96,137 @@
     <!-- Header -->
     <header class="fixed top-0 left-0 w-full z-50 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border h-[60px] flex items-center justify-between px-6 transition-all duration-500">
         <div class="flex items-center gap-3">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-left"><h1 class="font-bold leading-none text-lg tracking-tight text-white">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto">
+            <div><h1 class="font-bold leading-none text-white text-lg">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-widest">Canvas</p></div>
         </div>
-        <div class="flex items-center gap-5">
-            <!-- Files Button -->
-            <button onclick="App.toggleFiles()" class="text-gray-400 hover:text-white transition-colors relative group" title="Project Files">
-                <i class="fa-regular fa-folder-open text-lg group-hover:text-brand transition-colors"></i>
-                <span id="file-badge" class="absolute -top-2 -right-2 bg-brand text-white text-[9px] font-bold px-1.5 rounded-full hidden">0</span>
+        <div class="flex items-center gap-4">
+            <button onclick="App.toggleFiles()" class="text-gray-400 hover:text-white transition-colors relative" title="Files">
+                <i class="fa-regular fa-folder-open text-lg"></i>
+                <span id="file-count" class="absolute -top-2 -right-2 bg-brand text-white text-[9px] px-1 rounded-full hidden">0</span>
             </button>
-            <!-- Refresh -->
-            <button onclick="location.reload()" class="text-gray-400 hover:text-white transition-colors">
-                <i class="fa-solid fa-rotate-right text-lg"></i>
-            </button>
+            <button onclick="location.reload()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-rotate-right text-lg"></i></button>
         </div>
-        
-        <!-- Files Drawer (Dropdown) -->
+
+        <!-- Files List -->
         <div id="files-drawer">
-            <div class="p-3 border-b border-[#222] text-xs font-bold text-gray-500 uppercase tracking-wider bg-[#151515] rounded-t-lg">Created Artifacts</div>
-            <div id="file-list" class="max-h-[300px] overflow-y-auto">
-                <div class="p-4 text-center text-xs text-gray-600 italic">No files created yet.</div>
+            <div class="p-2 border-b border-[#222] text-[10px] font-bold text-gray-500 uppercase">Created Files</div>
+            <div id="file-list-container" class="max-h-60 overflow-y-auto">
+                <div class="p-3 text-center text-xs text-gray-600 italic">No files yet</div>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main App -->
     <div id="app-container">
         
-        <!-- Chat Panel -->
-        <div id="chat-panel">
+        <!-- Left: Chat -->
+        <div id="chat-section">
             <div id="chat-scroll" class="flex-1 overflow-y-auto p-4 pb-32 scroll-smooth">
-                <div id="hero" class="h-[60vh] flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
-                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                    <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
+                <div class="chat-container-inner h-full flex flex-col">
+                    <div id="hero" class="flex-1 flex flex-col items-center justify-center opacity-70 select-none">
+                        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4 grayscale">
+                        <p class="text-sm text-gray-500 font-mono">Ready to code.</p>
+                    </div>
+                    <!-- Messages Injected Here -->
                 </div>
             </div>
-
-            <!-- Input Area -->
-            <div id="input-wrapper" class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-dark-bg via-dark-bg to-transparent z-20 transition-all duration-400 ease-out">
-                <div class="max-w-3xl mx-auto w-full bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 shadow-2xl relative transition-all duration-300">
-                    <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();App.send()}"></textarea>
-                    <button id="send-btn" onclick="App.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+            
+            <!-- Input -->
+            <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-dark-bg via-dark-bg to-transparent z-20">
+                <div class="chat-container-inner">
+                    <div class="bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 shadow-2xl relative transition-all duration-300">
+                        <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[14px]" placeholder="Ask D'Ai..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();App.send()}"></textarea>
+                        <button onclick="App.send()" id="send-btn" class="p-3 text-gray-500 hover:text-brand transition-colors"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Canvas Panel (Right Sidebar) -->
-        <div id="canvas-panel">
-            <!-- Canvas Toolbar -->
-            <div class="h-12 border-b border-dark-border flex items-center justify-between px-4 bg-[#0F0F0F]">
+        <!-- Right: Canvas (70/30 Split) -->
+        <div id="canvas-section">
+            <!-- Canvas Header -->
+            <div class="h-10 border-b border-dark-border flex items-center justify-between px-4 bg-[#0F0F0F]">
                 <div class="flex h-full gap-2">
-                    <button class="tab-btn active" onclick="App.switchTab('preview')"><i class="fa-solid fa-play mr-2 text-xs"></i>Preview</button>
-                    <button class="tab-btn" onclick="App.switchTab('code')"><i class="fa-solid fa-code mr-2 text-xs"></i>Code</button>
+                    <button class="tab-btn active" onclick="App.switchTab('preview')"><i class="fa-solid fa-play mr-2 text-[10px]"></i>Preview</button>
+                    <button class="tab-btn" onclick="App.switchTab('code')"><i class="fa-solid fa-code mr-2 text-[10px]"></i>Code</button>
                 </div>
-                <div class="flex items-center gap-4">
-                    <span id="active-file-label" class="text-xs text-gray-500 font-mono border border-[#333] px-2 py-1 rounded">index.html</span>
-                    <button onclick="App.closeCanvas()" class="text-gray-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center gap-3">
+                    <span id="active-filename" class="text-xs font-mono text-gray-500 border border-[#222] px-2 py-0.5 rounded">index.html</span>
+                    <button onclick="App.closeCanvas()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
-            
-            <!-- Canvas Content -->
-            <div class="flex-1 relative overflow-hidden">
+            <!-- Canvas Body -->
+            <div class="flex-1 relative">
                 <div id="view-preview" class="absolute inset-0 w-full h-full bg-white z-10">
                     <iframe id="preview-frame" class="w-full h-full border-none"></iframe>
                 </div>
                 <div id="view-code" class="absolute inset-0 w-full h-full bg-[#080808] z-0 hidden">
-                    <textarea id="code-editor" spellcheck="false" oninput="App.updateCode(this.value)"></textarea>
+                    <textarea id="code-editor" class="w-full h-full bg-[#0B0B0B] text-[#e0e0e0] font-mono text-xs p-4 resize-none outline-none border-none" spellcheck="false" oninput="App.updateCode(this.value)"></textarea>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- Libraries -->
+    <!-- Logic -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
     <script>
-        // --- CONFIGURATION ---
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
 
         const App = {
-            files: {}, // { "filename": "content" }
+            files: {}, 
             activeFile: null,
             msgHistory: [],
             isGen: false,
             md: null,
 
             init: () => {
-                // Defer Markdown init
                 const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
-                const interval = setInterval(() => {
+                const i = setInterval(() => {
                     if (checkDeps()) {
-                        clearInterval(interval);
+                        clearInterval(i);
                         App.md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''})
                                 .use(texmath,{engine:katex,delimiters:'dollars'});
-                        // Custom Code Block Renderer
-                        App.md.renderer.rules.fence = (t,i) => {
-                            const lang = (t[i].info||'text').split(' ')[0];
-                            return `<div class="code-box"><div class="code-head"><span>${lang}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${lang}">${App.md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`;
-                        };
                     }
                 }, 100);
             },
 
-            // --- CANVAS LOGIC ---
-            toggleFiles: () => {
-                document.getElementById('files-drawer').classList.toggle('open');
-            },
-
+            // --- LAYOUT & CANVAS ---
+            toggleFiles: () => document.getElementById('files-drawer').classList.toggle('open'),
+            
             closeCanvas: () => {
                 document.body.classList.remove('split-view');
-                document.getElementById('input-wrapper').style.width = '100%';
             },
 
-            openCanvas: (filename) => {
-                if (!App.files[filename]) return;
-                App.activeFile = filename;
-                
-                document.getElementById('active-file-label').innerText = filename;
-                document.getElementById('code-editor').value = App.files[filename];
-                App.renderPreview(App.files[filename]);
-                
+            openCanvas: (name) => {
+                if(!App.files[name]) return;
+                App.activeFile = name;
+                document.getElementById('active-filename').innerText = name;
+                document.getElementById('code-editor').value = App.files[name];
+                App.renderPreview(App.files[name]);
                 document.body.classList.add('split-view');
                 document.getElementById('files-drawer').classList.remove('open');
-                
-                // Refresh list highlight
                 App.updateFileList();
             },
 
-            switchTab: (tab) => {
+            switchTab: (t) => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 event.currentTarget.classList.add('active');
-                const prev = document.getElementById('view-preview');
-                const code = document.getElementById('view-code');
-                
-                if (tab === 'preview') {
-                    prev.classList.remove('hidden'); code.classList.add('hidden');
-                    App.renderPreview(App.files[App.activeFile]);
-                } else {
-                    prev.classList.add('hidden'); code.classList.remove('hidden');
-                    // Sync editor just in case
-                    document.getElementById('code-editor').value = App.files[App.activeFile];
-                }
+                const p = document.getElementById('view-preview');
+                const c = document.getElementById('view-code');
+                if(t==='preview') { p.classList.remove('hidden'); c.classList.add('hidden'); App.renderPreview(App.files[App.activeFile]); }
+                else { p.classList.add('hidden'); c.classList.remove('hidden'); document.getElementById('code-editor').value = App.files[App.activeFile]; }
             },
 
-            updateCode: (val) => {
-                if (App.activeFile) App.files[App.activeFile] = val;
-            },
+            updateCode: (val) => { if(App.activeFile) App.files[App.activeFile] = val; },
 
             renderPreview: (code) => {
-                const frame = document.getElementById('preview-frame');
-                const doc = frame.contentWindow.document;
-                doc.open();
-                doc.write(code);
-                doc.close();
+                const doc = document.getElementById('preview-frame').contentWindow.document;
+                doc.open(); doc.write(code); doc.close();
             },
 
             addFile: (name, content) => {
@@ -244,178 +235,145 @@
             },
 
             updateFileList: () => {
-                const list = document.getElementById('file-list');
-                const badge = document.getElementById('file-badge');
+                const c = document.getElementById('file-list-container');
                 const keys = Object.keys(App.files);
+                document.getElementById('file-count').innerText = keys.length;
+                document.getElementById('file-count').classList.toggle('hidden', keys.length===0);
                 
-                if (keys.length > 0) {
-                    badge.innerText = keys.length;
-                    badge.classList.remove('hidden');
-                    list.innerHTML = keys.map(k => `
-                        <div class="file-item ${k===App.activeFile ? 'active' : ''}" onclick="App.openCanvas('${k}')">
-                            <i class="fa-brands fa-html5 text-orange-600"></i>
-                            <span class="flex-1">${k}</span>
-                            ${k===App.activeFile ? '<i class="fa-solid fa-circle text-[6px] text-brand"></i>' : ''}
-                        </div>
-                    `).join('');
-                } else {
-                    badge.classList.add('hidden');
-                    list.innerHTML = '<div class="p-4 text-center text-xs text-gray-600 italic">No files created yet.</div>';
-                }
+                if(keys.length===0) { c.innerHTML = '<div class="p-3 text-center text-xs text-gray-600 italic">No files yet</div>'; return; }
+                
+                c.innerHTML = keys.map(k => `
+                    <div class="file-entry" onclick="App.openCanvas('${k}')">
+                        <i class="fa-brands fa-html5 text-brand"></i>
+                        <span class="flex-1 ${k===App.activeFile?'text-white font-bold':'text-gray-400'}">${k}</span>
+                    </div>
+                `).join('');
             },
 
-            // --- CHAT & AI LOGIC ---
-            searchTavily: async (query) => {
-                let key = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
-                if (!key) {
-                    const input = prompt("Enter Tavily API Key for Smart Search:");
-                    if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); }
-                    else return null;
-                }
+            // --- AI LOGIC ---
+            searchTavily: async (q) => {
+                let k = VERCEL_TAVILY_ENV || localStorage.getItem('tavily_key');
+                if(!k) { k=prompt("Tavily API Key:"); if(k) localStorage.setItem('tavily_key',k); else return null; }
                 try {
-                    const res = await fetch('https://api.tavily.com/search', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5 }) 
+                    const r = await fetch('https://api.tavily.com/search', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({api_key:k, query:q, search_depth:"basic", max_results:5})
                     });
-                    const data = await res.json();
-                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
-                } catch (e) { console.error(e); return null; }
+                    const d = await r.json();
+                    return d.results?.map(x=>`Src: ${x.title}\n${x.content}`).join('\n\n') || null;
+                } catch(e) { return null; }
             },
 
-            generateImage: (input) => {
-                const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
-                const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280} };
-                const {w,h} = dims[ratio] || dims["1:1"];
-                const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
-                return `<div class="dai-img-container"><img src="${url}" class="dai-img" alt="${prompt}"></div>`;
+            genImage: (p) => {
+                const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&seed=${Math.random()}`;
+                return `<div class="dai-img-container"><img src="${url}" class="w-full"></div>`;
             },
 
             send: async () => {
-                const inputEl = document.getElementById('in');
-                const t = inputEl.value.trim();
-                if (!t || App.isGen || !App.md) return;
-
-                App.isGen = true;
-                inputEl.value = '';
-                document.getElementById('hero').classList.add('opacity-0');
+                const el = document.getElementById('in');
+                const t = el.value.trim();
+                if(!t || App.isGen || !App.md) return;
                 
-                // Add User Bubble
-                const chat = document.getElementById('chat-scroll');
-                const userDiv = document.createElement('div');
-                userDiv.className = "flex justify-end mb-6";
-                userDiv.innerHTML = `<div class="bg-[#1A1A1A] text-white px-5 py-3 rounded-2xl rounded-tr-sm border border-[#333] text-sm max-w-[85%] leading-relaxed">${t.replace(/</g,'&lt;')}</div>`;
-                chat.appendChild(userDiv);
+                App.isGen = true;
+                el.value = '';
+                document.getElementById('hero').classList.add('hidden');
 
-                // Add Bot Placeholder
-                const botDiv = document.createElement('div');
-                botDiv.className = "flex justify-start mb-6 w-full";
-                botDiv.innerHTML = `<div class="w-full pl-2 markdown-body"><i class="fa-solid fa-circle-notch fa-spin text-brand"></i></div>`;
-                chat.appendChild(botDiv);
-                const botContent = botDiv.querySelector('.markdown-body');
-
-                // History & System Prompt
-                if (App.msgHistory.length === 0) {
+                const container = document.querySelector('.chat-container-inner'); // Target the centered container
+                
+                // User Bubble
+                container.innerHTML += `<div class="flex justify-end mb-6"><div class="bg-[#1A1A1A] border border-[#333] px-5 py-3 rounded-2xl rounded-tr-sm text-sm text-white max-w-[90%]">${t.replace(/</g,'&lt;')}</div></div>`;
+                
+                // Bot Placeholder
+                const botId = `bot-${Date.now()}`;
+                container.innerHTML += `<div class="flex justify-start mb-6 w-full"><div id="${botId}" class="markdown-body w-full pl-2"><i class="fa-solid fa-circle-notch fa-spin text-brand"></i></div></div>`;
+                const botEl = document.getElementById(botId);
+                
+                // System Prompt - ADDITIVE
+                if(App.msgHistory.length === 0) {
                     App.msgHistory.push({
                         role: "system",
-                        content: `You are D'Ai. 
-                        CRITICAL: When generating HTML/Web apps, YOU MUST USE THIS EXACT FORMAT:
-                        |||"filename.html"||<!DOCTYPE html><html>...</html>|||
-                        
-                        Rules:
-                        1. Put the entire HTML code inside the second || section.
-                        2. Do NOT use markdown code blocks (\`\`\`) for HTML.
-                        3. For other languages or explanations, use normal markdown.
-                        4. Image Gen: <<GENERATE_IMAGE: prompt | 1:1>>
-                        `
+                        content: `You are D'Ai, a fast AI assistant. 
+                        CAPABILITIES:
+                        1. Web Search: If asked about current events/news, use the search tool.
+                        2. Image Gen: If asked to draw/generate, use format: <<GENERATE_IMAGE: prompt>>
+                        3. VIBE CODING (HTML/Apps): 
+                           - You MUST use this EXACT protocol for files: |||"filename.html"||...HTML CODE...|||
+                           - The HTML code must be inside the second set of pipes.
+                           - Do NOT use markdown code blocks (\`\`\`) for the HTML file content.
+                           - You can write normal text outside the pipes.`
                     });
                 }
-                App.msgHistory.push({ role: "user", content: t });
+                App.msgHistory.push({role:"user", content:t});
 
-                // Search Check
-                if (/latest|news|today|who is|price/i.test(t)) {
-                    botContent.innerHTML = `<span class="text-xs font-mono text-brand animate-pulse">SEARCHING WEB...</span>`;
-                    const searchRes = await App.searchTavily(t);
-                    if (searchRes) {
-                        App.msgHistory[App.msgHistory.length-1].content += `\n\n[SEARCH RESULTS]:\n${searchRes}`;
-                    }
+                // Search Hook
+                if(/latest|news|today|price|who is/i.test(t)) {
+                    botEl.innerHTML = `<span class="text-brand text-xs font-mono animate-pulse">SEARCHING WEB...</span>`;
+                    const s = await App.searchTavily(t);
+                    if(s) App.msgHistory[App.msgHistory.length-1].content += `\n\n[SEARCH CONTEXT]:\n${s}`;
                 }
 
                 try {
                     const res = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        method: "POST", headers: {"Content-Type":"application/json"},
                         body: JSON.stringify({ model: "gpt-oss-120b", messages: App.msgHistory, stream: true })
                     });
-
-                    const reader = res.body.getReader();
-                    const decoder = new TextDecoder();
-                    let fullText = "";
                     
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value, { stream: true });
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let full = "";
+
+                    while(true) {
+                        const {done, value} = await reader.read();
+                        if(done) break;
                         
-                        chunk.split('\n').forEach(line => {
-                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                                try {
-                                    const delta = JSON.parse(line.slice(6)).choices[0]?.delta?.content || "";
-                                    fullText += delta;
-
-                                    // --- PROTOCOL PARSING ---
-                                    // Regex: |||"name"||content|||
-                                    // We replace the raw protocol with a UI Card in the chat stream
-                                    let displayText = fullText;
-                                    const artifactRegex = /\|\|\|"([^"]+)"\|\|([\s\S]*?)(\|\|\||$)/g;
+                        const chunk = dec.decode(value, {stream:true});
+                        const lines = chunk.split('\n');
+                        for(const line of lines) {
+                            if(line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                const delta = JSON.parse(line.slice(6)).choices[0]?.delta?.content || "";
+                                full += delta;
+                                
+                                // Protocol Parsing & Stripping
+                                // Regex: |||"name"||content|||
+                                // We replace the entire block with a card for the display
+                                let display = full;
+                                const regex = /\|\|\|"([^"]+)"\|\|([\s\S]*?)(\|\|\||$)/g;
+                                let match;
+                                while((match = regex.exec(full)) !== null) {
+                                    const [block, fname, code, closer] = match;
                                     
-                                    let match;
-                                    while ((match = artifactRegex.exec(fullText)) !== null) {
-                                        const [fullMatch, filename, content, closer] = match;
-                                        
-                                        // Update File State
-                                        if (content.length > 20) {
-                                            if (!App.files[filename] || App.files[filename] !== content) {
-                                                App.addFile(filename, content);
-                                                // Auto-open if specific closer found or long enough
-                                                if (closer === '|||') App.openCanvas(filename);
-                                            }
+                                    // Store File
+                                    if(code.length > 10) {
+                                        if(!App.files[fname] || App.files[fname]!==code) {
+                                            App.addFile(fname, code);
+                                            // Auto-open if specific closer found
+                                            if(closer==='|||') App.openCanvas(fname); 
                                         }
-
-                                        // Replace text with Card
-                                        const card = `
-                                            <div class="artifact-card" onclick="App.openCanvas('${filename}')">
-                                                <div class="artifact-header">
-                                                    <span>CREATED ARTIFACT</span>
-                                                    <i class="fa-solid fa-arrow-up-right-from-square text-brand"></i>
-                                                </div>
-                                                <div class="artifact-body">
-                                                    <div class="icon-box"><i class="fa-brands fa-html5"></i></div>
-                                                    <div>
-                                                        <div class="text-white font-bold text-sm">${filename}</div>
-                                                        <div class="text-[10px] text-gray-500">Click to open Canvas</div>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        displayText = displayText.replace(fullMatch, card);
                                     }
 
-                                    // Image Gen Parsing
-                                    displayText = displayText.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,i) => App.generateImage(i));
+                                    // Replace in Chat UI
+                                    const card = `<div class="artifact-card" onclick="App.openCanvas('${fname}')">
+                                        <div class="artifact-header"><span>Artifact Created</span><i class="fa-solid fa-arrow-up-right-from-square text-brand"></i></div>
+                                        <div class="artifact-body">
+                                            <div class="icon-box"><i class="fa-brands fa-html5"></i></div>
+                                            <div><div class="text-white font-bold text-sm">${fname}</div><div class="text-[10px] text-gray-500">Click to view Code & Preview</div></div>
+                                        </div>
+                                    </div>`;
+                                    display = display.replace(block, card);
+                                }
 
-                                    botContent.innerHTML = App.md.render(displayText);
-                                    chat.scrollTop = chat.scrollHeight;
+                                // Image
+                                display = display.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m,p) => App.genImage(p));
 
-                                } catch(e){}
+                                botEl.innerHTML = App.md.render(display);
+                                document.getElementById('chat-scroll').scrollTop = document.getElementById('chat-scroll').scrollHeight;
                             }
-                        });
+                        }
                     }
-                    
-                    App.msgHistory.push({ role: "assistant", content: fullText });
+                    App.msgHistory.push({role:"assistant", content:full});
                     App.isGen = false;
-
-                } catch (e) {
-                    botContent.innerHTML = `<div class="text-red-500">Error: ${e.message}</div>`;
+                } catch(e) {
+                    botEl.innerHTML = `<span class="text-red-500">Error: ${e.message}</span>`;
                     App.isGen = false;
                 }
             }
