@@ -6,28 +6,16 @@
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
-    <!-- Critical CSS & Tailwind -->
+    <!-- Critical CSS & Tailwind (render blocking but necessary for UI structure) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
-    <!-- Deferred Libraries -->
+    <!-- Deferred Libraries (Loads after UI is visible) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
-    <script>
-        // Ensure Tailwind config is applied after load, though standard script tags usually handle this sync
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}};
-        } else {
-            // Fallback listener in case of async loading issues
-            window.addEventListener('load', () => {
-                if (typeof tailwind !== 'undefined') {
-                    tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}};
-                }
-            });
-        }
-    </script>
+    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
@@ -49,27 +37,6 @@
         .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
         .code-body { padding: 0; }
 
-        /* Canvas/Vibe Coding UI */
-        #workspace { display: flex; width: 100vw; height: 100vh; padding-top: 60px; transition: all 0.3s ease; }
-        
-        /* Chat Panel Transition */
-        #chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; z-index: 10; }
-        /* When canvas is open, chat panel shrinks but stays usable */
-        body.canvas-open #chat-panel { flex: 0 0 30%; border-right: 1px solid #1F1F1F; }
-        body.canvas-open #chat-content-container { max-width: 100%; padding-left: 1rem; padding-right: 1rem; }
-        
-        /* Canvas Panel */
-        #canvas-panel { width: 0; opacity: 0; overflow: hidden; background: #080808; border-left: 1px solid #1F1F1F; display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateX(20px); }
-        body.canvas-open #canvas-panel { width: 70%; opacity: 1; transform: translateX(0); }
-
-        /* Canvas Tabs */
-        .canvas-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .canvas-tab:hover { color: #ccc; }
-        .canvas-tab.active { color: #FF4F00; border-bottom-color: #FF4F00; }
-
-        /* Editor */
-        #editor-area { font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.5; background: #080808; color: #e0e0e0; width: 100%; height: 100%; border: none; resize: none; outline: none; padding: 20px; white-space: pre; overflow: auto; }
-        
         /* Image Generation UI */
         .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
@@ -87,75 +54,33 @@
         @keyframes wipeDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
     </style>
 </head>
-<body class="bg-dark-bg">
-
-    <!-- Header -->
-    <header class="fixed top-0 left-0 w-full z-50 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border h-[60px] flex items-center justify-between px-6 transition-all duration-500">
-        <div class="flex items-center gap-3">
+<body class="flex flex-col h-screen">
+    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
+        <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-left"><h1 class="font-bold leading-none text-lg tracking-tight text-white">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
         </div>
-        <div class="flex items-center gap-4">
-            <button onclick="Canvas.toggle()" class="text-gray-400 hover:text-white transition-colors" title="Toggle Canvas">
-                <i class="fa-solid fa-code-columns"></i>
-            </button>
-            <button onclick="location.reload()" class="text-gray-400 hover:text-white transition-colors">
-                <i class="fa-solid fa-rotate-right"></i>
-            </button>
-        </div>
+        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <!-- Main Workspace -->
-    <div id="workspace">
-        
-        <!-- Chat Panel -->
-        <div id="chat-panel">
-            <div id="chat" class="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
-                <div id="chat-content-container" class="max-w-3xl mx-auto w-full transition-all duration-300">
-                    <div id="hero" class="h-[60vh] flex flex-col items-center justify-center opacity-80 select-none">
-                        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                        <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
-                    </div>
-                    <!-- Messages will appear here -->
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="p-4 bg-gradient-to-t from-dark-bg via-dark-bg to-transparent">
-                <div id="input-container" class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300 w-full">
-                    <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-                    <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
-                </div>
+    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
+        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
+                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
             </div>
         </div>
+    </main>
 
-        <!-- Canvas Panel (Right Sidebar) -->
-        <div id="canvas-panel">
-            <!-- Canvas Toolbar -->
-            <div class="h-12 border-b border-dark-border flex items-center justify-between px-4 bg-[#0F0F0F]">
-                <div class="flex items-center gap-6">
-                    <button class="canvas-tab active" onclick="Canvas.switchTab('preview')"><i class="fa-solid fa-play mr-2"></i>Preview</button>
-                    <button class="canvas-tab" onclick="Canvas.switchTab('code')"><i class="fa-solid fa-code mr-2"></i>Code</button>
-                </div>
-                <button onclick="Canvas.toggle()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <!-- Canvas Content -->
-            <div class="flex-1 relative overflow-hidden">
-                <!-- Preview Iframe -->
-                <div id="canvas-preview" class="absolute inset-0 w-full h-full bg-white z-10">
-                    <iframe id="preview-frame" class="w-full h-full border-none"></iframe>
-                </div>
-                <!-- Code Editor -->
-                <div id="canvas-code" class="absolute inset-0 w-full h-full bg-[#080808] z-0 hidden">
-                    <textarea id="editor-area" spellcheck="false" oninput="Canvas.updateFromEditor()"></textarea>
-                </div>
-            </div>
+    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
+        <!-- Input Area: Pill Shaped -->
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+            <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
-
     </div>
 
-    <!-- Logic -->
+    <!-- AI Logic Scripts (Deferred for Performance) -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
@@ -163,70 +88,8 @@
 
     <script>
         // --- CONFIGURATION ---
+        // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
-
-        // --- CANVAS LOGIC ---
-        const Canvas = {
-            isOpen: false,
-            currentCode: "",
-            
-            toggle: (forceState) => {
-                const body = document.body;
-                Canvas.isOpen = forceState !== undefined ? forceState : !Canvas.isOpen;
-                
-                if (Canvas.isOpen) {
-                    body.classList.add('canvas-open');
-                    // Resize adjustments
-                    document.getElementById('input-container').classList.remove('max-w-3xl');
-                    document.getElementById('chat-content-container').classList.remove('max-w-3xl');
-                } else {
-                    body.classList.remove('canvas-open');
-                    setTimeout(() => {
-                        document.getElementById('input-container').classList.add('max-w-3xl');
-                        document.getElementById('chat-content-container').classList.add('max-w-3xl');
-                    }, 300);
-                }
-            },
-
-            switchTab: (tab) => {
-                const prev = document.getElementById('canvas-preview');
-                const code = document.getElementById('canvas-code');
-                const tabs = document.querySelectorAll('.canvas-tab');
-                
-                tabs.forEach(t => t.classList.remove('active'));
-                
-                if (tab === 'preview') {
-                    prev.classList.remove('hidden');
-                    code.classList.add('hidden');
-                    tabs[0].classList.add('active');
-                    Canvas.render(); // Ensure refresh
-                } else {
-                    prev.classList.add('hidden');
-                    code.classList.remove('hidden');
-                    tabs[1].classList.add('active');
-                }
-            },
-
-            updateContent: (code) => {
-                if (!code || code === Canvas.currentCode) return;
-                Canvas.currentCode = code;
-                document.getElementById('editor-area').value = code;
-                Canvas.render();
-            },
-
-            updateFromEditor: () => {
-                Canvas.currentCode = document.getElementById('editor-area').value;
-                Canvas.render();
-            },
-
-            render: () => {
-                const frame = document.getElementById('preview-frame');
-                const doc = frame.contentWindow.document;
-                doc.open();
-                doc.write(Canvas.currentCode);
-                doc.close();
-            }
-        };
 
         // Global helper for downloading
         window.dlImg = async (url, id) => {
@@ -238,10 +101,12 @@
                 await new Promise(r=>img.onload=r);
                 const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
                 const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
+                
                 ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
                 ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
                 ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
                 ctx.fillText("D'Ai", img.width-20, img.height-20);
+
                 const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
             } catch(e) { window.open(url,'_blank'); }
             btn.innerHTML = ogHtml;
@@ -252,7 +117,10 @@
         };
 
         document.addEventListener("DOMContentLoaded", () => {
+            // Initialize dependencies check
             const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
+            
+            // Markdown Renderer Init (Lazy)
             let md = null;
             const getMd = () => {
                 if(md) return md;
@@ -300,8 +168,8 @@
                 } catch (e) { console.error(e); return null; }
             };
 
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat-content-container'), i:document.getElementById('in'), h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full mb-6 ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[90%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
+            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
             
             const shouldSearch = (text) => {
                 const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
@@ -311,6 +179,7 @@
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
                 
+                // Wait for deferred scripts if user is too fast
                 if(!getMd()){
                     const btn = document.getElementById('btn');
                     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
@@ -320,25 +189,36 @@
 
                 S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
+                // System Prompt
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
-                        content: "You are D'Ai. Chat casually. If asked to code a webpage/app, wrap valid HTML/CSS/JS in a SINGLE ```html block. If the user asks for code, the system will automatically visualize it in the Canvas."
+                        content: "You are D'Ai, a lightning-fast AI assistant created by Dhairya Shah. " +
+                                 "Chat naturally and casually. Never define simple words or greetings. " +
+                                 "Be concise, friendly, and direct. " +
+                                 "You can generate images and browse the web. " +
+                                 "IMAGE GEN: If user explicitly asks to generate/create/draw an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "Do not show this token when just explaining capabilities. " +
+                                 "WEB SEARCH: If provided with web results, integrate them seamlessly into your answer. Do not say 'According to search results'. Act like you know it."
                     });
                 }
                 
+                // User Message
+                // For user messages, we simple escape HTML to prevent injection in the user bubble, 
+                // but we don't render markdown there to keep it looking like raw input.
                 const safeUserText = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 S.msg.push({role:"user",content:t}); add('user',safeUserText);
                 
                 const {firstElementChild:el}=add('assistant','');
-                const chatScroll = document.getElementById('chat');
 
                 // Search Logic
                 let searchContext = "";
                 if(shouldSearch(t)) {
                     el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
                     const results = await searchTavily(t);
-                    if(results) searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily).]\n${results}`;
+                    if(results) {
+                        searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily). Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
+                    }
                     el.innerHTML = ""; 
                 }
                 
@@ -365,9 +245,7 @@
                     let buffer = "";
                     const mdRenderer = getMd();
 
-                    chatScroll.style.scrollBehavior = 'auto';
-
-                    let isCanvasActive = false;
+                    E.c.style.scrollBehavior = 'auto'; // Perf boost
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -387,36 +265,22 @@
                                     
                                     if (delta) {
                                         fullText += delta;
-                                        
-                                        // Vibe Coding: Intelligent Canvas Detection
-                                        const htmlMatch = fullText.match(/```html\n([\s\S]*)/);
-                                        if (htmlMatch && htmlMatch[1].length > 20) {
-                                            if (!isCanvasActive) {
-                                                isCanvasActive = true;
-                                                Canvas.toggle(true);
-                                            }
-                                            // Extract content, remove closing fence if present
-                                            let cleanCode = htmlMatch[1].replace(/```$/, '');
-                                            Canvas.updateContent(cleanCode);
-                                        }
-
                                         const processedContent = fullText.replace(
                                             /<<GENERATE_IMAGE:([^>]+)>>/g, 
                                             (match, input) => Putter.generate(input)
                                         );
-                                        
                                         el.innerHTML = mdRenderer.render(processedContent
                                             .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
                                             .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
                                         );
-                                        chatScroll.scrollTop = chatScroll.scrollHeight;
+                                        E.c.scrollTop = E.c.scrollHeight;
                                     }
                                 } catch (e) {}
                             }
                         }
                     }
 
-                    chatScroll.style.scrollBehavior = 'smooth';
+                    E.c.style.scrollBehavior = 'smooth';
                     S.msg.push({role:"assistant",content:fullText}); 
                     S.gen=false; 
                     document.getElementById('btn').disabled=false;
