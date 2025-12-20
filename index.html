@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     
     <script>
-        tailwind.config = {
+        const twConfig = {
             darkMode: 'class',
             theme: {
                 extend: {
@@ -24,6 +24,23 @@
                     fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
                 }
             }
+        };
+        
+        // Robust Tailwind Initialization
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = twConfig;
+        } else {
+            window.addEventListener('DOMContentLoaded', () => {
+                if (typeof tailwind !== 'undefined') {
+                    tailwind.config = twConfig;
+                }
+            });
+            // Fallback for async load
+            window.addEventListener('load', () => {
+                if (typeof tailwind !== 'undefined' && !tailwind.config) {
+                    tailwind.config = twConfig;
+                }
+            });
         }
     </script>
     <style>
