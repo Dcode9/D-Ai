@@ -88,8 +88,12 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Vercel/Env Integration: Replace "" with process.env.CHATGPT_SEARCH_API during build if needed
-        const CHATGPT_SEARCH_API = ""; 
+        // Vercel/Env Integration: Safe check for process.env
+        // This pattern allows build tools to replace 'process.env.CHATGPT_SEARCH_API' 
+        // while avoiding ReferenceErrors in pure browser environments.
+        const CHATGPT_SEARCH_API = (() => {
+            try { return process.env.CHATGPT_SEARCH_API; } catch (e) { return ""; }
+        })();
 
         // Global helper for downloading
         window.dlImg = async (url, id) => {
@@ -144,7 +148,8 @@
 
             const searchWeb = async (query) => {
                 let key = CHATGPT_SEARCH_API; 
-                if (!key) {
+                // Enhanced check to ensure key is valid and not a placeholder or stringified null
+                if (!key || key === "undefined" || key === "null") {
                     key = localStorage.getItem('web_search_key');
                     if (key) key = key.trim().replace(/^Bearer\s+/i, "");
                     if (!key) {
