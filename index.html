@@ -160,63 +160,45 @@
             const searchWeb = async (query) => {
                 let key = CHATGPT_SEARCH_API; 
                 
-                // --- DEBUG LOGGING ---
-                console.group("🔍 Web Search Debug");
-                console.log("Query:", query);
-                console.log("Env Key Detect:", ENV_API_KEY ? "✅ Present" : "❌ Not Found (process.env empty)");
-                console.log("Manual Key:", MANUAL_API_KEY ? "✅ Present" : "❌ Empty");
-                console.log("Effective Key:", key ? "✅ Ready" : "❌ Missing");
-                
-                // Enhanced check to ensure key is valid and not a placeholder or stringified null
+                // Enhanced check to ensure key is valid
                 if (!key || key === "undefined" || key === "null") {
-                    console.warn("Key missing from Config. Checking LocalStorage...");
                     key = localStorage.getItem('web_search_key');
-                    
-                    if (key) {
-                         key = key.trim().replace(/^Bearer\s+/i, "");
-                         console.log("Key found in LocalStorage.");
-                    }
+                    if (key) key = key.trim().replace(/^Bearer\s+/i, "");
 
                     if (!key) {
-                        console.warn("No key in LocalStorage. Prompting user.");
-                        const input = prompt("Enter RapidAPI Key for 'Real-Time Web Search':\n(Subscribe at rapidapi.com/search-api-search-api-default/api/real-time-web-search)");
+                        const input = prompt("Enter 'Web Search | OpenAI API' Key (RapidAPI):");
                         if (input) { 
                             key = input.trim(); 
                             localStorage.setItem('web_search_key', key); 
                         } else {
-                            console.error("User cancelled prompt.");
-                            console.groupEnd();
                             return null;
                         }
                     }
                 }
-                console.groupEnd();
 
                 try {
-                    // SWITCHED TO: Real-Time Web Search (Robust & Reliable)
-                    // Endpoint: /search
-                    // Host: real-time-web-search.p.rapidapi.com
-                    const res = await fetch(`https://real-time-web-search.p.rapidapi.com/search?q=${encodeURIComponent(query)}&limit=5`, {
+                    // REVERTED TO: Web Search | OpenAI API
+                    // Host: web-search-openai-api.p.rapidapi.com
+                    const res = await fetch(`https://web-search-openai-api.p.rapidapi.com/search?q=${encodeURIComponent(query)}&num=5`, {
                         method: 'GET',
                         headers: { 
                             'x-rapidapi-key': key,
-                            'x-rapidapi-host': 'real-time-web-search.p.rapidapi.com'
+                            'x-rapidapi-host': 'web-search-openai-api.p.rapidapi.com'
                         }
                     });
                     
                     if(!res.ok) {
                         if(res.status === 401 || res.status === 403) { 
-                            console.error("API Key Rejected:", res.status);
                             localStorage.removeItem('web_search_key'); 
-                            alert("API Key Rejected. Please ensure you are subscribed to 'Real-Time Web Search' on RapidAPI."); 
+                            alert("API Key Rejected. Please ensure you are subscribed to 'Web Search | OpenAI API' on RapidAPI."); 
                         }
                         throw new Error(`Search API: ${res.status}`);
                     }
                     const data = await res.json();
                     
-                    // Map results based on Real-Time Web Search structure (usually data.data or data.results)
-                    const results = data.data || data.results || data.value || [];
-                    return results.length > 0 ? results.map(r => `Source: ${r.title} (${r.url})\n${r.snippet || r.description || r.body || ''}`).join('\n\n') : null;
+                    // Fallback support for different response structures
+                    const results = data.results || data.value || data.data || [];
+                    return results.length > 0 ? results.map(r => `Source: ${r.title} (${r.url})\n${r.description || r.body || r.snippet || ''}`).join('\n\n') : null;
                 } catch (e) { console.error("Search Error:", e); return null; }
             };
 
