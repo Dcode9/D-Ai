@@ -58,7 +58,7 @@
     <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on Planet</p></div>
         </div>
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
@@ -67,7 +67,7 @@
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai ✨ - Scary Fast.</h2>
+                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
             </div>
         </div>
     </main>
@@ -88,8 +88,8 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
-        const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
+        // Vercel/Env Integration: Replace "" with process.env.CHATGPT_SEARCH_API during build if needed
+        const CHATGPT_SEARCH_API = ""; 
 
         // Global helper for downloading
         window.dlImg = async (url, id) => {
@@ -142,29 +142,35 @@
                 }
             };
 
-            const searchTavily = async (query) => {
-                let key = VERCEL_TAVILY_ENV; 
+            const searchWeb = async (query) => {
+                let key = CHATGPT_SEARCH_API; 
                 if (!key) {
-                    key = localStorage.getItem('tavily_key');
+                    key = localStorage.getItem('web_search_key');
                     if (key) key = key.trim().replace(/^Bearer\s+/i, "");
                     if (!key) {
-                        const input = prompt("Enter Tavily API Key for Smart Search:");
-                        if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); } 
+                        const input = prompt("Enter Web Search API Key (RapidAPI):");
+                        if (input) { key = input.trim(); localStorage.setItem('web_search_key', key); } 
                         else return null;
                     }
                 }
                 try {
-                    const res = await fetch('https://api.tavily.com/search', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
+                    // Using Web Search | OpenAI API (RapidAPI)
+                    const res = await fetch(`https://web-search-openai-api.p.rapidapi.com/search?q=${encodeURIComponent(query)}&num=5`, {
+                        method: 'GET',
+                        headers: { 
+                            'x-rapidapi-key': key,
+                            'x-rapidapi-host': 'web-search-openai-api.p.rapidapi.com'
+                        }
                     });
+                    
                     if(!res.ok) {
-                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('tavily_key'); alert("Invalid API Key. Cleared."); }
-                        throw new Error(`Tavily: ${res.status}`);
+                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('web_search_key'); alert("Invalid API Key. Cleared."); }
+                        throw new Error(`Search API: ${res.status}`);
                     }
                     const data = await res.json();
-                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
+                    // Map results based on standard RapidAPI Web Search structure
+                    const results = data.results || data.value || [];
+                    return results.length > 0 ? results.map(r => `Source: ${r.title} (${r.url})\n${r.description || r.body || ''}`).join('\n\n') : null;
                 } catch (e) { console.error(e); return null; }
             };
 
@@ -194,9 +200,9 @@
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning-fast AI assistant created by Dhairya Shah. " +
-                                 "Chat naturally and casually. Never define simple words or greetings. Use moderate amount of emogis to make your response look good. " +
+                                 "Chat naturally and casually. Never define simple words or greetings. " +
                                  "Be concise, friendly, and direct. " +
-                                 "You can generate images, browse the web, code, translate, and write. " +
+                                 "You can generate images and browse the web. " +
                                  "IMAGE GEN: If user explicitly asks to generate/create/draw an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
                                  "Do not show this token when just explaining capabilities. " +
                                  "WEB SEARCH: If provided with web results, integrate them seamlessly into your answer. Do not say 'According to search results'. Act like you know it."
@@ -215,9 +221,9 @@
                 let searchContext = "";
                 if(shouldSearch(t)) {
                     el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
-                    const results = await searchTavily(t);
+                    const results = await searchWeb(t);
                     if(results) {
-                        searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily). Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
+                        searchContext = `\n\n[SYSTEM: Real-time Web Data. Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
                     }
                     el.innerHTML = ""; 
                 }
