@@ -158,8 +158,9 @@
                 
                 S.g=true; E.i.value=''; E.i.style.height='auto'; E.b.disabled=1;
                 
-                // Strictly enforces personality: No meta-talk about tools.
-                if(!S.m.length) S.m.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. You are fast, concise, and friendly. \n\nRULES:\n1. NEVER say 'I will search for that' or 'I am generating an image'. Just do it.\n2. NEVER explain how you use tools.\n3. If you get search results, simply incorporate them into your answer naturally.\n4. IMAGE GEN SYNTAX: <<GENERATE_IMAGE: prompt | aspect_ratio>>."});
+                // Strictly enforces personality: No meta-talk about tools. 
+                // Updated to forbid [search] output and force data usage.
+                if(!S.m.length) S.m.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. You are fast, concise, and friendly. \n\nRULES:\n1. NEVER say 'I will search for that' or 'I am generating an image'. Just do it.\n2. NEVER output tool calls like [search] or [browser]. You do not have a search tool you can invoke. \n3. Use the provided SYSTEM DATA for answers. If no data is provided, use your internal knowledge.\n4. IMAGE GEN SYNTAX: <<GENERATE_IMAGE: prompt | aspect_ratio>>."});
                 
                 S.m.push({role:"user",content:t}); add('user',t.replace(/&/g,"&amp;").replace(/</g,"&lt;"));
                 const {firstElementChild:el}=add('ai','');
@@ -167,8 +168,8 @@
                 scrollBot();
 
                 let ctx = "";
-                // Logic: Search silently. Show ephemeral loading state that vanishes instantly when text starts.
-                if(['latest','news','today','price','who','what','when','live','weather'].some(k=>t.toLowerCase().includes(k))) {
+                // Logic: Expanded keyword list for better pre-emptive search coverage
+                if(['latest','news','today','price','who','what','when','live','weather','rate','exchange','value','vs','score','stats','forecast'].some(k=>t.toLowerCase().includes(k))) {
                     el.innerHTML='<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> RESEARCHING...</span>';
                     const res = await search(t);
                     if(res) ctx = `\n\n[REAL-TIME WEB DATA - Use this truth over your memory]\n${res}`;
@@ -194,8 +195,10 @@
                                 try{
                                     const j=JSON.parse(l.slice(6)); if(j.choices?.[0]?.delta?.content) {
                                         txt+=j.choices[0].delta.content;
-                                        // Renders markdown + images. Images have onload handlers to scroll.
-                                        el.innerHTML = rnd.render(txt.replace(/<<GENERATE_IMAGE:([^>]+)>>/g,(m,i)=>Gen.make(i)).replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                                        // Renders markdown + images.
+                                        // Added regex to strip raw [search ...] tokens if AI hallucinates them.
+                                        const cleanTxt = txt.replace(/\[search.*?\]/g, "");
+                                        el.innerHTML = rnd.render(cleanTxt.replace(/<<GENERATE_IMAGE:([^>]+)>>/g,(m,i)=>Gen.make(i)).replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
                                         E.c.scrollTop=E.c.scrollHeight;
                                     }
                                 }catch(e){}
