@@ -12,25 +12,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;height:100dvh;overflow:hidden;position:relative}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+        
         .markdown-body{font-size:.95rem;line-height:1.7;color:#d1d5db} .markdown-body p{margin-bottom:1rem} .markdown-body a{color:#FF4F00;text-decoration:none;border-bottom:1px solid #ff4f004d}
         .markdown-body code{font-family:'JetBrains Mono',monospace;background:#ffffff0d;color:#e2e8f0;padding:.2em .4em;border-radius:4px;font-size:.85em}
         .markdown-body pre{margin:1.5em 0;padding:0;background:transparent;border:1px solid #333;border-radius:8px;overflow:hidden} .markdown-body pre code{background:#0d0d0d;padding:1rem;border:none}
+        
         .typing-cursor::after{content:'▋';color:#FF4F00;animation:blink 1s step-start infinite;margin-left:2px;vertical-align:baseline} @keyframes blink{50%{opacity:0}}
         .code-box{margin:1em 0;background:#0d0d0d;border:1px solid #333;border-radius:8px;overflow:hidden} .code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888;font-weight:600}
-        .dai-img-container{position:relative;border-radius:12px;margin:1rem 0;border:1px solid #222;background:#080808;width:100%;box-shadow:0 4px 20px #0000004d}
-        .dai-loader{position:absolute;inset:0;display:flex;justify-content:center;align-items:center} .dai-loader::after{content:'';width:30px;height:30px;border:3px solid #ff4f001a;border-top-color:#FF4F00;border-radius:50%;animation:spin .8s linear infinite}
-        .dai-img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s;clip-path:inset(0 0 100% 0)} .dai-img.loaded{opacity:1;animation:wipeDown 1.2s cubic-bezier(.22,1,.36,1) forwards}
-        .dai-overlay{position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;display:flex;gap:8px} .dai-img-container:hover .dai-overlay{opacity:1}
+        
+        /* Image UI */
+        .dai-img-container{position:relative;border-radius:12px;margin:1rem 0;border:1px solid #222;background:#080808;width:100%;box-shadow:0 4px 20px #0000004d;min-height:200px}
+        .dai-loader{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;background:#080808;z-index:1} .dai-loader::after{content:'';width:30px;height:30px;border:3px solid #ff4f001a;border-top-color:#FF4F00;border-radius:50%;animation:spin .8s linear infinite}
+        .dai-img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s;clip-path:inset(0 0 100% 0);position:relative;z-index:2} .dai-img.loaded{opacity:1;animation:wipeDown 1.2s cubic-bezier(.22,1,.36,1) forwards}
+        .dai-overlay{position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;display:flex;gap:8px;z-index:10} .dai-img-container:hover .dai-overlay{opacity:1}
         .dai-btn{background:#00000099;color:#fff;border:1px solid #ffffff26;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:.2s} .dai-btn:hover{background:#FF4F00;border-color:#FF4F00}
-        .dai-watermark{position:absolute;bottom:12px;right:12px;font-size:10px;color:#ffffff66;font-weight:700;text-transform:uppercase;letter-spacing:2px;pointer-events:none}
+        .dai-watermark{position:absolute;bottom:12px;right:12px;font-size:10px;color:#ffffff66;font-weight:700;text-transform:uppercase;letter-spacing:2px;pointer-events:none;z-index:3}
+        
         @keyframes spin{to{transform:rotate(360deg)}} @keyframes wipeDown{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
         @media(max-width:640px){.dai-img-container{height:auto!important} #chat{padding-bottom:150px}}
+
+        /* UI Animations for Input Transition */
+        #ui-wrapper { transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); position: absolute; width: 100%; }
+        
+        /* State: Initial (Centered) */
+        .mode-initial #ui-wrapper { top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 0 1rem; max-width: 800px; }
+        .mode-initial #hero-text { opacity: 1; transform: translateY(0); display: block; }
+        .mode-initial #chat-container { opacity: 0; pointer-events: none; }
+        .mode-initial #header-logo { opacity: 0; transform: translateY(-20px); }
+
+        /* State: Chat (Bottom) */
+        .mode-chat #ui-wrapper { top: auto; bottom: 0; left: 0; transform: none; padding: 1rem; padding-bottom: 2rem; background: linear-gradient(to top, #050505 80%, transparent); z-index: 50; }
+        .mode-chat #hero-text { opacity: 0; transform: translateY(-20px); pointer-events: none; height: 0; margin: 0; overflow: hidden; }
+        .mode-chat #chat-container { opacity: 1; pointer-events: auto; }
+        .mode-chat #header-logo { opacity: 1; transform: translateY(0); }
     </style>
 </head>
-<body>
-    <header class="fixed top-0 left-0 w-full z-30 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4">
+<body class="mode-initial">
+    
+    <!-- Top Header (Fades in on Chat Mode) -->
+    <header id="header-logo" class="fixed top-0 left-0 w-full z-30 bg-dark-bg/90 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI in the planet</p></div>
@@ -38,17 +60,22 @@
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto relative">
+    <!-- Main Chat Area -->
+    <main id="chat-container" class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto h-full transition-opacity duration-700">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-48 space-y-8 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai - Scary Fast.</h2>
-            </div>
+            <!-- Messages go here -->
         </div>
     </main>
 
-    <div class="fixed bottom-0 left-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-12 px-4 z-20">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
+    <!-- Moving Input Wrapper -->
+    <div id="ui-wrapper">
+        <div id="hero-text" class="text-center mb-8 transition-all duration-500">
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mx-auto mb-6 drop-shadow-2xl" alt="Logo">
+            <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai</h2>
+            <p class="text-gray-500 uppercase tracking-[0.2em] text-xs">Scary Fast.</p>
+        </div>
+        
+        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-500 shadow-2xl transition-all duration-300 ring-0 focus-within:ring-1 ring-gray-800">
             <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
             <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
@@ -62,6 +89,12 @@
     <script>
         const API_KEY = (() => { try { return process.env.WEB_SEARCH_API; } catch (e) { return ""; } })();
         
+        // Scroll helper
+        const scrollBot = () => {
+            const c = document.getElementById('chat');
+            c.scrollTop = c.scrollHeight;
+        };
+
         window.dlImg = async(u,i) => {
             const b=document.getElementById(i), o=b.innerHTML; b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
             try{ const m=new Image(); m.crossOrigin="Anonymous"; m.src=u; await new Promise(r=>m.onload=r);
@@ -71,7 +104,10 @@
             }catch(e){window.open(u,'_blank')} b.innerHTML=o;
         };
         
-        window.imgError = (e) => e.parentElement.innerHTML='<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Connection Interrupted: Image Load Failed</div>';
+        window.imgError = (e) => {
+            e.parentElement.querySelector('.dai-loader').style.display = 'none';
+            e.parentElement.innerHTML='<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
+        };
 
         document.addEventListener("DOMContentLoaded", () => {
             let md=null;
@@ -88,13 +124,16 @@
                 make: (inpt) => {
                     const [p,r="1:1"]=inpt.split('|').map(s=>s.trim());
                     const d={"1:1":{w:1024,h:1024},"16:9":{w:1280,h:720},"9:16":{w:720,h:1280},"4:3":{w:1024,h:768},"3:4":{w:768,h:1024}}, {w,h}=d[r.toLowerCase()]||d["1:1"];
-                    const u=`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=${w}&height=${h}&nologo=true&seed=${Gen.seed(p)}`, bid=`dl-${Math.random().toString(36).substr(2,9)}`;
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${u}" class="dai-img" referrerpolicy="no-referrer" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" onclick="navigator.clipboard.writeText('${u}')"><i class="fa-regular fa-copy"></i></button><button id="${bid}" class="dai-btn" onclick="window.dlImg('${u}','${bid}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    // Fixed URL structure and added time param to prevent caching issues if prompt is identical
+                    const u=`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=${w}&height=${h}&nologo=true&seed=${Gen.seed(p)}`;
+                    const bid=`dl-${Math.random().toString(36).substr(2,9)}`;
+                    // scrollBot() called on image load to ensure it's visible
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${u}" class="dai-img" referrerpolicy="no-referrer" onload="this.classList.add('loaded'); this.parentElement.querySelector('.dai-loader').style.display='none'; document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" onclick="navigator.clipboard.writeText('${u}')"><i class="fa-regular fa-copy"></i></button><button id="${bid}" class="dai-btn" onclick="window.dlImg('${u}','${bid}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
             const search = async (q) => {
-                if (!API_KEY) return null; // Silent fail if no key configured
+                if (!API_KEY) return null;
                 try {
                     const r = await fetch("https://api.tavily.com/search", {
                         method:'POST', headers:{'Content-Type':'application/json'},
@@ -103,28 +142,38 @@
                     if(!r.ok) throw 1;
                     const d = await r.json();
                     return (d.results||[]).map(x=>`Source: ${x.title} (${x.url})\nContent: ${x.content}`).join('\n\n') || null;
-                } catch(e) { return null; } // Network/API error = silent fail, AI uses internal knowledge
+                } catch(e) { return null; }
             };
 
-            const S={m:[],g:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero'),b:document.getElementById('btn')};
+            const S={m:[],g:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),b:document.getElementById('btn')};
             const add=(r,t)=>{const d=document.createElement('div');d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`;d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body typing-cursor"></div></div>`;E.c.appendChild(d);return d;};
             
             window.send = async () => {
                 const t=E.i.value.trim(); if(!t||S.g)return;
                 if(!getMd()){E.b.disabled=1;setTimeout(window.send,100);return;}
                 
-                S.g=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); E.b.disabled=1;
-                if(!S.m.length) S.m.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. Chat naturally, concisely, and friendly. IMAGE GEN: <<GENERATE_IMAGE: prompt | aspect_ratio>>. WEB SEARCH: Use provided results to answer. Cite sources implicitly."});
+                // Animation Trigger
+                document.body.classList.remove('mode-initial');
+                document.body.classList.add('mode-chat');
+                
+                S.g=true; E.i.value=''; E.i.style.height='auto'; E.b.disabled=1;
+                
+                // Strictly enforces personality: No meta-talk about tools.
+                if(!S.m.length) S.m.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. You are fast, concise, and friendly. \n\nRULES:\n1. NEVER say 'I will search for that' or 'I am generating an image'. Just do it.\n2. NEVER explain how you use tools.\n3. If you get search results, simply incorporate them into your answer naturally.\n4. IMAGE GEN SYNTAX: <<GENERATE_IMAGE: prompt | aspect_ratio>>."});
                 
                 S.m.push({role:"user",content:t}); add('user',t.replace(/&/g,"&amp;").replace(/</g,"&lt;"));
                 const {firstElementChild:el}=add('ai','');
+                
+                scrollBot();
 
                 let ctx = "";
-                if(['latest','news','today','price','who','what','when','live'].some(k=>t.toLowerCase().includes(k))) {
+                // Logic: Search silently. Show ephemeral loading state that vanishes instantly when text starts.
+                if(['latest','news','today','price','who','what','when','live','weather'].some(k=>t.toLowerCase().includes(k))) {
                     el.innerHTML='<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> RESEARCHING...</span>';
                     const res = await search(t);
-                    if(res) ctx = `\n\n[REAL-TIME SEARCH DATA]\n${res}\n[INSTRUCTION: Answer using this data.]`;
-                    el.innerHTML="";
+                    if(res) ctx = `\n\n[REAL-TIME WEB DATA - Use this truth over your memory]\n${res}`;
+                    // Important: Clear the 'Researching' text immediately before AI streams
+                    el.innerHTML=""; 
                 }
 
                 try {
@@ -134,7 +183,7 @@
 
                     const r=res.body.getReader(), dec=new TextDecoder(), rnd=getMd();
                     let txt="", buf=""; 
-                    E.c.style.scrollBehavior='auto';
+                    E.c.style.scrollBehavior='auto'; // Disable smooth scroll for perf during rapid streaming
 
                     while(true) {
                         const {done,value} = await r.read(); if(done)break;
@@ -145,6 +194,7 @@
                                 try{
                                     const j=JSON.parse(l.slice(6)); if(j.choices?.[0]?.delta?.content) {
                                         txt+=j.choices[0].delta.content;
+                                        // Renders markdown + images. Images have onload handlers to scroll.
                                         el.innerHTML = rnd.render(txt.replace(/<<GENERATE_IMAGE:([^>]+)>>/g,(m,i)=>Gen.make(i)).replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
                                         E.c.scrollTop=E.c.scrollHeight;
                                     }
@@ -152,7 +202,8 @@
                             }
                         }
                     }
-                    E.c.style.scrollBehavior='smooth'; el.parentElement.classList.remove('typing-cursor');
+                    E.c.style.scrollBehavior='smooth'; 
+                    el.parentElement.classList.remove('typing-cursor');
                     S.m.push({role:"assistant",content:txt});
                 } catch(e) {
                     el.parentElement.classList.remove('typing-cursor');
