@@ -5,214 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <!-- Deferred Styles -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
+    
     <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#FF4F00',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
     <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;height:100dvh;overflow:hidden;position:relative}
-        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
+        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
         
-        .markdown-body{font-size:.95rem;line-height:1.7;color:#d1d5db} .markdown-body p{margin-bottom:1rem} .markdown-body a{color:#FF4F00;text-decoration:none;border-bottom:1px solid #ff4f004d}
-        .markdown-body code{font-family:'JetBrains Mono',monospace;background:#ffffff0d;color:#e2e8f0;padding:.2em .4em;border-radius:4px;font-size:.85em}
-        .markdown-body pre{margin:1.5em 0;padding:0;background:transparent;border:1px solid #333;border-radius:8px;overflow:hidden} .markdown-body pre code{background:#0d0d0d;padding:1rem;border:none}
+        /* Markdown & UI Styles */
+        .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; }
+        .markdown-body p { margin-bottom: 1rem; }
+        .markdown-body h1, .markdown-body h2 { color: #FFF; font-weight: 600; margin-top: 1.5rem; }
+        .markdown-body a { color: #FF4F00; text-decoration: none; border-bottom: 1px solid rgba(255,79,0,0.3); }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; }
+        .markdown-body pre { margin: 1.5em 0; padding: 0; background: transparent; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .markdown-body pre code { background: #0d0d0d; padding: 1rem; display: block; overflow-x: auto; border: none; }
         
-        .typing-cursor::after{content:'▋';color:#FF4F00;animation:blink 1s step-start infinite;margin-left:2px;vertical-align:baseline} @keyframes blink{50%{opacity:0}}
-        .code-box{margin:1em 0;background:#0d0d0d;border:1px solid #333;border-radius:8px;overflow:hidden} .code-head{display:flex;justify-content:space-between;background:#1A1A1A;padding:.5rem 1rem;border-bottom:1px solid #333;font-size:.75rem;color:#888;font-weight:600}
-        
-        /* Image UI */
-        .dai-img-container{position:relative;border-radius:12px;margin:1rem 0;border:1px solid #222;background:#080808;width:100%;box-shadow:0 4px 20px #0000004d;min-height:200px}
-        .dai-loader{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;background:#080808;z-index:1} .dai-loader::after{content:'';width:30px;height:30px;border:3px solid #ff4f001a;border-top-color:#FF4F00;border-radius:50%;animation:spin .8s linear infinite}
-        .dai-img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s;clip-path:inset(0 0 100% 0);position:relative;z-index:2} .dai-img.loaded{opacity:1;animation:wipeDown 1.2s cubic-bezier(.22,1,.36,1) forwards}
-        .dai-overlay{position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;display:flex;gap:8px;z-index:10} .dai-img-container:hover .dai-overlay{opacity:1}
-        .dai-btn{background:#00000099;color:#fff;border:1px solid #ffffff26;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:.2s} .dai-btn:hover{background:#FF4F00;border-color:#FF4F00}
-        .dai-watermark{position:absolute;bottom:12px;right:12px;font-size:10px;color:#ffffff66;font-weight:700;text-transform:uppercase;letter-spacing:2px;pointer-events:none;z-index:3}
-        
-        @keyframes spin{to{transform:rotate(360deg)}} @keyframes wipeDown{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
-        @media(max-width:640px){.dai-img-container{height:auto!important} #chat{padding-bottom:150px}}
+        .code-box { margin: 1em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+        .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-weight: 600; text-transform: uppercase; }
 
-        /* UI Animations for Input Transition */
-        #ui-wrapper { transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); position: absolute; width: 100%; }
-        
-        /* State: Initial (Centered) */
-        .mode-initial #ui-wrapper { top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 0 1rem; max-width: 800px; }
-        .mode-initial #hero-text { opacity: 1; transform: translateY(0); display: block; }
-        .mode-initial #chat-container { opacity: 0; pointer-events: none; }
-        .mode-initial #header-logo { opacity: 0; transform: translateY(-20px); }
+        /* Image Gen UI */
+        .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .dai-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; pointer-events: none; }
+        .dai-loader::after { content: ''; width: 30px; height: 30px; border: 3px solid rgba(255, 79, 0, 0.1); border-top-color: #FF4F00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .dai-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; position: relative; z-index: 1; }
+        .dai-img.loaded { opacity: 1; }
+        .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 10; }
+        .dai-img-container:hover .dai-overlay { opacity: 1; }
+        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .dai-btn:hover { background: #FF4F00; border-color: #FF4F00; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* State: Chat (Bottom) */
-        .mode-chat #ui-wrapper { top: auto; bottom: 0; left: 0; transform: none; padding: 1rem; padding-bottom: 2rem; background: linear-gradient(to top, #050505 80%, transparent); z-index: 50; }
-        .mode-chat #hero-text { opacity: 0; transform: translateY(-20px); pointer-events: none; height: 0; margin: 0; overflow: hidden; }
-        .mode-chat #chat-container { opacity: 1; pointer-events: auto; }
-        .mode-chat #header-logo { opacity: 1; transform: translateY(0); }
+        /* --- ANIMATION STATES --- */
+        body[data-mode="welcome"] #app-header { opacity: 0; transform: translateY(-100%); pointer-events: none; }
+        body[data-mode="welcome"] #hero-section { opacity: 1; transform: translate(-50%, -50%) scale(1); top: 40%; }
+        body[data-mode="welcome"] #input-area { top: 55%; transform: translateY(-50%); bottom: auto; max-width: 600px; }
+        body[data-mode="welcome"] #chat-container { opacity: 0; pointer-events: none; }
+        
+        body[data-mode="chat"] #app-header { opacity: 1; transform: translateY(0); }
+        body[data-mode="chat"] #hero-section { opacity: 0; transform: translate(-50%, -150%) scale(0.8); pointer-events: none; transition-delay: 0s; }
+        body[data-mode="chat"] #input-area { top: auto; bottom: 0; transform: translateY(0); max-width: 48rem; }
+        body[data-mode="chat"] #chat-container { opacity: 1; }
+
+        /* Transitions */
+        #app-header, #hero-section, #input-area, #chat-container { transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* Mobile adjustment for Welcome Mode to avoid keyboard hiding input */
+        @media (max-width: 640px) { body[data-mode="welcome"] #hero-section { top: 35%; } body[data-mode="welcome"] #input-area { width: 90%; } }
     </style>
 </head>
-<body class="mode-initial">
+<body class="flex flex-col h-screen" data-mode="welcome">
     
-    <!-- Top Header (Fades in on Chat Mode) -->
-    <header id="header-logo" class="fixed top-0 left-0 w-full z-30 bg-dark-bg/90 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
+    <!-- HEADER -->
+    <header id="app-header" class="fixed top-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI in the planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
         </div>
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <!-- Main Chat Area -->
-    <main id="chat-container" class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto h-full transition-opacity duration-700">
-        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-48 space-y-8 scroll-smooth">
-            <!-- Messages go here -->
+    <!-- HERO SECTION (Centered initially) -->
+    <div id="hero-section" class="fixed left-1/2 w-full max-w-lg text-center z-10 flex flex-col items-center justify-center p-4">
+        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6 shadow-2xl shadow-brand/20 rounded-full" alt="Logo">
+        <h2 class="text-4xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
+        <p class="text-gray-400 text-sm uppercase tracking-[0.3em]">Scary Fast</p>
+    </div>
+
+    <!-- MAIN CHAT -->
+    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 pb-52 space-y-6 scroll-smooth">
+            <!-- Messages inject here -->
         </div>
     </main>
 
-    <!-- Moving Input Wrapper -->
-    <div id="ui-wrapper">
-        <div id="hero-text" class="text-center mb-8 transition-all duration-500">
-            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mx-auto mb-6 drop-shadow-2xl" alt="Logo">
-            <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai</h2>
-            <p class="text-gray-500 uppercase tracking-[0.2em] text-xs">Scary Fast.</p>
-        </div>
-        
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-500 shadow-2xl transition-all duration-300 ring-0 focus-within:ring-1 ring-gray-800">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+    <!-- INPUT AREA (Moves from center to bottom) -->
+    <div id="input-area" class="fixed w-full left-0 right-0 mx-auto px-4 z-30 pb-8 pt-4 bg-transparent">
+        <div class="bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300 backdrop-blur-sm">
+            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
             <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
     <script>
-        const API_KEY = (() => { try { return process.env.WEB_SEARCH_API; } catch (e) { return ""; } })();
-        
-        // Scroll helper
-        const scrollBot = () => {
-            const c = document.getElementById('chat');
-            c.scrollTop = c.scrollHeight;
+        const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
+        let isStarted = false;
+
+        // Start Transition Function
+        const triggerStart = () => {
+            if(isStarted) return;
+            isStarted = true;
+            document.body.setAttribute('data-mode', 'chat');
+            document.getElementById('in').focus();
         };
 
-        window.dlImg = async(u,i) => {
-            const b=document.getElementById(i), o=b.innerHTML; b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
-            try{ const m=new Image(); m.crossOrigin="Anonymous"; m.src=u; await new Promise(r=>m.onload=r);
-                const c=document.createElement('canvas'); c.width=m.width; c.height=m.height; const x=c.getContext('2d'); x.drawImage(m,0,0);
-                x.font=`700 ${Math.max(20,m.width*.025)}px Inter,sans-serif`; x.fillStyle='#ffffffb3'; x.textAlign='right'; x.shadowColor="#00000080"; x.shadowBlur=4; x.fillText("D'Ai",m.width-20,m.height-20);
-                const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
-            }catch(e){window.open(u,'_blank')} b.innerHTML=o;
+        // If user taps textarea on mobile, trigger start immediately so keyboard doesn't cover input
+        document.getElementById('in').addEventListener('focus', triggerStart);
+
+        window.dlImg = async (url, id) => {
+            const btn = document.getElementById(id); const og = btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const img=new Image(); img.crossOrigin="Anonymous"; img.src=url; await new Promise(r=>img.onload=r);
+                const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; c.getContext('2d').drawImage(img,0,0);
+                const a=document.createElement('a'); a.href=c.toDataURL(); a.download=`DAi-${Date.now()}.png`; a.click();
+            } catch(e){window.open(url,'_blank');} btn.innerHTML=og;
         };
-        
-        window.imgError = (e) => {
-            e.parentElement.querySelector('.dai-loader').style.display = 'none';
-            e.parentElement.innerHTML='<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
-        };
+        window.imgError = (el) => { el.parentElement.innerHTML='<div class="text-red-500 text-xs p-4 border border-red-900 bg-red-900/10 rounded">Generation Failed</div>'; };
 
         document.addEventListener("DOMContentLoaded", () => {
+            const checkDeps=()=>window.markdownit&&window.texmath&&window.katex&&window.hljs;
             let md=null;
             const getMd=()=>{
-                if(md)return md; if(!window.markdownit||!window.texmath||!window.katex||!window.hljs)return null;
+                if(md)return md; if(!checkDeps())return null;
                 md=window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
                 md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-                md.renderer.rules.fence=(t,i)=>`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`;
+                md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'txt').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white"><i class="fa-regular fa-copy"></i></button></div><pre><code class="hljs language-${(t[i].info||'txt').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div>`);
                 return md;
             };
 
-            const Gen = {
-                seed: (s) => { let h=0; for(let i=0;i<s.length;i++) h=Math.imul(31,h)+s.charCodeAt(i)|0; return Math.abs(h)%1000; },
-                make: (inpt) => {
-                    const [p,r="1:1"]=inpt.split('|').map(s=>s.trim());
-                    const d={"1:1":{w:1024,h:1024},"16:9":{w:1280,h:720},"9:16":{w:720,h:1280},"4:3":{w:1024,h:768},"3:4":{w:768,h:1024}}, {w,h}=d[r.toLowerCase()]||d["1:1"];
-                    // Fixed URL structure and added time param to prevent caching issues if prompt is identical
-                    const u=`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=${w}&height=${h}&nologo=true&seed=${Gen.seed(p)}`;
-                    const bid=`dl-${Math.random().toString(36).substr(2,9)}`;
-                    // scrollBot() called on image load to ensure it's visible
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${u}" class="dai-img" referrerpolicy="no-referrer" onload="this.classList.add('loaded'); this.parentElement.querySelector('.dai-loader').style.display='none'; document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" onclick="navigator.clipboard.writeText('${u}')"><i class="fa-regular fa-copy"></i></button><button id="${bid}" class="dai-btn" onclick="window.dlImg('${u}','${bid}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
-                }
+            const Putter={generate:(i)=>{
+                const [p,r="1:1"]=i.split('|').map(s=>s.trim()); const d={"1:1":{w:1024,h:1024},"16:9":{w:1280,h:720}}; const {w,h}=d[r]||d["1:1"];
+                const u=`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*999)}`;
+                const id=`dl-${Math.random().toString(36).substr(2,5)}`;
+                return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${u}" class="dai-img" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button id="${id}" class="dai-btn" onclick="window.dlImg('${u}','${id}')"><i class="fa-solid fa-download"></i></button></div></div>\n`;
+            }};
+
+            const searchTavily=async(q)=>{
+                let k=VERCEL_TAVILY_ENV||localStorage.getItem('tavily_key');
+                if(!k){const i=prompt("Enter Tavily Key for Search:"); if(i){k=i.trim();localStorage.setItem('tavily_key',k);}else return null;}
+                try{const r=await fetch('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:k,query:q,search_depth:"basic",max_results:5})});
+                if(!r.ok)throw new Error(r.status); const d=await r.json(); return d.results?d.results.map(x=>`Src: ${x.title} (${x.url})\n${x.content}`).join('\n\n'):null;}catch(e){return null;}
             };
 
-            const search = async (q) => {
-                if (!API_KEY) return null;
-                try {
-                    const r = await fetch("https://api.tavily.com/search", {
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body:JSON.stringify({api_key:API_KEY, query:q, search_depth:"basic", include_answer:true, max_results:5})
-                    });
-                    if(!r.ok) throw 1;
-                    const d = await r.json();
-                    return (d.results||[]).map(x=>`Source: ${x.title} (${x.url})\nContent: ${x.content}`).join('\n\n') || null;
-                } catch(e) { return null; }
-            };
+            const S={msg:[],gen:false}, E={c:document.getElementById('chat-container'),i:document.getElementById('in')};
+            const add=(r,t)=>{const d=document.createElement('div');d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`;d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`;E.c.appendChild(d);return d;};
 
-            const S={m:[],g:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),b:document.getElementById('btn')};
-            const add=(r,t)=>{const d=document.createElement('div');d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`;d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body typing-cursor"></div></div>`;E.c.appendChild(d);return d;};
-            
-            window.send = async () => {
-                const t=E.i.value.trim(); if(!t||S.g)return;
-                if(!getMd()){E.b.disabled=1;setTimeout(window.send,100);return;}
+            window.send=async function(){
+                const t=E.i.value.trim(); if(!t||S.gen)return;
+                triggerStart(); // Ensure animation triggers
                 
-                // Animation Trigger
-                document.body.classList.remove('mode-initial');
-                document.body.classList.add('mode-chat');
-                
-                S.g=true; E.i.value=''; E.i.style.height='auto'; E.b.disabled=1;
-                
-                // Strictly enforces personality: No meta-talk about tools. 
-                // Updated to forbid [search] output and force data usage.
-                if(!S.m.length) S.m.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. You are fast, concise, and friendly. \n\nRULES:\n1. NEVER say 'I will search for that' or 'I am generating an image'. Just do it.\n2. NEVER output tool calls like [search] or [browser]. You do not have a search tool you can invoke. \n3. Use the provided SYSTEM DATA for answers. If no data is provided, use your internal knowledge.\n4. IMAGE GEN SYNTAX: <<GENERATE_IMAGE: prompt | aspect_ratio>>."});
-                
-                S.m.push({role:"user",content:t}); add('user',t.replace(/&/g,"&amp;").replace(/</g,"&lt;"));
-                const {firstElementChild:el}=add('ai','');
-                
-                scrollBot();
+                if(!getMd()){ setTimeout(window.send,200); return; }
+                S.gen=true; E.i.value=''; E.i.style.height='auto'; document.getElementById('btn').disabled=true;
 
-                let ctx = "";
-                // Logic: Expanded keyword list for better pre-emptive search coverage
-                if(['latest','news','today','price','who','what','when','live','weather','rate','exchange','value','vs','score','stats','forecast'].some(k=>t.toLowerCase().includes(k))) {
-                    el.innerHTML='<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> RESEARCHING...</span>';
-                    const res = await search(t);
-                    if(res) ctx = `\n\n[REAL-TIME WEB DATA - Use this truth over your memory]\n${res}`;
-                    // Important: Clear the 'Researching' text immediately before AI streams
-                    el.innerHTML=""; 
+                if(!S.msg.length) S.msg.push({role:"system",content:"You are D'Ai, created by Dhairya Shah. Fast, friendly, concise. Use markdown. capabilities: generate images (format: <<GENERATE_IMAGE: prompt | ratio>>), web search."});
+                
+                const safeT = t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+                S.msg.push({role:"user",content:t}); add('user',safeT);
+                const {firstElementChild:el}=add('assistant','');
+
+                let ctx=""; if(/(latest|news|price|weather|who is)/i.test(t)){
+                    el.innerHTML='<span class="text-brand/80 text-[11px] animate-pulse"><i class="fa-solid fa-globe"></i> Searching...</span>';
+                    const res=await searchTavily(t); if(res) ctx=`\n[WEB DATA: ${res}]\n`;
                 }
 
-                try {
-                    const msgs = [...S.m]; if(ctx) msgs[msgs.length-1].content += ctx;
-                    const res = await fetch("/api/chat", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-oss-120b",messages:msgs,stream:true})});
-                    if(!res.ok) throw new Error("Network Unstable");
-
-                    const r=res.body.getReader(), dec=new TextDecoder(), rnd=getMd();
-                    let txt="", buf=""; 
-                    E.c.style.scrollBehavior='auto'; // Disable smooth scroll for perf during rapid streaming
-
-                    while(true) {
-                        const {done,value} = await r.read(); if(done)break;
-                        buf += dec.decode(value,{stream:true});
-                        const lines=buf.split('\n'); buf=lines.pop();
-                        for(const l of lines) {
-                            if(l.startsWith('data: ')){
-                                try{
-                                    const j=JSON.parse(l.slice(6)); if(j.choices?.[0]?.delta?.content) {
-                                        txt+=j.choices[0].delta.content;
-                                        // Renders markdown + images.
-                                        // Added regex to strip raw [search ...] tokens if AI hallucinates them.
-                                        const cleanTxt = txt.replace(/\[search.*?\]/g, "");
-                                        el.innerHTML = rnd.render(cleanTxt.replace(/<<GENERATE_IMAGE:([^>]+)>>/g,(m,i)=>Gen.make(i)).replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
-                                        E.c.scrollTop=E.c.scrollHeight;
-                                    }
-                                }catch(e){}
+                try{
+                    const msgs=[...S.msg]; if(ctx) msgs[msgs.length-1].content+=ctx;
+                    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-oss-120b",messages:msgs,stream:true})});
+                    const r=res.body.getReader(), dec=new TextDecoder(); let txt="";
+                    while(true){
+                        const {done,value}=await r.read(); if(done)break;
+                        const chunk=dec.decode(value,{stream:true}).split('\n');
+                        for(const l of chunk){
+                            if(l.startsWith('data: ') && l!=="data: [DONE]"){
+                                try{const j=JSON.parse(l.slice(6)); const d=j.choices[0]?.delta?.content||"";
+                                if(d){txt+=d; 
+                                    const p=txt.replace(/<<GENERATE_IMAGE:([^>]+)>>/g,(m,i)=>Putter.generate(i));
+                                    el.innerHTML=getMd().render(p.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                                    window.scrollTo(0,document.body.scrollHeight);
+                                }}catch(e){}
                             }
                         }
                     }
-                    E.c.style.scrollBehavior='smooth'; 
-                    el.parentElement.classList.remove('typing-cursor');
-                    S.m.push({role:"assistant",content:txt});
-                } catch(e) {
-                    el.parentElement.classList.remove('typing-cursor');
-                    el.innerHTML=`<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Connection Failed:</strong> Please check your internet connection and try again.</div>`;
-                }
-                S.g=false; E.b.disabled=0;
+                    S.msg.push({role:"assistant",content:txt});
+                }catch(e){el.innerHTML=`<span class="text-red-500">Error: ${e.message}</span>`;}
+                S.gen=false; document.getElementById('btn').disabled=false;
             };
         });
     </script>
