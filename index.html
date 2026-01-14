@@ -80,57 +80,85 @@
 
     <script>
         // --- CONFIGURATION ---
-        // ENVIRONMENT VARIABLE HANDLER
-        // Accesses keys securely exposed to the client-side (browser)
-        const getEnv = (key) => {
-            if (typeof process !== 'undefined' && process.env) {
-                // 1. Check for Next.js Public Variable (Standard for Vercel)
-                if (process.env[`NEXT_PUBLIC_${key}`]) return process.env[`NEXT_PUBLIC_${key}`];
-                // 2. Check for Vite Public Variable
-                if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
-                // 3. Fallback to direct match (unlikely to work for server secrets in browser, but good backup)
-                if (process.env[key]) return process.env[key];
-            }
-            return "";
-        };
-
-        const KEYS = {
-            TAVILY: getEnv('WEB_SEARCH_API'),
-            POLLINATIONS: getEnv('POLLINATIONS_API') // Must be named NEXT_PUBLIC_POLLINATIONS_API in Vercel
-        };
-
-        // Helper: Deterministic Hash for Seeds
+        const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
-        // Global Download Helper
-        window.dlImg = async (url, id) => {
+        // --- NEW: Server-Side Image Fetcher ---
+        // This replaces direct URL access. It calls /api/image, gets a blob, and displays it.
+        window.fetchServerImage = async (img, prompt, width, height, seed) => {
+            img.removeAttribute('onload'); // Prevent infinite loop
+            const urlKey = `${prompt}-${width}-${height}-${seed}`;
+            
+            // 1. Check Cache
+            if(window.pCache && window.pCache.has(urlKey)) {
+                img.src = window.pCache.get(urlKey);
+                img.classList.add('loaded');
+                return;
+            }
+
+            try {
+                // Call the SERVER endpoint
+                const res = await fetch('/api/image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt, 
+                        width, 
+                        height, 
+                        seed,
+                        model: 'nanobanana' 
+                    })
+                });
+
+                if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // Cache
+                if(!window.pCache) window.pCache = new Map();
+                window.pCache.set(urlKey, blobUrl);
+                
+                img.src = blobUrl;
+                img.classList.add('loaded');
+
+            } catch (e) {
+                console.error("Image Gen Failed:", e);
+                window.imgError(img);
+            }
+        };
+
+        // Updated Download Helper for Blob URLs
+        window.dlImg = async (id) => {
             const btn = document.getElementById(id);
+            const container = btn.closest('.dai-img-container');
+            const img = container.querySelector('img');
+            const blobUrl = img.src;
+
             const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             
             try {
-                const img = new Image(); 
-                img.crossOrigin = "Anonymous"; 
-                img.src = url; 
-                await new Promise((r, e) => { img.onload=r; img.onerror=e; });
+                const res = await fetch(blobUrl);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
                 
-                const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
-                const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
-                
-                ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
-                ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
-                ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
-                ctx.fillText("D'Ai", img.width-20, img.height-20);
-
-                const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DAi-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             } catch(e) { 
-                window.open(url,'_blank'); 
+                console.error("Download failed", e);
+                window.open(blobUrl,'_blank'); 
             }
             btn.innerHTML = ogHtml;
         };
 
         window.imgError = (el) => {
-            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">API Key Missing. Rename Vercel Env Var to: <br><strong>NEXT_PUBLIC_POLLINATIONS_API</strong></span></div>';
+            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -153,37 +181,38 @@
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
-                    
-                    // URL Construction with Query Param Authentication
-                    // This is robust and browser-compatible.
-                    let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nanobanana&seed=${seed}`;
-                    
-                    if (KEYS.POLLINATIONS) {
-                        const cleanKey = KEYS.POLLINATIONS.replace(/^Bearer\s+/i, "").trim();
-                        url += `&key=${cleanKey}`;
-                    } else {
-                        console.warn("D'Ai: NEXT_PUBLIC_POLLINATIONS_API not found. Image generation may fail if authentication is required.");
-                    }
-
                     const btnId = `dl-${seed}`;
-                    // Transparent placeholder
+                    
+                    // Transparent placeholder + ONLOAD trigger for server fetch
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                    // Sanitize prompt for HTML attribute
+                    const safePrompt = prompt.replace(/"/g, '&quot;');
 
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed})" class="dai-img" alt="Generated Image"><div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
             const searchTavily = async (query) => {
-                const key = KEYS.TAVILY;
-                if (!key) return null;
-
+                let key = VERCEL_TAVILY_ENV; 
+                if (!key) {
+                    key = localStorage.getItem('tavily_key');
+                    if (key) key = key.trim().replace(/^Bearer\s+/i, "");
+                    if (!key) {
+                        const input = prompt("Enter Tavily API Key for Smart Search:");
+                        if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); } 
+                        else return null;
+                    }
+                }
                 try {
                     const res = await fetch('https://api.tavily.com/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
                     });
-                    if(!res.ok) throw new Error(`Tavily: ${res.status}`);
+                    if(!res.ok) {
+                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('tavily_key'); alert("Invalid API Key. Cleared."); }
+                        throw new Error(`Tavily: ${res.status}`);
+                    }
                     const data = await res.json();
                     return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
                 } catch (e) { console.error(e); return null; }
@@ -199,6 +228,7 @@
 
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
+                
                 if(!getMd()){
                     const btn = document.getElementById('btn');
                     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
