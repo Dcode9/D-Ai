@@ -6,12 +6,12 @@
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
-    <!-- Critical CSS & Tailwind (render blocking but necessary for UI structure) -->
+    <!-- Critical CSS & Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
-    <!-- Deferred Libraries (Loads after UI is visible) -->
+    <!-- Deferred Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
@@ -73,14 +73,13 @@
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <!-- Input Area: Pill Shaped -->
         <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
             <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
             <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
         </div>
     </div>
 
-    <!-- AI Logic Scripts (Deferred for Performance) -->
+    <!-- AI Logic Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
@@ -88,28 +87,97 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
         const VERCEL_POLLINATIONS_ENV = (typeof process !== 'undefined' && process.env && process.env.POLLINATIONS_API) || "";
 
-        // Global helper for downloading
-        window.dlImg = async (url, id) => {
+        // Global Cache for Blobs (prevents flicker during streaming re-renders)
+        window.pCache = new Map();
+        
+        // Helper: Deterministic Hash
+        const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+
+        // -- Pollinations Authenticated Fetcher --
+        window.loadPollinationsImage = async (img, url, key) => {
+            // Remove onload to prevent loops (since we change src)
+            img.removeAttribute('onload');
+            
+            // 1. Check Cache
+            if(window.pCache.has(url)) {
+                const cached = window.pCache.get(url);
+                if(cached instanceof Promise) {
+                    try { const blobUrl = await cached; img.src = blobUrl; img.classList.add('loaded'); } catch(e){ window.imgError(img); }
+                } else {
+                    img.src = cached;
+                    img.classList.add('loaded');
+                }
+                return;
+            }
+
+            // 2. Fallback if no key (Just load URL directly)
+            if(!key) {
+                img.src = url; 
+                img.onload = () => img.classList.add('loaded');
+                return;
+            }
+
+            // 3. Fetch with Authorization Header
+            const fetchPromise = fetch(url, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${key}` }
+            })
+            .then(res => {
+                if(!res.ok) throw new Error(`API Error: ${res.status}`);
+                return res.blob();
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                window.pCache.set(url, blobUrl); // Update cache with actual URL
+                return blobUrl;
+            });
+
+            window.pCache.set(url, fetchPromise); // Cache the promise
+
+            try {
+                const finalUrl = await fetchPromise;
+                img.src = finalUrl;
+                img.classList.add('loaded');
+            } catch(e) {
+                console.error(e);
+                window.imgError(img);
+            }
+        };
+
+        // Global Download Helper (Updated for Blobs)
+        window.dlImg = async (originalUrl, id) => {
             const btn = document.getElementById(id);
             const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            
+            // Check cache for Blob URL first, fallback to original
+            const srcToLoad = window.pCache.has(originalUrl) && !(window.pCache.get(originalUrl) instanceof Promise) 
+                              ? window.pCache.get(originalUrl) 
+                              : originalUrl;
+
             try {
-                const img = new Image(); img.crossOrigin="Anonymous"; img.src=url;
-                await new Promise(r=>img.onload=r);
+                const img = new Image(); 
+                img.crossOrigin = "Anonymous"; // Try anonymous for normal URLs
+                img.src = srcToLoad;
+                await new Promise((r, e) => { img.onload=r; img.onerror=e; });
+                
                 const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
                 const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
                 
+                // Watermark
                 ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
                 ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
                 ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
                 ctx.fillText("D'Ai", img.width-20, img.height-20);
 
                 const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
-            } catch(e) { window.open(url,'_blank'); }
+            } catch(e) { 
+                // Fallback: Open original URL (might fail 403 if auth required, but best effort)
+                window.open(originalUrl,'_blank'); 
+            }
             btn.innerHTML = ogHtml;
         };
 
@@ -118,10 +186,8 @@
         };
 
         document.addEventListener("DOMContentLoaded", () => {
-            // Initialize dependencies check
             const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
             
-            // Markdown Renderer Init (Lazy)
             let md = null;
             const getMd = () => {
                 if(md) return md;
@@ -138,11 +204,16 @@
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     
-                    let url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}&model=nano-banana`;
-                    if (VERCEL_POLLINATIONS_ENV) url += `&api_key=${VERCEL_POLLINATIONS_ENV}`;
+                    const seed = Math.abs(hashCode(prompt)) % 10000;
+                    
+                    // Construct API URL (Clean, no key in params)
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nano-banana&seed=${seed}`;
+                    
+                    const btnId = `dl-${seed}`;
+                    // Use a transparent 1x1 GIF as placeholder, triggering loadPollinationsImage on load
+                    const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-                    const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.loadPollinationsImage(this, '${url}', '${VERCEL_POLLINATIONS_ENV}')" class="dai-img" alt="${prompt}" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
@@ -182,8 +253,6 @@
 
             window.send = async function() {
                 const t=E.i.value.trim(); if(!t||S.gen) return;
-                
-                // Wait for deferred scripts if user is too fast
                 if(!getMd()){
                     const btn = document.getElementById('btn');
                     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
@@ -193,36 +262,26 @@
 
                 S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
                 
-                // System Prompt
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system", 
-                        content: "You are D'Ai, a lightning-fast AI assistant created by Dhairya Shah. " +
-                                 "Chat naturally and casually. Never define simple words or greetings. Use moderate amount of emogis to make your response look good. " +
-                                 "Be concise, friendly, and direct. " +
-                                 "You can generate images, browse the web, code, translate, and write. " +
-                                 "IMAGE GEN: If user explicitly asks to generate/create/draw an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
-                                 "Do not show this token when just explaining capabilities. " +
-                                 "WEB SEARCH: If provided with web results, integrate them seamlessly into your answer. Do not say 'According to search results'. Act like you know it."
+                        content: "You are D'Ai, a lightning-fast AI assistant. " +
+                                 "Chat naturally. Use emojis moderately. Be concise. " +
+                                 "IMAGE GEN: If user explicitly asks for an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "WEB SEARCH: If provided with results, integrate them seamlessly."
                     });
                 }
                 
-                // User Message
-                // For user messages, we simple escape HTML to prevent injection in the user bubble, 
-                // but we don't render markdown there to keep it looking like raw input.
                 const safeUserText = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 S.msg.push({role:"user",content:t}); add('user',safeUserText);
                 
                 const {firstElementChild:el}=add('assistant','');
 
-                // Search Logic
                 let searchContext = "";
                 if(shouldSearch(t)) {
                     el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
                     const results = await searchTavily(t);
-                    if(results) {
-                        searchContext = `\n\n[SYSTEM: Real-time Web Data (Tavily). Use this to answer. seamless integration required. Override internal knowledge if conflicting.]\n${results}`;
-                    }
+                    if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
                     el.innerHTML = ""; 
                 }
                 
@@ -249,7 +308,7 @@
                     let buffer = "";
                     const mdRenderer = getMd();
 
-                    E.c.style.scrollBehavior = 'auto'; // Perf boost
+                    E.c.style.scrollBehavior = 'auto';
 
                     while (true) {
                         const {done, value} = await reader.read();
