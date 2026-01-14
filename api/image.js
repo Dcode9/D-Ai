@@ -1,9 +1,8 @@
 export const config = {
-  runtime: 'edge', // Runs efficiently on Vercel Edge Network
+  runtime: 'edge',
 };
 
 export default async function handler(req) {
-  // 1. Validate Request Method
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -11,22 +10,19 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, seed, model } = await req.json();
     
-    // 2. Securely Access API Key (Server-Side Only)
     const apiKey = process.env.POLLINATIONS_API; 
 
-    // Guard: Check if key exists
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Server Error: POLLINATIONS_API environment variable is not set." }), { 
+      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API is missing." }), { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // 3. Construct URL
+    // Default to nanobanana as requested
     const finalModel = model || 'nanobanana'; 
     const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${finalModel}&nologo=true`;
 
-    // 4. Fetch Image from Pollinations with Auth Header
     const imageRes = await fetch(url, {
       method: 'GET',
       headers: {
@@ -36,14 +32,22 @@ export default async function handler(req) {
     });
 
     if (!imageRes.ok) {
-      const errText = await imageRes.text();
-      return new Response(JSON.stringify({ error: `Pollinations API Error (${imageRes.status}): ${errText}` }), { 
+      // Try to parse the specific error from Pollinations (like the 429 you saw)
+      let errorMessage = imageRes.statusText;
+      try {
+        const errorJson = await imageRes.json();
+        if (errorJson.error) {
+            // Handle nested error objects (like the Vertex AI 429 error)
+            errorMessage = typeof errorJson.error === 'object' ? JSON.stringify(errorJson.error) : errorJson.error;
+        }
+      } catch (e) { /* ignore JSON parse fail */ }
+
+      return new Response(JSON.stringify({ error: `Pollinations Error (${imageRes.status}): ${errorMessage}` }), { 
         status: imageRes.status,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // 5. Proxy the Image Blob back to Frontend
     return new Response(imageRes.body, {
       headers: {
         'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
