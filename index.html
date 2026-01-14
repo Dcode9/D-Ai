@@ -90,6 +90,7 @@
         // --- CONFIGURATION ---
         // Vercel/Env Integration: Uses WEB_SEARCH_API env var if available (via build/process), else falls back to manual entry
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
+        const VERCEL_POLLINATIONS_ENV = (typeof process !== 'undefined' && process.env && process.env.POLLINATIONS_API) || "";
 
         // Global helper for downloading
         window.dlImg = async (url, id) => {
@@ -136,7 +137,10 @@
                     const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+                    
+                    let url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random()*1000)}&model=nano-banana`;
+                    if (VERCEL_POLLINATIONS_ENV) url += `&api_key=${VERCEL_POLLINATIONS_ENV}`;
+
                     const btnId = `dl-${Math.random().toString(36).substr(2,9)}`;
                     return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
