@@ -98,8 +98,9 @@
 
         // -- Pollinations Authenticated Fetcher --
         window.loadPollinationsImage = async (img, url, key) => {
-            // Remove onload to prevent loops (since we change src)
             img.removeAttribute('onload');
+            // Sanitize key: remove "Bearer " prefix if present in env var to avoid duplication
+            const cleanKey = key ? key.replace(/^Bearer\s+/i, "").trim() : "";
             
             // 1. Check Cache
             if(window.pCache.has(url)) {
@@ -114,73 +115,66 @@
             }
 
             // 2. Fallback if no key (Just load URL directly)
-            if(!key) {
+            if(!cleanKey) {
                 img.src = url; 
                 img.onload = () => img.classList.add('loaded');
                 return;
             }
 
-            // 3. Authenticated Fetch Strategies
-            const fetchWithHeader = async () => {
-                const res = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${key}` }
-                });
-                if(!res.ok) throw new Error(`Header Auth Failed: ${res.status}`);
-                return res.blob();
-            };
-
-            const fetchWithQuery = async () => {
-                const urlObj = new URL(url);
-                urlObj.searchParams.set('key', key);
-                const res = await fetch(urlObj.toString());
-                if(!res.ok) throw new Error(`Query Auth Failed: ${res.status}`);
-                return res.blob();
-            };
-
-            // Execution: Try Header (User Pref) -> Fallback to Query (Browser Compatible)
-            const task = (async () => {
-                try {
-                    return await fetchWithHeader();
-                } catch(e) {
-                    console.warn("Header Auth failed (likely CORS), failing over to Query param...", e);
-                    try {
-                        return await fetchWithQuery();
-                    } catch(e2) {
-                        console.error("All Auth methods failed", e2);
-                        throw e2;
-                    }
-                }
-            })();
-
-            window.pCache.set(url, task); // Cache the promise immediately
-
+            // 3. Try Authenticated Fetch (Header Method - Preferred)
             try {
-                const blob = await task;
+                const fetchPromise = fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${cleanKey}` }
+                });
+                
+                window.pCache.set(url, fetchPromise); // Cache promise
+                
+                const res = await fetchPromise;
+                if(!res.ok) throw new Error(`Header Auth Failed: ${res.status}`);
+                
+                const blob = await res.blob();
                 const blobUrl = URL.createObjectURL(blob);
-                window.pCache.set(url, blobUrl); // Update cache with real blob URL
+                window.pCache.set(url, blobUrl); // Replace promise with blob URL
                 img.src = blobUrl;
                 img.classList.add('loaded');
+                
             } catch(e) {
-                console.error(e);
-                window.imgError(img);
+                console.warn("Header auth failed (likely CORS), failing back to query param...", e);
+                // 4. Fallback: Query Param Method (Browser Friendly)
+                // If header fetch fails (CORS), we append key to URL. 
+                // This bypasses strict CORS fetch requirements for display.
+                const separator = url.includes('?') ? '&' : '?';
+                const fallbackUrl = `${url}${separator}key=${cleanKey}`;
+                img.src = fallbackUrl;
+                img.onload = () => img.classList.add('loaded');
+                // We don't cache this fallback in pCache because it's just a src change, not a blob
             }
         };
 
-        // Global Download Helper (Updated for Blobs)
+        // Global Download Helper
         window.dlImg = async (originalUrl, id) => {
             const btn = document.getElementById(id);
             const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             
-            // Check cache for Blob URL first, fallback to original
-            const srcToLoad = window.pCache.has(originalUrl) && !(window.pCache.get(originalUrl) instanceof Promise) 
-                              ? window.pCache.get(originalUrl) 
-                              : originalUrl;
+            let srcToLoad = originalUrl;
+            
+            // 1. Try Cache First (Blob)
+            if (window.pCache.has(originalUrl) && !(window.pCache.get(originalUrl) instanceof Promise)) {
+                srcToLoad = window.pCache.get(originalUrl);
+            } 
+            // 2. If Auth Env Var exists, append it for the download fetch attempt if not cached
+            // (Necessary because we can't send headers easily in a simple image load for canvas without CORS)
+            else if (VERCEL_POLLINATIONS_ENV) {
+                 const cleanKey = VERCEL_POLLINATIONS_ENV.replace(/^Bearer\s+/i, "").trim();
+                 const separator = originalUrl.includes('?') ? '&' : '?';
+                 srcToLoad = `${originalUrl}${separator}key=${cleanKey}`;
+            }
 
             try {
                 const img = new Image(); 
-                img.crossOrigin = "Anonymous"; // Try anonymous for normal URLs
+                img.crossOrigin = "Anonymous"; // Required for canvas export
                 img.src = srcToLoad;
                 await new Promise((r, e) => { img.onload=r; img.onerror=e; });
                 
@@ -195,6 +189,7 @@
 
                 const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
             } catch(e) { 
+                console.error("Canvas download failed", e);
                 // Fallback: Open original URL (might fail 403 if auth required, but best effort)
                 window.open(originalUrl,'_blank'); 
             }
