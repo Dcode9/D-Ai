@@ -87,190 +87,47 @@
 
     <script>
         // --- CONFIGURATION ---
+        // Clean Env Access. Assumes build process or server injects these.
         const getEnv = (key) => (typeof process !== 'undefined' && process.env && process.env[key]) || "";
-        const VERCEL_TAVILY_ENV = getEnv('WEB_SEARCH_API'); 
-        const VERCEL_POLLINATIONS_ENV = getEnv('POLLINATIONS_API');
-
-        // Debug Logger
-        const debugLog = (msg, data = {}) => {
-            console.log(`%c[D'Ai DEBUG] ${msg}`, 'color: #0ea5e9; font-weight: bold;', data);
+        
+        const KEYS = {
+            TAVILY: getEnv('WEB_SEARCH_API'),
+            POLLINATIONS: getEnv('POLLINATIONS_API') // Must be present in your environment
         };
 
-        // Global Cache for Blobs (prevents flicker during streaming re-renders)
-        window.pCache = new Map();
-        
-        // Helper: Deterministic Hash
+        // Helper: Deterministic Hash for Seeds
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
-        // -- Pollinations Authenticated Fetcher --
-        window.loadPollinationsImage = async (img, url) => {
-            img.removeAttribute('onload');
-            const imgId = Math.random().toString(36).substr(2, 5); // ID for tracing logs
-            debugLog(`[${imgId}] Starting image load`, { url });
-            
-            // Resolve Key: Env Var -> LocalStorage -> Prompt
-            let rawKey = VERCEL_POLLINATIONS_ENV || localStorage.getItem('pollinations_key');
-            
-            // Prompt if missing (One-time lock to prevent loops)
-            if (!rawKey && !window._pKeyPromptShown) {
-                window._pKeyPromptShown = true;
-                const input = prompt("Enter Pollinations.ai API Key (Required for NanoBanana):");
-                if (input) {
-                    rawKey = input.trim();
-                    localStorage.setItem('pollinations_key', rawKey);
-                }
-            }
-            
-            // Ensure we have the latest key (either from env, storage, or just prompted)
-            rawKey = rawKey || localStorage.getItem('pollinations_key') || "";
-            const cleanKey = rawKey.replace(/^Bearer\s+/i, "").trim();
-            
-            debugLog(`[${imgId}] Auth Context`, { 
-                hasEnvVar: !!VERCEL_POLLINATIONS_ENV, 
-                hasLocalStorage: !!localStorage.getItem('pollinations_key'),
-                keyLength: cleanKey.length 
-            });
-            
-            // 1. Check Cache
-            if(window.pCache.has(url)) {
-                debugLog(`[${imgId}] Cache Hit`);
-                const cached = window.pCache.get(url);
-                if(cached instanceof Promise) {
-                    try { 
-                        const blobUrl = await cached; 
-                        img.src = blobUrl; 
-                        img.classList.add('loaded'); 
-                        debugLog(`[${imgId}] Loaded from cached promise`);
-                    } catch(e){ 
-                        console.error(`[${imgId}] Cache Promise Failed`, e);
-                        window.imgError(img, e); 
-                    }
-                } else {
-                    img.src = cached;
-                    img.classList.add('loaded');
-                    debugLog(`[${imgId}] Loaded from cached blob URL`);
-                }
-                return;
-            }
-
-            // 2. Fallback if no key (Try loading URL directly - might fail if model requires auth)
-            if(!cleanKey) {
-                console.warn(`[${imgId}] No API Key found. Attempting anonymous load directly.`);
-                img.src = url; 
-                img.onload = () => {
-                    debugLog(`[${imgId}] Anonymous load success`);
-                    img.classList.add('loaded');
-                };
-                img.onerror = (e) => {
-                    console.error(`[${imgId}] Anonymous load failed`, e);
-                    window.imgError(img, { type: 'AnonymousLoadFailed', details: e });
-                };
-                return;
-            }
-
-            // 3. Try Authenticated Fetch (Header Method - Preferred)
-            try {
-                debugLog(`[${imgId}] Attempting Strategy 1: Headers`);
-                const fetchPromise = fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${cleanKey}` }
-                });
-                
-                window.pCache.set(url, fetchPromise); // Cache promise
-                
-                const res = await fetchPromise;
-                debugLog(`[${imgId}] Strategy 1 Response`, { status: res.status, statusText: res.statusText, type: res.type });
-
-                if(!res.ok) {
-                    let errText = "Unknown";
-                    try { errText = await res.text(); } catch(e){}
-                    throw new Error(`Header Auth Failed: ${res.status} - ${errText.substring(0, 50)}...`);
-                }
-                
-                const blob = await res.blob();
-                debugLog(`[${imgId}] Blob received`, { size: blob.size, type: blob.type });
-
-                const blobUrl = URL.createObjectURL(blob);
-                window.pCache.set(url, blobUrl); // Replace promise with blob URL
-                img.src = blobUrl;
-                img.classList.add('loaded');
-                debugLog(`[${imgId}] Strategy 1 Success`);
-                
-            } catch(e) {
-                console.warn(`[${imgId}] Strategy 1 Failed. Switching to Strategy 2.`, e);
-                
-                // 4. Fallback: Query Param Method (Browser Friendly)
-                // If header fetch fails (CORS), we append key to URL. 
-                const separator = url.includes('?') ? '&' : '?';
-                const fallbackUrl = `${url}${separator}key=${cleanKey}`;
-                
-                debugLog(`[${imgId}] Attempting Strategy 2: Query Param`, { fallbackUrl });
-                
-                img.src = fallbackUrl;
-                img.onload = () => {
-                    debugLog(`[${imgId}] Strategy 2 Success`);
-                    img.classList.add('loaded');
-                };
-                img.onerror = (err) => {
-                    console.error(`[${imgId}] Strategy 2 Failed (img.onerror)`, err);
-                    window.imgError(img, { type: 'FallbackError', details: err });
-                };
-            }
-        };
-
-        // Global Download Helper
-        window.dlImg = async (originalUrl, id) => {
+        // Global Download Helper (Simplified)
+        window.dlImg = async (url, id) => {
             const btn = document.getElementById(id);
             const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            debugLog(`[Download] Starting for`, originalUrl);
             
-            let srcToLoad = originalUrl;
-            
-            // Resolve key again for download context
-            let rawKey = VERCEL_POLLINATIONS_ENV || localStorage.getItem('pollinations_key') || "";
-            const cleanKey = rawKey.replace(/^Bearer\s+/i, "").trim();
-
-            // 1. Try Cache First (Blob)
-            if (window.pCache.has(originalUrl) && !(window.pCache.get(originalUrl) instanceof Promise)) {
-                srcToLoad = window.pCache.get(originalUrl);
-                debugLog(`[Download] Using cached blob`);
-            } 
-            // 2. If Auth Key exists, append it for the download fetch attempt if not cached
-            else if (cleanKey) {
-                 const separator = originalUrl.includes('?') ? '&' : '?';
-                 srcToLoad = `${originalUrl}${separator}key=${cleanKey}`;
-                 debugLog(`[Download] Using fresh signed URL`);
-            }
-
             try {
                 const img = new Image(); 
-                img.crossOrigin = "Anonymous"; // Required for canvas export
-                img.src = srcToLoad;
+                img.crossOrigin = "Anonymous"; 
+                img.src = url; // Auth is already in the URL query param
                 await new Promise((r, e) => { img.onload=r; img.onerror=e; });
                 
                 const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
                 const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
                 
-                // Watermark
                 ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
                 ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
                 ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
                 ctx.fillText("D'Ai", img.width-20, img.height-20);
 
                 const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
-                debugLog(`[Download] Success`);
             } catch(e) { 
-                console.error("[Download] Failed via Canvas", e);
-                // Fallback: Open original URL
-                window.open(originalUrl,'_blank'); 
+                // Fallback: Just open it
+                window.open(url,'_blank'); 
             }
             btn.innerHTML = ogHtml;
         };
 
-        window.imgError = (el, details) => {
-            console.error("[UI] Triggering Image Error State", details);
-            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">Check Console for Logs</span></div>';
+        window.imgError = (el) => {
+            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">Verify API Key in Env</span></div>';
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -294,40 +151,34 @@
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
                     
-                    // Construct API URL (Corrected Model Name: nanobanana)
-                    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nanobanana&seed=${seed}`;
+                    // Clean API construction using Query Params for Auth
+                    let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nanobanana&seed=${seed}`;
                     
-                    debugLog("[Putter] Generated URL", { prompt, url });
+                    // Directly append key if it exists in Env
+                    if (KEYS.POLLINATIONS) {
+                        const cleanKey = KEYS.POLLINATIONS.replace(/^Bearer\s+/i, "").trim();
+                        url += `&key=${cleanKey}`;
+                    }
 
                     const btnId = `dl-${seed}`;
-                    // Use a transparent 1x1 GIF as placeholder, triggering loadPollinationsImage on load
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.loadPollinationsImage(this, '${url}')" class="dai-img" alt="${prompt}" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    // Simplified HTML: No complex onload handlers, just src
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
             const searchTavily = async (query) => {
-                let key = VERCEL_TAVILY_ENV; 
-                if (!key) {
-                    key = localStorage.getItem('tavily_key');
-                    if (key) key = key.trim().replace(/^Bearer\s+/i, "");
-                    if (!key) {
-                        const input = prompt("Enter Tavily API Key for Smart Search:");
-                        if (input) { key = input.trim().replace(/^Bearer\s+/i, ""); localStorage.setItem('tavily_key', key); } 
-                        else return null;
-                    }
-                }
+                const key = KEYS.TAVILY;
+                if (!key) return null; // Fail silently if no key, clean UI
+
                 try {
                     const res = await fetch('https://api.tavily.com/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
                     });
-                    if(!res.ok) {
-                        if(res.status === 401 || res.status === 403) { localStorage.removeItem('tavily_key'); alert("Invalid API Key. Cleared."); }
-                        throw new Error(`Tavily: ${res.status}`);
-                    }
+                    if(!res.ok) throw new Error(`Tavily: ${res.status}`);
                     const data = await res.json();
                     return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
                 } catch (e) { console.error(e); return null; }
