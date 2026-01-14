@@ -206,8 +206,8 @@
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
                     
-                    // Construct API URL (Clean, no key in params)
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nano-banana&seed=${seed}`;
+                    // Construct API URL (Updated to gen.pollinations.ai for Auth compatibility)
+                    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nano-banana&seed=${seed}`;
                     
                     const btnId = `dl-${seed}`;
                     // Use a transparent 1x1 GIF as placeholder, triggering loadPollinationsImage on load
