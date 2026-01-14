@@ -1,8 +1,9 @@
 export const config = {
-  runtime: 'edge',
+  runtime: 'edge', // Runs efficiently on Vercel Edge Network
 };
 
 export default async function handler(req) {
+  // 1. Validate Request Method
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -10,30 +11,43 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, seed, model } = await req.json();
     
-    // 1. Access the Key Securely on the Server
+    // 2. Securely Access API Key (Server-Side Only)
     const apiKey = process.env.POLLINATIONS_API; 
 
-    // 2. Construct the URL
-    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${model || 'nanobanana'}&nologo=true`;
+    // Guard: Check if key exists
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Server Error: POLLINATIONS_API environment variable is not set." }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-    // 3. Fetch from Pollinations with the Auth Header
+    // 3. Construct URL
+    const finalModel = model || 'nanobanana'; 
+    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${finalModel}&nologo=true`;
+
+    // 4. Fetch Image from Pollinations with Auth Header
     const imageRes = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'User-Agent': 'DAi-Proxy/1.0' // Good practice
+        'User-Agent': 'DAi-Server/1.0'
       }
     });
 
     if (!imageRes.ok) {
-      return new Response(`Pollinations Error: ${imageRes.statusText}`, { status: imageRes.status });
+      const errText = await imageRes.text();
+      return new Response(JSON.stringify({ error: `Pollinations API Error (${imageRes.status}): ${errText}` }), { 
+        status: imageRes.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // 4. Send the image binary back to the frontend
+    // 5. Proxy the Image Blob back to Frontend
     return new Response(imageRes.body, {
       headers: {
         'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=86400'
+        'Cache-Control': 'public, max-age=31536000, immutable'
       }
     });
 
