@@ -108,8 +108,21 @@
             const imgId = Math.random().toString(36).substr(2, 5); // ID for tracing logs
             debugLog(`[${imgId}] Starting image load`, { url });
             
-            // Resolve Key: Env Var -> LocalStorage -> Empty
-            let rawKey = VERCEL_POLLINATIONS_ENV || localStorage.getItem('pollinations_key') || "";
+            // Resolve Key: Env Var -> LocalStorage -> Prompt
+            let rawKey = VERCEL_POLLINATIONS_ENV || localStorage.getItem('pollinations_key');
+            
+            // Prompt if missing (One-time lock to prevent loops)
+            if (!rawKey && !window._pKeyPromptShown) {
+                window._pKeyPromptShown = true;
+                const input = prompt("Enter Pollinations.ai API Key (Required for NanoBanana):");
+                if (input) {
+                    rawKey = input.trim();
+                    localStorage.setItem('pollinations_key', rawKey);
+                }
+            }
+            
+            // Ensure we have the latest key (either from env, storage, or just prompted)
+            rawKey = rawKey || localStorage.getItem('pollinations_key') || "";
             const cleanKey = rawKey.replace(/^Bearer\s+/i, "").trim();
             
             debugLog(`[${imgId}] Auth Context`, { 
@@ -150,7 +163,7 @@
                 };
                 img.onerror = (e) => {
                     console.error(`[${imgId}] Anonymous load failed`, e);
-                    window.imgError(img, e);
+                    window.imgError(img, { type: 'AnonymousLoadFailed', details: e });
                 };
                 return;
             }
