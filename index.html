@@ -120,26 +120,46 @@
                 return;
             }
 
-            // 3. Fetch with Authorization Header
-            const fetchPromise = fetch(url, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${key}` }
-            })
-            .then(res => {
-                if(!res.ok) throw new Error(`API Error: ${res.status}`);
+            // 3. Authenticated Fetch Strategies
+            const fetchWithHeader = async () => {
+                const res = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${key}` }
+                });
+                if(!res.ok) throw new Error(`Header Auth Failed: ${res.status}`);
                 return res.blob();
-            })
-            .then(blob => {
-                const blobUrl = URL.createObjectURL(blob);
-                window.pCache.set(url, blobUrl); // Update cache with actual URL
-                return blobUrl;
-            });
+            };
 
-            window.pCache.set(url, fetchPromise); // Cache the promise
+            const fetchWithQuery = async () => {
+                const urlObj = new URL(url);
+                urlObj.searchParams.set('key', key);
+                const res = await fetch(urlObj.toString());
+                if(!res.ok) throw new Error(`Query Auth Failed: ${res.status}`);
+                return res.blob();
+            };
+
+            // Execution: Try Header (User Pref) -> Fallback to Query (Browser Compatible)
+            const task = (async () => {
+                try {
+                    return await fetchWithHeader();
+                } catch(e) {
+                    console.warn("Header Auth failed (likely CORS), failing over to Query param...", e);
+                    try {
+                        return await fetchWithQuery();
+                    } catch(e2) {
+                        console.error("All Auth methods failed", e2);
+                        throw e2;
+                    }
+                }
+            })();
+
+            window.pCache.set(url, task); // Cache the promise immediately
 
             try {
-                const finalUrl = await fetchPromise;
-                img.src = finalUrl;
+                const blob = await task;
+                const blobUrl = URL.createObjectURL(blob);
+                window.pCache.set(url, blobUrl); // Update cache with real blob URL
+                img.src = blobUrl;
                 img.classList.add('loaded');
             } catch(e) {
                 console.error(e);
@@ -206,8 +226,8 @@
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
                     
-                    // Construct API URL (Updated to gen.pollinations.ai for Auth compatibility)
-                    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nano-banana&seed=${seed}`;
+                    // Construct API URL (Corrected Model Name: nanobanana)
+                    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nanobanana&seed=${seed}`;
                     
                     const btnId = `dl-${seed}`;
                     // Use a transparent 1x1 GIF as placeholder, triggering loadPollinationsImage on load
