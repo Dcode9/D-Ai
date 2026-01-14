@@ -80,84 +80,57 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Clean Client-Side logic: No secrets here. 
-        // We rely on SERVER-SIDE endpoints (/api/chat, /api/image) to handle authentication.
-        
+        // ENVIRONMENT VARIABLE HANDLER
+        // Accesses keys securely exposed to the client-side (browser)
+        const getEnv = (key) => {
+            if (typeof process !== 'undefined' && process.env) {
+                // 1. Check for Next.js Public Variable (Standard for Vercel)
+                if (process.env[`NEXT_PUBLIC_${key}`]) return process.env[`NEXT_PUBLIC_${key}`];
+                // 2. Check for Vite Public Variable
+                if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
+                // 3. Fallback to direct match (unlikely to work for server secrets in browser, but good backup)
+                if (process.env[key]) return process.env[key];
+            }
+            return "";
+        };
+
+        const KEYS = {
+            TAVILY: getEnv('WEB_SEARCH_API'),
+            POLLINATIONS: getEnv('POLLINATIONS_API') // Must be named NEXT_PUBLIC_POLLINATIONS_API in Vercel
+        };
+
         // Helper: Deterministic Hash for Seeds
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
-        // Server-Side Image Fetcher
-        window.fetchServerImage = async (img, prompt, width, height, seed) => {
-            img.removeAttribute('onload');
-            const urlKey = `${prompt}-${width}-${height}-${seed}`;
-            
-            // 1. Check Cache (Blob URL)
-            if(window.pCache && window.pCache.has(urlKey)) {
-                img.src = window.pCache.get(urlKey);
-                img.classList.add('loaded');
-                return;
-            }
-
-            try {
-                // Call the SERVER endpoint (Proxy)
-                // The server will use POLLINATIONS_API env var to auth with Pollinations
-                const res = await fetch('/api/image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt, 
-                        width, 
-                        height, 
-                        seed,
-                        model: 'nanobanana' 
-                    })
-                });
-
-                if (!res.ok) throw new Error(`Server Error: ${res.status}`);
-
-                const blob = await res.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                
-                // Cache and Set
-                if(!window.pCache) window.pCache = new Map();
-                window.pCache.set(urlKey, blobUrl);
-                
-                img.src = blobUrl;
-                img.classList.add('loaded');
-
-            } catch (e) {
-                console.error("Image Gen Failed:", e);
-                window.imgError(img);
-            }
-        };
-
         // Global Download Helper
-        window.dlImg = async (blobUrl, id) => {
+        window.dlImg = async (url, id) => {
             const btn = document.getElementById(id);
             const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             
             try {
-                // If we already have the blob URL in the src, we can fetch it directly from browser memory
-                const res = await fetch(blobUrl);
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
+                const img = new Image(); 
+                img.crossOrigin = "Anonymous"; 
+                img.src = url; 
+                await new Promise((r, e) => { img.onload=r; img.onerror=e; });
                 
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `DAi-${Date.now()}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
+                const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
+                
+                ctx.font=`700 ${Math.max(20, img.width*0.025)}px Inter, sans-serif`;
+                ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='right'; 
+                ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=4;
+                ctx.fillText("D'Ai", img.width-20, img.height-20);
+
+                const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`DAi-${Date.now()}.png`; a.click();
             } catch(e) { 
-                console.error("Download failed", e);
+                window.open(url,'_blank'); 
             }
             btn.innerHTML = ogHtml;
         };
 
         window.imgError = (el) => {
-            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">Server Endpoint /api/image Error</span></div>';
+            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">API Key Missing. Rename Vercel Env Var to: <br><strong>NEXT_PUBLIC_POLLINATIONS_API</strong></span></div>';
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -180,26 +153,40 @@
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
-                    const btnId = `dl-${seed}`;
                     
-                    // We use a placeholder image initially
+                    // URL Construction with Query Param Authentication
+                    // This is robust and browser-compatible.
+                    let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=nanobanana&seed=${seed}`;
+                    
+                    if (KEYS.POLLINATIONS) {
+                        const cleanKey = KEYS.POLLINATIONS.replace(/^Bearer\s+/i, "").trim();
+                        url += `&key=${cleanKey}`;
+                    } else {
+                        console.warn("D'Ai: NEXT_PUBLIC_POLLINATIONS_API not found. Image generation may fail if authentication is required.");
+                    }
+
+                    const btnId = `dl-${seed}`;
+                    // Transparent placeholder
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-                    // The onload triggers the SERVER FETCH
-                    // We escape the prompt for HTML attribute safety
-                    const safePrompt = prompt.replace(/"/g, '&quot;');
-
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed})" class="dai-img" alt="Generated Image"><div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg(this.closest('.dai-img-container').querySelector('img').src, '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${url}" class="dai-img" alt="${prompt}" onload="this.classList.add('loaded')" onerror="window.imgError(this)"><div class="dai-overlay"><button class="dai-btn" title="Copy Link" onclick="navigator.clipboard.writeText('${url}')"><i class="fa-regular fa-copy"></i></button><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${url}', '${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
-            // TAVILY is also handled Client-side in this version, but strictly speaking
-            // if you want FULL server-side security, this should also move to a proxy.
-            // Keeping it client-side for now as the request was specifically about Pollinations.
             const searchTavily = async (query) => {
-                // ... (Logic relies on WEB_SEARCH_API env being injected or manually entered for now)
-                // If you have a /api/search endpoint, we should switch to that too.
-                return null; 
+                const key = KEYS.TAVILY;
+                if (!key) return null;
+
+                try {
+                    const res = await fetch('https://api.tavily.com/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: key, query: query, search_depth: "basic", max_results: 5, include_answer: false, include_images: false }) 
+                    });
+                    if(!res.ok) throw new Error(`Tavily: ${res.status}`);
+                    const data = await res.json();
+                    return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
+                } catch (e) { console.error(e); return null; }
             };
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
@@ -226,7 +213,8 @@
                         role: "system", 
                         content: "You are D'Ai, a lightning-fast AI assistant. " +
                                  "Chat naturally. Use emojis moderately. Be concise. " +
-                                 "IMAGE GEN: If user explicitly asks for an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>."
+                                 "IMAGE GEN: If user explicitly asks for an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "WEB SEARCH: If provided with results, integrate them seamlessly."
                     });
                 }
                 
@@ -235,14 +223,27 @@
                 
                 const {firstElementChild:el}=add('assistant','');
 
-                // Search logic removed for brevity/stability in this specific refactor
-                // focusing on fixing the Image Pipeline first.
-
+                let searchContext = "";
+                if(shouldSearch(t)) {
+                    el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> SEARCHING WEB...</span>';
+                    const results = await searchTavily(t);
+                    if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
+                    el.innerHTML = ""; 
+                }
+                
                 try {
+                    const messagesToSend = [...S.msg];
+                    if(searchContext) {
+                        messagesToSend[messagesToSend.length - 1] = { 
+                            role: messagesToSend[messagesToSend.length - 1].role, 
+                            content: messagesToSend[messagesToSend.length - 1].content + searchContext 
+                        };
+                    }
+
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:S.msg,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
