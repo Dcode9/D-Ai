@@ -94,7 +94,6 @@
             }
 
             try {
-                // Call Server Endpoint
                 const res = await fetch('/api/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -102,9 +101,13 @@
                 });
 
                 if (!res.ok) {
-                    // Extract detailed error from server if possible
                     let detail = res.statusText;
                     try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    
+                    // Handle Resource Exhausted specifically
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic (429): Nano Banana is currently overloaded. Please try again in a few moments.");
+                    }
                     throw new Error(`Server Error (${res.status}): ${detail}`);
                 }
 
@@ -123,7 +126,7 @@
             }
         };
 
-        window.dlImg = async (id) => {
+        window.dlImg = async (id, filename) => {
             const btn = document.getElementById(id);
             const container = btn.closest('.dai-img-container');
             const img = container.querySelector('img');
@@ -138,7 +141,8 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `DAi-${Date.now()}.png`;
+                // Use the custom filename if provided, else timestamp
+                a.download = filename ? `${filename}.png` : `DAi-${Date.now()}.png`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -148,12 +152,7 @@
         };
 
         window.imgError = (el, msg) => {
-            // Intelligent Error Hints
-            let hint = "Check Console Logs";
-            if (msg && msg.includes("404")) hint = "Deploy Needed: Backend route /api/image not found";
-            if (msg && msg.includes("401")) hint = "Env Var Missing: POLLINATIONS_API not set in Vercel";
-            
-            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">${hint}</span></div>`;
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px] max-w-[200px] break-words">${msg || 'Check Console'}</span></div>`;
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -171,7 +170,12 @@
 
             const Putter = {
                 generate: (input) => {
-                    const [prompt, ratio="1:1"] = input.split('|').map(s=>s.trim());
+                    // Parse 3 arguments: Prompt | Ratio | Filename
+                    const parts = input.split('|').map(s=>s.trim());
+                    const prompt = parts[0];
+                    const ratio = parts[1] || "1:1";
+                    const filename = parts[2] || `DAi_Image_${Date.now()}`;
+
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     
@@ -180,7 +184,7 @@
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
                     const safePrompt = prompt.replace(/"/g, '&quot;');
 
-                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed})" class="dai-img" alt="Generated Image"><div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
+                    return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed})" class="dai-img" alt="Generated Image"><div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${btnId}', '${filename}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
                 }
             };
 
@@ -234,8 +238,13 @@
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning-fast AI assistant. " +
-                                 "Chat naturally. Use emojis moderately. Be concise. " +
-                                 "IMAGE GEN: If user explicitly asks for an image, use this format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio>>. " +
+                                 "Chat naturally. Be concise. " +
+                                 "**IMAGE GENERATION INSTRUCTIONS:**\n" +
+                                 "You have access to **Nano Banana 🍌**, a powerful image model that excels at hyper-realistic images and text rendering.\n" +
+                                 "1. When generating an image, ALWAYS respond with a friendly message first (e.g., 'Sure, here is an image of...').\n" +
+                                 "2. Use this EXACT format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug>>\n" +
+                                 "   - 'filename_slug': A short, descriptive name with underscores (e.g., futuristic_car, sunset_city).\n" +
+                                 "3. If the user explicitly asks for the text prompt, provide it OUTSIDE the generation tags.\n" +
                                  "WEB SEARCH: If provided with results, integrate them seamlessly."
                     });
                 }
@@ -296,6 +305,7 @@
                                     
                                     if (delta) {
                                         fullText += delta;
+                                        // Handle the new 3-part image generation tag
                                         const processedContent = fullText.replace(
                                             /<<GENERATE_IMAGE:([^>]+)>>/g, 
                                             (match, input) => Putter.generate(input)
