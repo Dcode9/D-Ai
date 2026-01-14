@@ -79,17 +79,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
     <script>
-        // --- CONFIGURATION ---
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
-        // --- NEW: Server-Side Image Fetcher ---
-        // This replaces direct URL access. It calls /api/image, gets a blob, and displays it.
+        // --- Server-Side Image Fetcher ---
         window.fetchServerImage = async (img, prompt, width, height, seed) => {
-            img.removeAttribute('onload'); // Prevent infinite loop
+            img.removeAttribute('onload');
             const urlKey = `${prompt}-${width}-${height}-${seed}`;
             
-            // 1. Check Cache
             if(window.pCache && window.pCache.has(urlKey)) {
                 img.src = window.pCache.get(urlKey);
                 img.classList.add('loaded');
@@ -97,25 +94,23 @@
             }
 
             try {
-                // Call the SERVER endpoint
+                // Call Server Endpoint
                 const res = await fetch('/api/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt, 
-                        width, 
-                        height, 
-                        seed,
-                        model: 'nanobanana' 
-                    })
+                    body: JSON.stringify({ prompt, width, height, seed, model: 'nanobanana' })
                 });
 
-                if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+                if (!res.ok) {
+                    // Extract detailed error from server if possible
+                    let detail = res.statusText;
+                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                }
 
                 const blob = await res.blob();
                 const blobUrl = URL.createObjectURL(blob);
                 
-                // Cache
                 if(!window.pCache) window.pCache = new Map();
                 window.pCache.set(urlKey, blobUrl);
                 
@@ -124,11 +119,10 @@
 
             } catch (e) {
                 console.error("Image Gen Failed:", e);
-                window.imgError(img);
+                window.imgError(img, e.message);
             }
         };
 
-        // Updated Download Helper for Blob URLs
         window.dlImg = async (id) => {
             const btn = document.getElementById(id);
             const container = btn.closest('.dai-img-container');
@@ -142,7 +136,6 @@
                 const res = await fetch(blobUrl);
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
-                
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `DAi-${Date.now()}.png`;
@@ -150,15 +143,12 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-            } catch(e) { 
-                console.error("Download failed", e);
-                window.open(blobUrl,'_blank'); 
-            }
+            } catch(e) { window.open(blobUrl,'_blank'); }
             btn.innerHTML = ogHtml;
         };
 
-        window.imgError = (el) => {
-            el.parentElement.innerHTML = '<div class="text-red-500 p-6 text-xs flex items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono">Image Generation Failed</div>';
+        window.imgError = (el, msg) => {
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">${msg || 'Check Console'}</span></div>`;
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -182,10 +172,7 @@
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
                     const btnId = `dl-${seed}`;
-                    
-                    // Transparent placeholder + ONLOAD trigger for server fetch
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                    // Sanitize prompt for HTML attribute
                     const safePrompt = prompt.replace(/"/g, '&quot;');
 
                     return `\n<div class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed})" class="dai-img" alt="Generated Image"><div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download" onclick="window.dlImg('${btnId}')"><i class="fa-solid fa-download"></i></button></div><div class="dai-watermark">D'Ai</div></div>\n`;
