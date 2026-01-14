@@ -148,7 +148,12 @@
         };
 
         window.imgError = (el, msg) => {
-            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">${msg || 'Check Console'}</span></div>`;
+            // Intelligent Error Hints
+            let hint = "Check Console Logs";
+            if (msg && msg.includes("404")) hint = "Deploy Needed: Backend route /api/image not found";
+            if (msg && msg.includes("401")) hint = "Env Var Missing: POLLINATIONS_API not set in Vercel";
+            
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-2"><span>Generation Failed</span><span class="opacity-50 text-[10px]">${hint}</span></div>`;
         };
 
         document.addEventListener("DOMContentLoaded", () => {
