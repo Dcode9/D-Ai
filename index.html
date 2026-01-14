@@ -228,9 +228,9 @@
                     const containerId = `cnt-${seed}`;
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
                     
-                    // FIX: Encode prompt and filename to safe URI strings to avoid syntax errors in HTML attributes
-                    const safePrompt = encodeURIComponent(prompt);
-                    const safeFilename = encodeURIComponent(filename);
+                    // FIX: Encode prompt/filename and MANUALLY escape single quotes to prevent syntax errors in HTML
+                    const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
+                    const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
 
                     return `\n<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"><div class="dai-scan-line"></div><div class="dai-loader-text">NANO BANANA GENERATING...</div></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}')" class="dai-img" alt="Generated Image"><div class="dai-overlay" style="display:none"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div></div>\n`;
                 }
