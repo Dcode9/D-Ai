@@ -143,12 +143,15 @@
             progress.classList.remove('hidden');
             window.isUploading = true;
 
-            // Upload to ephemeral storage (file.io) to get a public URL for the model
+            // Upload via Server Proxy (/api/upload) to avoid CORS
             const formData = new FormData();
             formData.append('file', file);
 
-            fetch('https://file.io/?expires=1d', { method: 'POST', body: formData })
-                .then(res => res.json())
+            fetch('/api/upload', { method: 'POST', body: formData })
+                .then(res => {
+                    if(!res.ok) throw new Error(`Upload Error: ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         window.uploadedImageUrl = data.link;
@@ -156,7 +159,7 @@
                         thumb.classList.add('opacity-100');
                         progress.classList.add('hidden');
                     } else {
-                        throw new Error('Upload failed');
+                        throw new Error(data.error || 'Upload failed');
                     }
                 })
                 .catch(err => {
