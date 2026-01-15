@@ -10,7 +10,6 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, seed, model, image } = await req.json();
     
-    // Check both standard and public env var names for robustness
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API; 
 
     if (!apiKey) {
@@ -20,22 +19,21 @@ export default async function handler(req) {
       });
     }
 
-    // Default Prompt Handling (Empty prompts can cause 400s)
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract art";
     const finalModel = model || 'nanobanana';
     
     // 1. Construct Base URL
     const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
     
-    // 2. Build Query Parameters cleanly
+    // 2. Build Query Parameters
     const params = new URLSearchParams();
     params.append('width', width);
     params.append('height', height);
     params.append('seed', seed);
     params.append('model', finalModel);
     params.append('nologo', 'true');
+    params.append('safe', 'false'); // Explicitly disable safety filter if desired, or 'true' to enable
     
-    // Append Source Image if it exists (for editing)
     if (image) {
         params.append('image', image);
     }
@@ -47,7 +45,7 @@ export default async function handler(req) {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'image/*' // Standard header, less likely to flag 400
+        'Accept': 'image/*'
       }
     });
 
@@ -55,13 +53,11 @@ export default async function handler(req) {
       let errorMessage = imageRes.statusText;
       try {
         const text = await imageRes.text();
-        // Check if it's JSON or HTML error
         if (text.trim().startsWith('{')) {
             const json = JSON.parse(text);
             errorMessage = JSON.stringify(json);
         } else {
-            // If it's HTML (Cloudflare), simplify the message
-            errorMessage = "Request blocked by provider (Cloudflare 400/403). URL/Params might be invalid.";
+            errorMessage = `Request blocked (${imageRes.status}). content filter or invalid param.`;
         }
       } catch (e) { }
 
