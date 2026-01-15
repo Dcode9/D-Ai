@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, seed, model } = await req.json();
+    const { prompt, width, height, seed, model, image } = await req.json();
     
     const apiKey = process.env.POLLINATIONS_API; 
 
@@ -19,9 +19,13 @@ export default async function handler(req) {
       });
     }
 
-    // Default to nanobanana as requested
     const finalModel = model || 'nanobanana'; 
-    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${finalModel}&nologo=true`;
+    let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${finalModel}&nologo=true`;
+    
+    // Append Source Image for Editing (Img2Img) if provided
+    if (image) {
+        url += `&image=${encodeURIComponent(image)}`;
+    }
 
     const imageRes = await fetch(url, {
       method: 'GET',
@@ -32,15 +36,13 @@ export default async function handler(req) {
     });
 
     if (!imageRes.ok) {
-      // Try to parse the specific error from Pollinations (like the 429 you saw)
       let errorMessage = imageRes.statusText;
       try {
         const errorJson = await imageRes.json();
         if (errorJson.error) {
-            // Handle nested error objects (like the Vertex AI 429 error)
             errorMessage = typeof errorJson.error === 'object' ? JSON.stringify(errorJson.error) : errorJson.error;
         }
-      } catch (e) { /* ignore JSON parse fail */ }
+      } catch (e) { }
 
       return new Response(JSON.stringify({ error: `Pollinations Error (${imageRes.status}): ${errorMessage}` }), { 
         status: imageRes.status,
@@ -51,7 +53,8 @@ export default async function handler(req) {
     return new Response(imageRes.body, {
       headers: {
         'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable'
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Access-Control-Allow-Origin': '*' 
       }
     });
 
