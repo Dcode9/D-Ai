@@ -15,11 +15,12 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: "No file provided" }), { status: 400 });
     }
 
-    // Forward to tmpfiles.org (reliable ephemeral storage)
+    // Switch to Catbox.moe for reliable, direct hotlinking support
     const uploadData = new FormData();
-    uploadData.append('file', file);
+    uploadData.append('reqtype', 'fileupload');
+    uploadData.append('fileToUpload', file);
 
-    const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
+    const uploadRes = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       body: uploadData
     });
@@ -28,15 +29,10 @@ export default async function handler(req) {
       throw new Error(`Upload Service Error: ${uploadRes.status}`);
     }
 
-    const json = await uploadRes.json();
+    const url = await uploadRes.text();
     
-    // Convert download URL to direct image URL for the AI
-    // tmpfiles returns: https://tmpfiles.org/dl/12345/image.png
-    // We need: https://tmpfiles.org/12345/image.png (remove /dl/)
-    const rawUrl = json.data.url;
-    const directUrl = rawUrl.replace('/dl/', '/');
-
-    return new Response(JSON.stringify({ success: true, link: directUrl }), {
+    // Catbox returns the raw URL string directly
+    return new Response(JSON.stringify({ success: true, link: url.trim() }), {
       headers: { 'Content-Type': 'application/json' }
     });
 
