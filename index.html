@@ -35,22 +35,22 @@
 
         /* Image Generation UI */
         .dai-img-container { position: relative; overflow: hidden; border-radius: 12px; margin: 1rem 0; border: 1px solid #222; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        
-        /* Scanner Animation */
         .dai-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; background: #080808; }
         .dai-scan-line { width: 100%; height: 2px; background: #3b82f6; box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6; position: absolute; top: 0; animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite; opacity: 0.8; }
         .dai-loader-text { margin-top: 1rem; color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; animation: pulse 1.5s ease-in-out infinite; }
-        
         .dai-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.5s ease-out; position: relative; z-index: 1; filter: blur(10px); transform: scale(1.05); }
         .dai-img.loaded { opacity: 1; filter: blur(0); transform: scale(1); }
-        
         .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 10; pointer-events: none; }
         .dai-img-container:hover .dai-overlay { opacity: 1; pointer-events: auto; }
         .dai-overlay.visible { display: flex; } 
-        
         .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: blur(4px); }
         .dai-btn:hover { background: #3b82f6; border-color: #3b82f6; transform: scale(1.05); box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
         
+        /* Scroll Button */
+        #scroll-btn { position: fixed; bottom: 100px; right: 20px; z-index: 40; background: #1A1A1A; color: #3b82f6; border: 1px solid #333; padding: 10px 14px; border-radius: 50%; cursor: pointer; opacity: 0; transition: all 0.3s; transform: translateY(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        #scroll-btn.visible { opacity: 1; transform: translateY(0); }
+        #scroll-btn:hover { background: #2563eb; color: white; border-color: #2563eb; }
+
         @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
     </style>
@@ -64,19 +64,38 @@
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
 
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden">
+    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
                 <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai ✨ - Scary Fast.</h2>
             </div>
         </div>
+        <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <div class="max-w-3xl mx-auto bg-dark-surface rounded-full border border-dark-border flex items-end p-2 px-4 focus-within:border-gray-600 shadow-2xl transition-all duration-300">
-            <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-            <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+        <div class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+            
+            <!-- Image Preview Area -->
+            <div id="img-preview" class="hidden w-full px-3 pt-2">
+                <div class="relative inline-block group">
+                    <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
+                    <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+                    </div>
+                    <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+
+            <div class="w-full flex items-end">
+                <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-500 hover:text-white transition-colors rounded-full"><i class="fa-solid fa-paperclip text-lg"></i></button>
+                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+                
+                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                
+                <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+            </div>
         </div>
     </div>
 
@@ -89,6 +108,83 @@
     <script>
         const VERCEL_TAVILY_ENV = (typeof process !== 'undefined' && process.env && process.env.WEB_SEARCH_API) || ""; 
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+
+        // --- UPLOAD STATE ---
+        window.uploadedImageUrl = null;
+        window.isUploading = false;
+
+        // --- Scroll Logic ---
+        const chatContainer = document.getElementById('chat');
+        const scrollBtn = document.getElementById('scroll-btn');
+
+        chatContainer.addEventListener('scroll', () => {
+            const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+            if (isNearBottom) scrollBtn.classList.remove('visible');
+            else scrollBtn.classList.add('visible');
+        });
+
+        window.scrollToBottom = () => {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        };
+
+        // --- Image Handling ---
+        window.handleFile = (file) => {
+            if (!file || window.isUploading) return;
+            if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
+
+            // UI
+            const preview = document.getElementById('img-preview');
+            const thumb = document.getElementById('preview-thumb');
+            const progress = document.getElementById('upload-progress');
+            preview.classList.remove('hidden');
+            thumb.src = URL.createObjectURL(file);
+            thumb.classList.remove('opacity-100');
+            thumb.classList.add('opacity-50');
+            progress.classList.remove('hidden');
+            window.isUploading = true;
+
+            // Upload to ephemeral storage (file.io) to get a public URL for the model
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('https://file.io/?expires=1d', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.uploadedImageUrl = data.link;
+                        thumb.classList.remove('opacity-50');
+                        thumb.classList.add('opacity-100');
+                        progress.classList.add('hidden');
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Image upload failed. Please try again.");
+                    window.removeImage();
+                })
+                .finally(() => {
+                    window.isUploading = false;
+                });
+        };
+
+        window.removeImage = () => {
+            document.getElementById('file-input').value = "";
+            document.getElementById('img-preview').classList.add('hidden');
+            window.uploadedImageUrl = null;
+            window.isUploading = false;
+        };
+
+        // Paste Handler
+        document.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    window.handleFile(item.getAsFile());
+                }
+            }
+        });
 
         // --- Core: Image Watermarker ---
         async function processAndWatermark(blob) {
@@ -123,11 +219,13 @@
         }
 
         // --- Server-Side Image Fetcher ---
-        // FIX: Added 'encPrompt' argument to handle URL-encoded prompt string
-        window.fetchServerImage = async (imgEl, encPrompt, width, height, seed, containerId) => {
+        // Supports optional 'sourceImage' for editing
+        window.fetchServerImage = async (imgEl, encPrompt, width, height, seed, containerId, encSourceImage) => {
             imgEl.removeAttribute('onload');
-            const prompt = decodeURIComponent(encPrompt); // DECODE here
-            const urlKey = `${prompt}-${width}-${height}-${seed}-watermarked`;
+            const prompt = decodeURIComponent(encPrompt);
+            const sourceImage = encSourceImage ? decodeURIComponent(encSourceImage) : null;
+            
+            const urlKey = `${prompt}-${width}-${height}-${seed}-${sourceImage ? 'edit' : 'new'}-watermarked`;
             const container = document.getElementById(containerId);
             const overlay = container.querySelector('.dai-overlay');
             const loader = container.querySelector('.dai-loader');
@@ -141,10 +239,13 @@
             }
 
             try {
+                const body = { prompt, width, height, seed, model: 'nanobanana' };
+                if (sourceImage) body.image = sourceImage;
+
                 const res = await fetch('/api/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, width, height, seed, model: 'nanobanana' })
+                    body: JSON.stringify(body)
                 });
 
                 if (!res.ok) {
@@ -174,9 +275,8 @@
             }
         };
 
-        // FIX: Added 'encFilename' to handle URL-encoded filenames
         window.dlImg = async (id, encFilename) => {
-            const filename = decodeURIComponent(encFilename); // DECODE here
+            const filename = decodeURIComponent(encFilename); 
             const btn = document.getElementById(id);
             const container = btn.closest('.dai-img-container');
             const img = container.querySelector('img');
@@ -215,10 +315,12 @@
 
             const Putter = {
                 generate: (input) => {
+                    // Args: prompt | ratio | filename | source_image (optional)
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const ratio = parts[1] || "1:1";
                     const filename = parts[2] || `DAi_Image_${Date.now()}`;
+                    const sourceImage = parts[3] || "";
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
@@ -228,11 +330,11 @@
                     const containerId = `cnt-${seed}`;
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
                     
-                    // FIX: Encode prompt/filename and MANUALLY escape single quotes to prevent syntax errors in HTML
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
+                    const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
 
-                    return `\n<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"><div class="dai-scan-line"></div><div class="dai-loader-text">NANO BANANA GENERATING...</div></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}')" class="dai-img" alt="Generated Image"><div class="dai-overlay" style="display:none"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div></div>\n`;
+                    return `\n<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}"><div class="dai-loader"><div class="dai-scan-line"></div><div class="dai-loader-text">NANO BANANA ${sourceImage ? 'EDITING' : 'GENERATING'}...</div></div><img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image"><div class="dai-overlay" style="display:none"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div></div>\n`;
                 }
             };
 
@@ -263,7 +365,20 @@
             };
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
-            const add = (r,t) => { const d=document.createElement('div'); d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; E.c.appendChild(d); return d; };
+            const add = (r,t) => { 
+                const d=document.createElement('div'); 
+                d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'}`; 
+                d.innerHTML=r==='user'?`<div class="bg-[#1A1A1A] px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-sm">${t}</div>`:`<div class="w-full pl-2"><div class="markdown-body"></div></div>`; 
+                E.c.appendChild(d); 
+                // Only auto-scroll to the start of the new message
+                if (r === 'assistant') {
+                    // If it's the first chunk of a new message, we scroll to it.
+                    // Actually, the main loop handles scrolling. We just ensure we don't force bottom if user is reading.
+                } else {
+                    window.scrollToBottom();
+                }
+                return d; 
+            };
             
             const shouldSearch = (text) => {
                 const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
@@ -271,7 +386,9 @@
             };
 
             window.send = async function() {
-                const t=E.i.value.trim(); if(!t||S.gen) return;
+                const t=E.i.value.trim(); 
+                // Allow send if image is present even if text is empty? For now require text prompt.
+                if((!t && !window.uploadedImageUrl) ||S.gen || window.isUploading) return;
                 
                 if(!getMd()){
                     const btn = document.getElementById('btn');
@@ -286,21 +403,36 @@
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning-fast AI assistant. " +
-                                 "Chat naturally. Be concise. Integrate emogis in answers in a very subtle way. " +
-                                 "**IMAGE GENERATION INSTRUCTIONS:**\n" +
-                                 "You have access to **Nano Banana 🍌**, a powerful image model that excels at hyper-realistic images and text rendering.\n" +
-                                 "1. When generating an image, ALWAYS respond with a friendly message first (e.g., 'Sure, here is an image of...').\n" +
-                                 "2. Use this EXACT format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug>>\n" +
-                                 "   - 'filename_slug': A short, descriptive name with underscores (e.g., futuristic_car, sunset_city).\n" +
-                                 "3. If the user explicitly asks for the text prompt, provide it OUTSIDE the generation tags.\n" +
+                                 "Chat naturally. Be concise. " +
+                                 "**IMAGE GENERATION & EDITING:**\n" +
+                                 "You have access to **Nano Banana 🍌**.\n" +
+                                 "1. You CANNOT see images, but you can EDIT them if the user provides one.\n" +
+                                 "2. If an image is provided in the prompt (as a URL), use it to EDIT based on user instructions.\n" +
+                                 "3. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
+                                 "4. Always be friendly and conversational before generating.\n" +
                                  "WEB SEARCH: If provided with results, integrate them seamlessly."
                     });
                 }
                 
-                const safeUserText = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                S.msg.push({role:"user",content:t}); add('user',safeUserText);
+                // Construct User Message
+                let userContent = t;
+                // Visually show what user sent
+                let displayHtml = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 
-                const {firstElementChild:el}=add('assistant','');
+                // If there's an image, attach it to the prompt securely, but don't show the URL in UI
+                if (window.uploadedImageUrl) {
+                    userContent += `\n[System: User uploaded image for editing: ${window.uploadedImageUrl}]`;
+                    displayHtml += `<br><span class="text-xs opacity-50"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
+                    // Clear upload after sending
+                    window.removeImage();
+                }
+
+                S.msg.push({role:"user",content:userContent}); 
+                add('user', displayHtml);
+                
+                const {firstElementChild:el} = add('assistant','');
+                // Scroll to the start of this new answer
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
                 let searchContext = "";
                 if(shouldSearch(t)) {
@@ -333,7 +465,10 @@
                     let buffer = "";
                     const mdRenderer = getMd();
 
-                    E.c.style.scrollBehavior = 'auto';
+                    // Track whether we should auto-scroll (only if user is at bottom)
+                    let shouldAutoScroll = true;
+                    // We stopped forcing scrollBottom in the loop to allow reading. 
+                    // The 'scrollIntoView' above handles the initial jump.
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -361,14 +496,12 @@
                                             .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
                                             .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
                                         );
-                                        E.c.scrollTop = E.c.scrollHeight;
                                     }
                                 } catch (e) {}
                             }
                         }
                     }
 
-                    E.c.style.scrollBehavior = 'smooth';
                     S.msg.push({role:"assistant",content:fullText}); 
                     S.gen=false; 
                     document.getElementById('btn').disabled=false;
