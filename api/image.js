@@ -10,10 +10,11 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, seed, model, image } = await req.json();
     
-    const apiKey = process.env.POLLINATIONS_API; 
+    // Robust Key Check: Checks standard OR public prefix
+    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API; 
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API is missing." }), { 
+      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API (or NEXT_PUBLIC_...) is missing in Vercel." }), { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -22,7 +23,7 @@ export default async function handler(req) {
     const finalModel = model || 'nanobanana'; 
     let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&model=${finalModel}&nologo=true`;
     
-    // Append Source Image for Editing (Img2Img) if provided
+    // Append Source Image for Editing if provided
     if (image) {
         url += `&image=${encodeURIComponent(image)}`;
     }
