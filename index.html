@@ -254,9 +254,15 @@
                 if (!res.ok) {
                     let detail = res.statusText;
                     try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    
+                    // Specific error handling logic
                     if (detail.includes("429") || detail.includes("Resource exhausted")) {
                         throw new Error("High Traffic: Nano Banana is overloaded. Please wait a moment.");
                     }
+                    if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
+                        throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
+                    }
+                    
                     throw new Error(`Server Error (${res.status}): ${detail}`);
                 }
 
@@ -320,10 +326,11 @@
                 generate: (input) => {
                     // Args: prompt | ratio | filename | source_image (optional)
                     const parts = input.split('|').map(s=>s.trim());
+                    // Improved parsing: avoid "undefined" string if parts are missing
                     const prompt = parts[0];
                     const ratio = parts[1] || "1:1";
                     const filename = parts[2] || `DAi_Image_${Date.now()}`;
-                    const sourceImage = parts[3] || "";
+                    const sourceImage = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no source image") ? parts[3] : "";
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
