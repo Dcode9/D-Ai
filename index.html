@@ -58,12 +58,13 @@
             100% { transform: translate(0, 0) scale(1); }
         }
         
-        .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.8; animation: float 3s ease-in-out infinite alternate; will-change: transform; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.6; animation: float 3s ease-in-out infinite alternate; will-change: transform; }
         
         .fluid-container { position: absolute; inset: 0; transition: opacity 1000ms; opacity: 0; z-index: 5; background: #000; }
         .fluid-container.active { opacity: 1; }
         
-        .progress-svg { position: absolute; inset: 0; w: 100%; h: 100%; pointer-events: none; z-index: 30; transition: opacity 300ms; opacity: 0; }
+        /* FIX: Width/Height must be explicitly valid CSS units */
+        .progress-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; transition: opacity 300ms; opacity: 0; }
         .progress-svg.active { opacity: 1; }
         
         .progress-rect { mix-blend-mode: screen; transition: stroke-opacity 0.3s; }
@@ -248,7 +249,8 @@
                 if(!wrapper) return;
                 
                 const colors = ['#475569', '#64748b', '#94a3b8', '#1e293b'];
-                for (let i = 0; i < 40; i++) {
+                // OPTIMIZATION: Reduced blob count from 40 to 12 to fix lag
+                for (let i = 0; i < 12; i++) {
                     const b = document.createElement('div');
                     b.className = 'blob';
                     const left = Math.random() * 110 - 5;
@@ -258,9 +260,9 @@
                     b.style.left = `${left}%`;
                     b.style.top = `${top}%`;
                     b.style.backgroundColor = color;
-                    b.style.width = `270px`; // 150 * 1.8
+                    b.style.width = `270px`; 
                     b.style.height = `270px`;
-                    b.style.animationDuration = `3.2s`; // 10 / 3.1
+                    b.style.animationDuration = `3.2s`; 
                     b.style.animationDelay = `${delay}s`;
                     wrapper.appendChild(b);
                 }
@@ -512,14 +514,14 @@
                     S.msg.push({
                         role: "system", 
                         content: "You are D'Ai, a lightning-fast AI assistant. " +
-                                 "Chat naturally. Be concise. Dont talk about how you call your tools. And integrate emogis in you answer " +
-                                 "**IMAGE GENERATION & EDITING:**\n" +
-                                 "You have access to **Nano Banana 🍌**.\n" +
-                                 "1. You CANNOT see images, but you can EDIT them if the user provides one.\n" +
-                                 "2. If an image is provided in the prompt (as a URL), use it to EDIT based on user instructions.\n" +
-                                 "3. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
-                                 "4. Always be friendly and conversational before generating.\n" +
-                                 "WEB SEARCH: If provided with results, integrate them seamlessly."
+                                 "Personality: Energetic, friendly, and helpful. " +
+                                 "Chat naturally. Be concise. Integrate emojis. " +
+                                 "**IMAGE GENERATION:**\n" +
+                                 "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
+                                 "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
+                                 "3. You have access to **Nano Banana 🍌**, a hyper-realistic image model.\n" +
+                                 "4. If the user provides an image URL, put it in the 4th argument to EDIT it.\n" +
+                                 "WEB SEARCH: Integrate results seamlessly."
                     });
                 }
                 
