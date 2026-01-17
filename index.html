@@ -63,7 +63,7 @@
         .fluid-container { position: absolute; inset: 0; transition: opacity 1000ms; opacity: 0; z-index: 5; background: #000; }
         .fluid-container.active { opacity: 1; }
         
-        /* FIX: Width/Height must be explicitly valid CSS units */
+        /* Width/Height explicitly set to 100% to handle all aspect ratios */
         .progress-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; transition: opacity 300ms; opacity: 0; }
         .progress-svg.active { opacity: 1; }
         
@@ -249,7 +249,7 @@
                 if(!wrapper) return;
                 
                 const colors = ['#475569', '#64748b', '#94a3b8', '#1e293b'];
-                // OPTIMIZATION: Reduced blob count from 40 to 12 to fix lag
+                // Consistently use 12 blobs as requested to maintain optimization
                 for (let i = 0; i < 12; i++) {
                     const b = document.createElement('div');
                     b.className = 'blob';
@@ -312,8 +312,8 @@
             progSvg.classList.add('active');
             genStatus.classList.add('active');
 
-            // Phase 1: 0 -> 85% in 5s
-            FluidAnim.run(containerId, 0, 85, 5000, () => {
+            // Phase 1: 0 -> 85% in 9s (Average 10s gen time adjustment)
+            FluidAnim.run(containerId, 0, 85, 9000, () => {
                 // Phase 2: Creep to 99% if still loading
                 if (!imgEl.classList.contains('loaded') && !imgEl.classList.contains('error')) {
                     FluidAnim.run(containerId, 85, 99, 6000);
@@ -437,8 +437,12 @@
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     
                     const seed = Math.abs(hashCode(prompt)) % 10000;
-                    const btnId = `dl-${seed}`;
-                    const containerId = `cnt-${seed}`;
+                    
+                    // FIXED: Generate Unique DOM IDs to prevent animation collisions on same-prompt
+                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                    const btnId = `dl-${uniqueSuffix}`;
+                    const containerId = `cnt-${uniqueSuffix}`;
+                    
                     const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
                     
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
@@ -448,7 +452,7 @@
                     // New Fluid Animation Structure inside container
                     return `
 <div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}">
-    <svg class="progress-svg"><defs><filter id="glow-${seed}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${seed})" style="stroke-opacity:0;"></rect></svg>
+    <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">GENERATING SEQUENCE...</div>
     <img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image">
