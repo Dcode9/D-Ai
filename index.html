@@ -15,7 +15,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
-    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#2563eb',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
+    <script>
+        // Suppress Tailwind CDN production warning
+        window.process = { env: { NODE_ENV: 'production' } };
+        tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#2563eb',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}};
+    </script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
@@ -188,6 +192,24 @@
     </div>
 
     <!-- Scripts -->
+    <script>
+        // Suppress custom element registration errors from browser extensions
+        (function() {
+            const originalDefine = customElements.define;
+            customElements.define = function(name, constructor, options) {
+                try {
+                    if (!customElements.get(name)) {
+                        originalDefine.call(customElements, name, constructor, options);
+                    }
+                } catch (e) {
+                    // Silently ignore custom element already defined errors
+                    if (!e.message.includes('already been defined')) {
+                        console.error(e);
+                    }
+                }
+            };
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
@@ -425,9 +447,13 @@
             const prompt = decodeURIComponent(encPrompt);
             const sourceImage = encSourceImage ? decodeURIComponent(encSourceImage) : null;
             const urlKey = `${prompt}-${width}-${height}-${seed}-${sourceImage ? 'edit' : 'new'}-watermarked`;
-            
+
             // UI Elements
             const container = document.getElementById(containerId);
+            if (!container) {
+                console.error('Container not found:', containerId);
+                return;
+            }
             const fluidCont = container.querySelector('.fluid-container');
             const progSvg = container.querySelector('.progress-svg');
             const genStatus = container.querySelector('.gen-status');
