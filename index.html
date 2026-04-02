@@ -6,8 +6,8 @@
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
-    <!-- Critical CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Critical CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
@@ -15,11 +15,38 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
-    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#2563eb',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}}</script>
+    <script>
+        (() => {
+            if (!window.customElements || window.customElements.__daiGuardPatched) return;
+            const originalDefine = window.customElements.define.bind(window.customElements);
+            window.customElements.define = (name, constructor, options) => {
+                if (window.customElements.get(name)) return;
+                return originalDefine(name, constructor, options);
+            };
+            window.customElements.__daiGuardPatched = true;
+        })();
+    </script>
     <style>
         body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
-        
+        .text-brand{color:#2563eb}
+        .hover\:text-brand:hover{color:#2563eb}
+        .bg-dark-surface{background-color:#0F0F0F}
+        .border-dark-border{border-color:#1F1F1F}
+        .bg-dark-bg\/95{background-color:rgba(5,5,5,.95)}
+        .from-dark-bg{--tw-gradient-from:#050505;--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,rgba(5,5,5,0))}
+        .via-dark-bg{--tw-gradient-stops:var(--tw-gradient-from),#050505,var(--tw-gradient-to,rgba(5,5,5,0))}
+        .rounded-\[28px\]{border-radius:28px}
+        .text-\[9px\]{font-size:9px}
+        .text-\[10px\]{font-size:10px}
+        .text-\[15px\]{font-size:15px}
+        .tracking-\[0\.2em\]{letter-spacing:.2em}
+        .max-w-\[85\%\]{max-width:85%}
+        .max-w-\[220px\]{max-width:220px}
+        .text-brand\/80{color:rgba(37,99,235,.8)}
+        .bg-red-900\/10{background-color:rgba(127,29,29,.1)}
+        .border-red-900\/30{border-color:rgba(127,29,29,.3)}
+         
         /* Typography */
         .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
         .markdown-body p { margin-bottom: 1rem; }
@@ -302,16 +329,18 @@
             
             // UI Elements
             const container = document.getElementById(containerId);
+            if (!container) return;
             const fluidCont = container.querySelector('.fluid-container');
             const progSvg = container.querySelector('.progress-svg');
             const genStatus = container.querySelector('.gen-status');
             const overlay = container.querySelector('.dai-overlay');
+            if (!fluidCont || !progSvg || !overlay) return;
 
             // Initialize Animation
             FluidAnim.init(containerId);
             fluidCont.classList.add('active');
             progSvg.classList.add('active');
-            genStatus.classList.add('active');
+            if (genStatus) genStatus.classList.add('active');
 
             // Phase 1: 0 -> 85% in 20s (Updated for typical gen time)
             FluidAnim.run(containerId, 0, 85, 20000, () => {
@@ -363,7 +392,7 @@
                 // Stop animation visuals
                 fluidCont.classList.remove('active');
                 progSvg.classList.remove('active');
-                genStatus.classList.remove('active');
+                if (genStatus) genStatus.classList.remove('active');
                 imgEl.classList.add('error'); 
                 
                 // Show Error UI
@@ -378,7 +407,7 @@
                     // Hide Animation Layers
                     fluidCont.classList.remove('active');
                     progSvg.classList.remove('active');
-                    genStatus.classList.remove('active');
+                    if (genStatus) genStatus.classList.remove('active');
                     
                     // Show Image
                     imgEl.src = finalUrl;
