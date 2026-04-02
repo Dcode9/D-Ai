@@ -10,7 +10,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    
+
+    <!-- Suppress custom element registration errors from browser extensions -->
+    <script>
+        // Run as early as possible to intercept extension custom element registrations
+        (function() {
+            const originalDefine = customElements.define;
+            customElements.define = function(name, constructor, options) {
+                try {
+                    if (!customElements.get(name)) {
+                        originalDefine.call(customElements, name, constructor, options);
+                    }
+                } catch (e) {
+                    // Silently ignore custom element already defined errors
+                    if (!e.message || !e.message.includes('already been defined')) {
+                        console.warn('Custom element registration warning:', e.message || e);
+                    }
+                }
+            };
+        })();
+    </script>
+
     <!-- Deferred Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
@@ -192,24 +212,6 @@
     </div>
 
     <!-- Scripts -->
-    <script>
-        // Suppress custom element registration errors from browser extensions
-        (function() {
-            const originalDefine = customElements.define;
-            customElements.define = function(name, constructor, options) {
-                try {
-                    if (!customElements.get(name)) {
-                        originalDefine.call(customElements, name, constructor, options);
-                    }
-                } catch (e) {
-                    // Silently ignore custom element already defined errors
-                    if (!e.message.includes('already been defined')) {
-                        console.error(e);
-                    }
-                }
-            };
-        })();
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
