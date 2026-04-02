@@ -20,7 +20,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract art";
-    const finalModel = model || 'imagen-2';
+    const finalModel = model || 'gptimage';
     
     // 1. Construct Base URL
     const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
