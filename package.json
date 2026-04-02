@@ -1,0 +1,10 @@
+{
+  "name": "d-ai",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "D'Ai - Fastest AI on the Planet",
+  "private": true,
+  "dependencies": {
+    "firebase": "^11.1.0"
+  }
+}
