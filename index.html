@@ -487,7 +487,7 @@
             }
 
             try {
-                const body = { prompt, width, height, seed, model: 'imagen-4' };
+                const body = { prompt, width, height, seed, model: 'flux' };
                 if (sourceImage) body.image = sourceImage;
 
                 const res = await fetch('/api/image', {
@@ -500,7 +500,7 @@
                     let detail = res.statusText;
                     try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
                     if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Imagen is overloaded. Please wait a moment.");
+                        throw new Error("High Traffic: Image API is overloaded. Please wait a moment.");
                     }
                     if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
                         throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
@@ -678,7 +678,7 @@
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
-                                 "3. You have access to **Imagen 4**, a hyper-realistic image model. But you can create only 10 images at once\n" +
+                                 "3. You have access to **Flux**, a hyper-realistic image model powered by Pollinations AI. But you can create only 10 images at once\n" +
                                  "4. If the user provides an image URL, put it in the 4th argument to EDIT it.\n" +
                                  "WEB SEARCH: Integrate results seamlessly.\n" +
                                  "DONT Show How You generate Image, If asked, What can you do?" +
