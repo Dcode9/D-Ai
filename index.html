@@ -459,6 +459,12 @@
             const genStatus = container.querySelector('.gen-status');
             const overlay = container.querySelector('.dai-overlay');
 
+            // Validate all required elements exist
+            if (!fluidCont || !progSvg || !genStatus || !overlay) {
+                console.error('Required animation elements not found in container:', containerId);
+                return;
+            }
+
             // Initialize Animation
             FluidAnim.init(containerId);
             fluidCont.classList.add('active');
@@ -608,6 +614,7 @@
 <div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}">
     <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
+    <div class="gen-status">Generating...</div>
     <img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image">
     <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
