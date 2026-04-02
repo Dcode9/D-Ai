@@ -485,6 +485,7 @@
             const S={msg:[],gen:false,retryUntil:0,retryTimer:null,reasonTimer:null}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             const btn = document.getElementById('btn');
             const defaultSendIcon = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+            const RETRY_COOLDOWN_MS = 10000;
             const busyReasons = [
                 "Model servers are warming up",
                 "High traffic surge detected",
@@ -502,6 +503,12 @@
                 "Capacity shield is preventing overload",
                 "Service health checks are recovering"
             ];
+            const escapeHtml = (value = "") => String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
 
             const stopRetryState = () => {
                 if (S.retryTimer) clearInterval(S.retryTimer);
@@ -517,10 +524,10 @@
             const startRetryState = (el, detail, statusCode) => {
                 if (S.retryTimer) clearInterval(S.retryTimer);
                 if (S.reasonTimer) clearInterval(S.reasonTimer);
-                S.retryUntil = Date.now() + 10000;
+                S.retryUntil = Date.now() + RETRY_COOLDOWN_MS;
                 let reasonIdx = Math.floor(Math.random() * busyReasons.length);
                 const statusText = statusCode ? `API ${statusCode}` : "API Error";
-                const safeDetail = (detail || "Unknown error").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const safeDetail = escapeHtml(detail || "Unknown error");
 
                 const renderBusyCard = () => {
                     const remaining = Math.max(0, Math.ceil((S.retryUntil - Date.now()) / 1000));
