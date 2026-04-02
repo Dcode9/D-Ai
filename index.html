@@ -702,8 +702,7 @@
                     btn.innerHTML = defaultSendIcon;
 
                 } catch(e) { 
-                    const statusMatch = String(e.message || '').match(/\b(\d{3})\b/);
-                    const statusCode = e.status || (statusMatch ? Number(statusMatch[1]) : null);
+                    const statusCode = Number.isInteger(e.status) ? e.status : null;
                     startRetryState(el, e.message, statusCode);
                     S.gen=false;
                 }
