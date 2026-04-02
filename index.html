@@ -474,7 +474,7 @@
             genStatus.classList.add('active');
 
             // Phase 1: 0 -> 85% in 20s (Updated for typical gen time)
-            FluidAnim.run(containerId, 0, 85, 4000, () => {
+            FluidAnim.run(containerId, 0, 85, 20000, () => {
                 // Phase 2: Creep to 99% if still loading
                 if (!imgEl.classList.contains('loaded') && !imgEl.classList.contains('error')) {
                     FluidAnim.run(containerId, 85, 99, 6000);
