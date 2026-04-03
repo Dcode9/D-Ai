@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, seed, model, image } = await req.json();
+    const { prompt, width, height, seed, models, image } = await req.json();
     
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API; 
 
@@ -20,59 +20,58 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract art";
-    const finalModel = model || 'wan-image';
-    
-    // 1. Construct Base URL
-    const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
-    
-    // 2. Build Query Parameters
-    const params = new URLSearchParams();
-    params.append('width', width);
-    params.append('height', height);
-    params.append('seed', seed);
-    params.append('model', finalModel);
-    params.append('nologo', 'true');
-    params.append('safe', 'false'); // Explicitly disable safety filter if desired, or 'true' to enable
-    
-    if (image) {
-        params.append('image', image);
-    }
+    // Default to three models if none provided
+    const modelList = models && Array.isArray(models) && models.length > 0 
+      ? models 
+      : ['wan-image', 'qwen-image', 'flux'];
 
-    const url = `${baseUrl}?${params.toString()}`;
+    // Loop through models and fetch images
+    const results = await Promise.all(modelList.map(async (modelName) => {
+      const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
+      const params = new URLSearchParams();
+      if (width) params.append('width', width);
+      if (height) params.append('height', height);
+      if (seed) params.append('seed', seed);
+      params.append('model', modelName);
+      params.append('nologo', 'true');
+      params.append('safe', 'false');
+      if (image) params.append('image', image);
 
-    // 3. Fetch from Pollinations
-    const imageRes = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'image/*'
-      }
-    });
+      const url = `${baseUrl}?${params.toString()}`;
 
-    if (!imageRes.ok) {
-      let errorMessage = imageRes.statusText;
-      try {
-        const text = await imageRes.text();
-        if (text.trim().startsWith('{')) {
-            const json = JSON.parse(text);
-            errorMessage = JSON.stringify(json);
-        } else {
-            errorMessage = `Request blocked (${imageRes.status}). content filter or invalid param.`;
+      const imageRes = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'image/*'
         }
-      } catch (e) { }
-
-      return new Response(JSON.stringify({ error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` }), { 
-        status: imageRes.status,
-        headers: { 'Content-Type': 'application/json' }
       });
-    }
 
-    return new Response(imageRes.body, {
-      headers: {
-        'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Access-Control-Allow-Origin': '*' 
+      if (!imageRes.ok) {
+        let errorMessage = imageRes.statusText;
+        try {
+          const text = await imageRes.text();
+          if (text.trim().startsWith('{')) {
+              const json = JSON.parse(text);
+              errorMessage = JSON.stringify(json);
+          } else {
+              errorMessage = `Request blocked (${imageRes.status}). content filter or invalid param.`;
+          }
+        } catch (e) { }
+
+        return { model: modelName, error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` };
       }
+
+      return {
+        model: modelName,
+        contentType: imageRes.headers.get('Content-Type') || 'image/jpeg',
+        body: Buffer.from(await imageRes.arrayBuffer()).toString('base64')
+      };
+    }));
+
+    return new Response(JSON.stringify({ results }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
