@@ -20,7 +20,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
-    const finalModel = model || 'ltx-2';
+    const finalModel = model || 'nova-reel';
 
     // 1. Construct Base URL for video generation
     const baseUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(finalPrompt)}`;
