@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, duration, aspectRatio } = await req.json();
+    const { prompt, width, height, duration, aspectRatio, model } = await req.json();
 
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
@@ -20,6 +20,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
+    const finalModel = model || 'ltx-2';
 
     // 1. Construct Base URL for video generation
     const baseUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(finalPrompt)}`;
@@ -30,6 +31,7 @@ export default async function handler(req) {
     if (height) params.append('height', height);
     if (duration) params.append('duration', duration);
     if (aspectRatio) params.append('aspectRatio', aspectRatio);
+    params.append('model', finalModel);
     params.append('nologo', 'true');
 
     const url = `${baseUrl}?${params.toString()}`;
