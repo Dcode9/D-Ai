@@ -11,10 +11,12 @@ export default async function handler(req) {
     const { prompt, width, height, model } = await req.json();
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
-    const finalModel = model || 'nova-reel';
+    const finalModel = model || 'recraft-v3';
 
     // 1. Construct Base URL for video generation
-    // Pollinations video endpoint - using image.pollinations.ai with video model
+    // Try different Pollinations endpoints for video
+    // Option 1: Use image.pollinations.ai with video-capable model
+    // Option 2: Check if there's a dedicated video subdomain
     const baseUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}`;
 
     // 2. Build Query Parameters
@@ -27,6 +29,7 @@ export default async function handler(req) {
     const url = `${baseUrl}?${params.toString()}`;
 
     console.log('Video API Request URL:', url);
+    console.log('Video API Model:', finalModel);
 
     // 3. Fetch from Pollinations
     const videoRes = await fetch(url, {
@@ -62,9 +65,19 @@ export default async function handler(req) {
     const contentType = videoRes.headers.get('Content-Type') || '';
     console.log('Received Content-Type:', contentType);
 
-    if (!contentType.includes('video')) {
+    // For now, return whatever we get but log it
+    // This will help debug what Pollinations actually returns
+    if (!contentType.includes('video') && !contentType.includes('octet-stream')) {
+      console.warn(`Warning: Expected video but got ${contentType}`);
+
       return new Response(JSON.stringify({
-        error: `Invalid response: Expected video but got ${contentType}. The model '${finalModel}' may not support video generation, or the endpoint may be incorrect.`
+        error: `Video generation not available: The Pollinations API returned ${contentType} instead of video. This suggests video generation may not be supported with model '${finalModel}'. Please try a different model or check the Pollinations documentation for video-capable models.`,
+        debug: {
+          url: url,
+          model: finalModel,
+          contentType: contentType,
+          suggestion: "Try models like 'ltx-video' or check Pollinations docs for video generation support"
+        }
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }

@@ -601,7 +601,7 @@
             }
 
             try {
-                const body = { prompt, width, height, model: 'nova-reel' };
+                const body = { prompt, width, height, model: 'recraft-v3' };
 
                 const res = await fetch('/api/video', {
                     method: 'POST',
@@ -860,7 +860,7 @@
                                  "**VIDEO GENERATION:**\n" +
                                  "1. **Always** precede the video generation tag with a warm, conversational sentence describing what you are creating (e.g., 'Here's an amazing video for you:', 'I've generated that video:', 'Check out this video:').\n" +
                                  "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration | filename_slug>>\n" +
-                                 "3. You have access to Pollinations AI video generation using the **nova-reel** model. You can create videos with these specifications:\n" +
+                                 "3. You have access to Pollinations AI video generation. You can create videos with these specifications:\n" +
                                  "   - **Aspect Ratios**: 1:1, 16:9, 9:16, 4:3, 3:4, landscape (16:9), portrait (9:16)\n" +
                                  "   - **Duration**: Between 1 to 10 seconds (default: 3 seconds)\n" +
                                  "   - **Prompt Requirements**: Be descriptive but concise (maximum 500 characters recommended)\n" +
