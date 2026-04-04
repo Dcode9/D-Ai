@@ -8,31 +8,22 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, duration, aspectRatio, model } = await req.json();
-
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
-
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API key is missing." }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    const { prompt, width, height, model } = await req.json();
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
     const finalModel = model || 'nova-reel';
 
     // 1. Construct Base URL for video generation
-    const baseUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(finalPrompt)}`;
+    // Following Pollinations API pattern: https://image.pollinations.ai/prompt/{prompt}
+    const baseUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}`;
 
-    // 2. Build Query Parameters
+    // 2. Build Query Parameters - match image API pattern
     const params = new URLSearchParams();
     if (width) params.append('width', width);
     if (height) params.append('height', height);
-    if (duration) params.append('duration', duration);
-    if (aspectRatio) params.append('aspectRatio', aspectRatio);
     params.append('model', finalModel);
     params.append('nologo', 'true');
+    params.append('enhance', 'true');
 
     const url = `${baseUrl}?${params.toString()}`;
 
@@ -40,8 +31,7 @@ export default async function handler(req) {
     const videoRes = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'video/*'
+        'Accept': 'video/mp4,video/*'
       }
     });
 

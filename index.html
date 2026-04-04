@@ -601,7 +601,7 @@
             }
 
             try {
-                const body = { prompt, width, height, duration: parseInt(duration), aspectRatio, model: 'nova-reel' };
+                const body = { prompt, width, height, model: 'nova-reel' };
 
                 const res = await fetch('/api/video', {
                     method: 'POST',
