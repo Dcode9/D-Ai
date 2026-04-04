@@ -1,5 +1,5 @@
 export const config = {
-  runtime: 'edge',
+  maxDuration: 60, // Maximum duration for video generation
 };
 
 export default async function handler(req) {
