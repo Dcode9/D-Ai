@@ -10,6 +10,15 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, duration, aspectRatio, model } = await req.json();
 
+    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API key is missing." }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
     const finalModel = model || 'ltx-2';
     const finalDuration = duration || 4;
@@ -32,10 +41,11 @@ export default async function handler(req) {
     console.log('Video API Request URL:', url);
     console.log('Video API Model:', finalModel);
 
-    // 3. Fetch from Pollinations
+    // 3. Fetch from Pollinations with Authentication
     const videoRes = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'Accept': 'video/mp4,video/*'
       }
     });
