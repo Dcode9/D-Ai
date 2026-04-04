@@ -14,31 +14,36 @@ export default async function handler(req) {
     const finalModel = model || 'nova-reel';
 
     // 1. Construct Base URL for video generation
-    // Following Pollinations API pattern: https://image.pollinations.ai/prompt/{prompt}
+    // Pollinations video endpoint - using image.pollinations.ai with video model
     const baseUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}`;
 
-    // 2. Build Query Parameters - match image API pattern
+    // 2. Build Query Parameters
     const params = new URLSearchParams();
     if (width) params.append('width', width);
     if (height) params.append('height', height);
     params.append('model', finalModel);
     params.append('nologo', 'true');
-    params.append('enhance', 'true');
 
     const url = `${baseUrl}?${params.toString()}`;
+
+    console.log('Video API Request URL:', url);
 
     // 3. Fetch from Pollinations
     const videoRes = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'video/mp4,video/*'
+        'Accept': 'video/mp4,video/*,*/*'
       }
     });
+
+    console.log('Video API Response Status:', videoRes.status);
+    console.log('Video API Response Content-Type:', videoRes.headers.get('Content-Type'));
 
     if (!videoRes.ok) {
       let errorMessage = videoRes.statusText;
       try {
         const text = await videoRes.text();
+        console.log('Video API Error Response:', text);
         if (text.trim().startsWith('{')) {
             const json = JSON.parse(text);
             errorMessage = JSON.stringify(json);
@@ -49,6 +54,19 @@ export default async function handler(req) {
 
       return new Response(JSON.stringify({ error: `Pollinations API Error (${videoRes.status}): ${errorMessage}` }), {
         status: videoRes.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check if we actually got a video
+    const contentType = videoRes.headers.get('Content-Type') || '';
+    console.log('Received Content-Type:', contentType);
+
+    if (!contentType.includes('video')) {
+      return new Response(JSON.stringify({
+        error: `Invalid response: Expected video but got ${contentType}. The model '${finalModel}' may not support video generation, or the endpoint may be incorrect.`
+      }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
