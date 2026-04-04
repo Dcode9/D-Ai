@@ -1,5 +1,6 @@
 export const config = {
-  maxDuration: 60, // Maximum duration for video generation
+  runtime: 'nodejs',
+  maxDuration: 60,
 };
 
 export default async function handler(req) {
