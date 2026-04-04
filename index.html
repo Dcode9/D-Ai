@@ -610,6 +610,7 @@
                     model: 'ltx-2'
                 };
 
+                // Step 1: Get the video URL from our backend (fast, within 10s Vercel limit)
                 const res = await fetch('/api/video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -628,7 +629,31 @@
                     throw new Error(`Server Error (${res.status}): ${detail}`);
                 }
 
-                const videoBlob = await res.blob();
+                const { url, apiKey } = await res.json();
+
+                if (!url || !apiKey) {
+                    throw new Error("Server Error: Missing video URL or API key");
+                }
+
+                // Step 2: Fetch video directly from Pollinations (can take 30+ seconds, no Vercel timeout)
+                const videoRes = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Accept': 'video/mp4,video/*'
+                    }
+                });
+
+                if (!videoRes.ok) {
+                    let detail = videoRes.statusText;
+                    try {
+                        const j = await videoRes.json();
+                        if (j.error) detail = typeof j.error === 'object' ? j.error.message : j.error;
+                    } catch(e) {}
+                    throw new Error(`Pollinations API Error (${videoRes.status}): ${detail}`);
+                }
+
+                const videoBlob = await videoRes.blob();
                 const videoUrl = URL.createObjectURL(videoBlob);
 
                 if(!window.vCache) window.vCache = new Map();

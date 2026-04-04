@@ -1,8 +1,4 @@
-export const config = {
-  runtime: 'nodejs',
-  maxDuration: 60,
-};
-
+// No runtime config needed - this endpoint just returns the URL
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -25,10 +21,10 @@ export default async function handler(req) {
     const finalDuration = duration || 4;
     const finalAspectRatio = aspectRatio || '16:9';
 
-    // 1. Construct Base URL for video generation - CORRECT ENDPOINT
+    // Construct the Pollinations video URL
     const baseUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(finalPrompt)}`;
 
-    // 2. Build Query Parameters according to Pollinations docs
+    // Build Query Parameters
     const params = new URLSearchParams();
     params.append('model', finalModel);
     if (width) params.append('width', width);
@@ -39,64 +35,17 @@ export default async function handler(req) {
 
     const url = `${baseUrl}?${params.toString()}`;
 
-    console.log('Video API Request URL:', url);
-    console.log('Video API Model:', finalModel);
+    console.log('Generated Video URL:', url);
 
-    // 3. Fetch from Pollinations with Authentication
-    const videoRes = await fetch(url, {
-      method: 'GET',
+    // Return the URL and API key to the frontend
+    // Frontend will fetch directly from Pollinations to avoid Vercel Hobby 10s timeout
+    return new Response(JSON.stringify({
+      url: url,
+      apiKey: apiKey
+    }), {
+      status: 200,
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'video/mp4,video/*'
-      }
-    });
-
-    console.log('Video API Response Status:', videoRes.status);
-    console.log('Video API Response Content-Type:', videoRes.headers.get('Content-Type'));
-
-    if (!videoRes.ok) {
-      let errorMessage = videoRes.statusText;
-      try {
-        const text = await videoRes.text();
-        console.log('Video API Error Response:', text);
-        if (text.trim().startsWith('{')) {
-            const json = JSON.parse(text);
-            errorMessage = JSON.stringify(json);
-        } else {
-            errorMessage = `Request blocked (${videoRes.status}). content filter or invalid param.`;
-        }
-      } catch (e) { }
-
-      return new Response(JSON.stringify({ error: `Pollinations API Error (${videoRes.status}): ${errorMessage}` }), {
-        status: videoRes.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Check if we actually got a video
-    const contentType = videoRes.headers.get('Content-Type') || '';
-    console.log('Received Content-Type:', contentType);
-
-    if (!contentType.includes('video') && !contentType.includes('octet-stream') && !contentType.includes('application/octet-stream')) {
-      console.warn(`Warning: Expected video but got ${contentType}`);
-
-      return new Response(JSON.stringify({
-        error: `Video generation failed: Received ${contentType} instead of video. The API may have rejected the request or the model may be unavailable.`,
-        debug: {
-          url: url,
-          model: finalModel,
-          contentType: contentType
-        }
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    return new Response(videoRes.body, {
-      headers: {
-        'Content-Type': videoRes.headers.get('Content-Type') || 'video/mp4',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       }
     });
