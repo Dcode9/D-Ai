@@ -428,11 +428,17 @@
                     resolve(URL.createObjectURL(blob));
                 };
 
-                video.ontimeupdate = () => {
+                // Pre-calculate watermark properties once
+                const fontSize = Math.max(24, canvas.width * 0.035);
+                const margin = fontSize * 0.8;
+
+                // Render frames using requestAnimationFrame for smooth processing
+                const renderFrame = () => {
+                    if (video.paused || video.ended) return;
+
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                     // Draw watermark
-                    const fontSize = Math.max(24, canvas.width * 0.035);
                     ctx.font = `800 ${fontSize}px 'Inter', sans-serif`;
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
@@ -441,16 +447,18 @@
                     ctx.shadowOffsetX = 2;
                     ctx.shadowOffsetY = 2;
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    const margin = fontSize * 0.8;
                     ctx.fillText("D'Ai", canvas.width - margin, canvas.height - margin);
-                };
 
-                mediaRecorder.start();
-                video.play();
+                    requestAnimationFrame(renderFrame);
+                };
 
                 video.onended = () => {
                     mediaRecorder.stop();
                 };
+
+                mediaRecorder.start();
+                video.play();
+                renderFrame();
             });
         }
 
