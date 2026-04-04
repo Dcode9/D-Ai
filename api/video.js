@@ -11,7 +11,7 @@ export default async function handler(req) {
     const { prompt, width, height, model } = await req.json();
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
-    const finalModel = model || 'recraft-v3';
+    const finalModel = model || 'ltx-2';
 
     // 1. Construct Base URL for video generation
     // Try different Pollinations endpoints for video
