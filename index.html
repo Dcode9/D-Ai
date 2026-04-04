@@ -72,7 +72,9 @@
 
         .dai-video { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.7s ease, filter 0.7s ease; position: relative; z-index: 10; filter: blur(24px); }
         .dai-video.loaded { opacity: 1; filter: blur(0); }
-        
+
+        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: clamp(16px, 3.5vw, 28px); font-weight: 800; color: rgba(255, 255, 255, 0.9); text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); z-index: 15; pointer-events: none; font-family: 'Inter', sans-serif; }
+
         .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 20; pointer-events: none; }
         .dai-img-container:hover .dai-overlay { opacity: 1; pointer-events: auto; }
         .dai-video-container:hover .dai-overlay { opacity: 1; pointer-events: auto; }
@@ -397,71 +399,6 @@
             });
         }
 
-        // --- Core: Video Watermarker ---
-        async function processAndWatermarkVideo(videoBlob) {
-            return new Promise(async (resolve) => {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(videoBlob);
-                video.muted = true;
-                video.playsInline = true;
-
-                await new Promise(r => {
-                    video.onloadedmetadata = r;
-                });
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-
-                const stream = canvas.captureStream(30); // 30 fps
-                const mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: 'video/webm;codecs=vp9',
-                    videoBitsPerSecond: 5000000
-                });
-
-                const chunks = [];
-                mediaRecorder.ondataavailable = e => chunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    URL.revokeObjectURL(video.src);
-                    resolve(URL.createObjectURL(blob));
-                };
-
-                // Pre-calculate watermark properties once
-                const fontSize = Math.max(24, canvas.width * 0.035);
-                const margin = fontSize * 0.8;
-
-                // Render frames using requestAnimationFrame for smooth processing
-                const renderFrame = () => {
-                    if (video.paused || video.ended) return;
-
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    // Draw watermark
-                    ctx.font = `800 ${fontSize}px 'Inter', sans-serif`;
-                    ctx.textAlign = 'right';
-                    ctx.textBaseline = 'bottom';
-                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                    ctx.shadowBlur = 8;
-                    ctx.shadowOffsetX = 2;
-                    ctx.shadowOffsetY = 2;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.fillText("D'Ai", canvas.width - margin, canvas.height - margin);
-
-                    requestAnimationFrame(renderFrame);
-                };
-
-                video.onended = () => {
-                    mediaRecorder.stop();
-                };
-
-                mediaRecorder.start();
-                video.play();
-                renderFrame();
-            });
-        }
-
         // --- Fluid Animation Controller ---
         const FluidAnim = {
             rafs: {}, // Store animation frame IDs by containerId
@@ -625,7 +562,7 @@
         // --- Server-Side Video Fetcher with Fluid Animation ---
         window.fetchServerVideo = async (videoEl, encPrompt, width, height, duration, containerId, aspectRatio) => {
             const prompt = decodeURIComponent(encPrompt);
-            const urlKey = `${prompt}-${width}-${height}-${duration}-video-watermarked`;
+            const urlKey = `${prompt}-${width}-${height}-${duration}-video`;
 
             // UI Elements
             const container = document.getElementById(containerId);
@@ -719,12 +656,12 @@
                 }
 
                 const videoBlob = await videoRes.blob();
-                const watermarkedUrl = await processAndWatermarkVideo(videoBlob);
+                const videoUrl = URL.createObjectURL(videoBlob);
 
                 if(!window.vCache) window.vCache = new Map();
-                window.vCache.set(urlKey, watermarkedUrl);
+                window.vCache.set(urlKey, videoUrl);
 
-                finishAnimation(watermarkedUrl);
+                finishAnimation(videoUrl);
 
             } catch (e) {
                 console.error("Video Gen Failed:", e);
@@ -877,6 +814,7 @@
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">Generating Video...</div>
     <video class="dai-video" controls loop autoplay muted>Your browser does not support the video tag.</video>
+    <div class="dai-watermark">D'Ai</div>
     <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Video" onclick="window.dlVideo('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
 
