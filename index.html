@@ -334,6 +334,7 @@
                 .then(data => {
                     if (data.success) {
                         window.uploadedImageUrl = data.link;
+                        console.log('[Upload] Image uploaded successfully:', data.link);
                         thumb.classList.remove('opacity-50');
                         thumb.classList.add('opacity-100');
                         progress.classList.add('hidden');
@@ -762,11 +763,14 @@
 
             const Putter = {
                 generate: (input) => {
+                    console.log('[Putter.generate] Input:', input);
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const ratio = parts[1] || "1:1";
                     const filename = parts[2] || `DAi_Image_${Date.now()}`;
                     const sourceImage = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no source image") ? parts[3] : "";
+
+                    console.log('[Putter.generate] Parsed:', { prompt, ratio, filename, sourceImage });
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
@@ -795,12 +799,15 @@
 </div>`;
                 },
                 generateVideo: (input) => {
+                    console.log('[Putter.generateVideo] Input:', input);
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const aspectRatio = parts[1] || "16:9";
                     const duration = parts[2] || "3";
                     const filename = parts[3] || `DAi_Video_${Date.now()}`;
                     const sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
+
+                    console.log('[Putter.generateVideo] Parsed:', { prompt, aspectRatio, duration, filename, sourceImage });
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
@@ -923,8 +930,11 @@
                 if (window.uploadedImageUrl) {
                     userContent += ` [UPLOADED_IMAGE: ${window.uploadedImageUrl}]`;
                     displayHtml += `<br><span class="text-xs opacity-50"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
+                    console.log('[Send] Including uploaded image in message:', window.uploadedImageUrl);
                     window.removeImage();
                 }
+
+                console.log('[Send] User message content:', userContent);
 
                 S.msg.push({role:"user",content:userContent}); 
                 add('user', displayHtml);
