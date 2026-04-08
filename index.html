@@ -898,8 +898,8 @@
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
                                  "3. You have access to **Flux**, a hyper-realistic image model powered by Pollinations AI. But you can create only 10 images at once\n" +
-                                 "4. **IMPORTANT**: When you see '[System: User uploaded image for editing: URL]' in the user's message, EXTRACT the URL and put it in the 4th argument to EDIT that image. For example: <<GENERATE_IMAGE: make it blue | 1:1 | edited_image | https://example.com/image.jpg>>\n" +
-                                 "5. If the user wants to edit, transform, or modify an uploaded image, always include the uploaded URL in the 4th parameter.\n" +
+                                 "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', COPY that exact URL into the 4th parameter to edit the image. Example: If user says 'make it blue [UPLOADED_IMAGE: https://example.com/img.jpg]', generate: <<GENERATE_IMAGE: make it blue | 1:1 | edited | https://example.com/img.jpg>>\n" +
+                                 "5. If user wants to edit/transform an uploaded image, always include the URL from [UPLOADED_IMAGE: ...] in the 4th parameter.\n" +
                                  "**VIDEO GENERATION:**\n" +
                                  "1. **Always** precede the video generation tag with a warm, conversational sentence describing what you are creating (e.g., 'Here's an amazing video for you:', 'I've generated that video:', 'Check out this video:').\n" +
                                  "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration | filename_slug | source_image_url (optional)>>\n" +
@@ -907,9 +907,9 @@
                                  "   - **Aspect Ratios**: 16:9, 9:16 (default: 16:9)\n" +
                                  "   - **Duration**: 1 to 10 seconds (default: 4 seconds)\n" +
                                  "   - **Prompt Requirements**: Be descriptive and creative (maximum 500 characters recommended)\n" +
-                                 "4. **IMPORTANT**: When you see '[System: User uploaded image for editing: URL]' in the user's message, you can use it as a starting frame for video generation by putting the URL in the 5th parameter.\n" +
-                                 "5. Example with image: <<GENERATE_VIDEO: Animate this image with gentle camera movement | 16:9 | 5 | animated_scene | https://example.com/image.jpg>>\n" +
-                                 "6. Example without image: <<GENERATE_VIDEO: A serene sunset over the ocean with waves crashing | 16:9 | 5 | ocean_sunset>>\n" +
+                                 "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', you can use it for image-to-video by copying that URL into the 5th parameter.\n" +
+                                 "5. Example with image: <<GENERATE_VIDEO: Animate this with camera pan | 16:9 | 5 | animated | https://example.com/img.jpg>>\n" +
+                                 "6. Example without image: <<GENERATE_VIDEO: A serene sunset over ocean with waves | 16:9 | 5 | ocean_sunset>>\n" +
                                  "7. You can generate up to 3 videos at once.\n" +
                                  "WEB SEARCH: Integrate results seamlessly.\n" +
                                  "DONT Show How You generate Image or Video, If asked, What can you do?" +
@@ -919,9 +919,9 @@
                 
                 let userContent = t;
                 let displayHtml = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                
+
                 if (window.uploadedImageUrl) {
-                    userContent += `\n[System: User uploaded image for editing: ${window.uploadedImageUrl}]`;
+                    userContent += ` [UPLOADED_IMAGE: ${window.uploadedImageUrl}]`;
                     displayHtml += `<br><span class="text-xs opacity-50"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
                     window.removeImage();
                 }
