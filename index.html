@@ -510,9 +510,13 @@
                     body: JSON.stringify(body)
                 });
 
+                console.log('[fetchServerImage] Response status:', res.status, res.statusText);
+                console.log('[fetchServerImage] Response headers:', Object.fromEntries(res.headers.entries()));
+
                 if (!res.ok) {
                     let detail = res.statusText;
                     try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    console.error('[fetchServerImage] API Error:', { status: res.status, detail });
                     if (detail.includes("429") || detail.includes("Resource exhausted")) {
                         throw new Error("High Traffic: Image API is overloaded. Please wait a moment.");
                     }
@@ -523,11 +527,14 @@
                 }
 
                 const rawBlob = await res.blob();
+                console.log('[fetchServerImage] Received blob:', { size: rawBlob.size, type: rawBlob.type });
                 const watermarkedUrl = await processAndWatermark(rawBlob);
+                console.log('[fetchServerImage] Watermarked URL created:', watermarkedUrl);
 
                 if(!window.pCache) window.pCache = new Map();
                 window.pCache.set(urlKey, watermarkedUrl);
-                
+
+                console.log('[fetchServerImage] Calling finishAnimation with URL');
                 finishAnimation(watermarkedUrl);
 
             } catch (e) {
