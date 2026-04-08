@@ -9,7 +9,9 @@ export default async function handler(req) {
 
   try {
     const { prompt, width, height, seed, model, image } = await req.json();
-    
+
+    console.log('[API /api/image] Received request:', { prompt, width, height, seed, model, hasImage: !!image, imageUrl: image });
+
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API; 
 
     if (!apiKey) {
@@ -39,6 +41,8 @@ export default async function handler(req) {
     }
 
     const url = `${baseUrl}?${params.toString()}`;
+
+    console.log('[API /api/image] Fetching from Pollinations:', url);
 
     // 3. Fetch from Pollinations
     const imageRes = await fetch(url, {

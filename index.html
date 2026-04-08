@@ -502,6 +502,8 @@
                 const body = { prompt, width, height, seed, model: 'flux' };
                 if (sourceImage) body.image = sourceImage;
 
+                console.log('[fetchServerImage] Sending to /api/image:', body);
+
                 const res = await fetch('/api/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
