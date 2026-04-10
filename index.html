@@ -6,6 +6,11 @@
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
+    <script>
+        // Define before loading Tailwind CDN to suppress production warning.
+        window.process = { env: { NODE_ENV: 'production' } };
+    </script>
+
     <!-- Critical CSS & Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -15,8 +20,10 @@
     <script>
         // Run as early as possible to intercept extension custom element registrations
         (function() {
-            const originalDefine = customElements.define;
-            customElements.define = function(name, constructor, options) {
+            const originalDefine = window.CustomElementRegistry && window.CustomElementRegistry.prototype.define;
+            if (!originalDefine) return;
+
+            function safeDefine(name, constructor, options) {
                 try {
                     if (!customElements.get(name)) {
                         originalDefine.call(customElements, name, constructor, options);
@@ -27,7 +34,10 @@
                         console.warn('Custom element registration warning:', e.message || e);
                     }
                 }
-            };
+            }
+
+            customElements.define = safeDefine;
+            window.CustomElementRegistry.prototype.define = safeDefine;
         })();
     </script>
 
@@ -36,8 +46,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
     <script>
-        // Suppress Tailwind CDN production warning
-        window.process = { env: { NODE_ENV: 'production' } };
         tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#2563eb',dark:{bg:'#050505',surface:'#0F0F0F',border:'#1F1F1F'}},fontFamily:{sans:['Inter'],mono:['JetBrains Mono']}}}};
     </script>
     <style>
@@ -370,9 +378,16 @@
 
         // --- Core: Image Watermarker ---
         async function processAndWatermark(blob) {
+            if (!blob || !blob.type || !blob.type.startsWith('image/')) {
+                throw new Error(`Invalid image payload received (${blob?.type || 'unknown type'})`);
+            }
+
             const img = new Image();
             img.src = URL.createObjectURL(blob);
-            await new Promise(r => img.onload = r);
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error('Failed to decode generated image payload'));
+            });
 
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
@@ -395,8 +410,14 @@
 
             URL.revokeObjectURL(img.src);
 
-            return new Promise(resolve => {
-                canvas.toBlob(b => resolve(URL.createObjectURL(b)), 'image/jpeg', 0.95);
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(b => {
+                    if (!b) {
+                        reject(new Error('Failed to encode watermarked image'));
+                        return;
+                    }
+                    resolve(URL.createObjectURL(b));
+                }, 'image/jpeg', 0.95);
             });
         }
 
@@ -559,12 +580,16 @@
                     progSvg.classList.remove('active');
                     genStatus.classList.remove('active');
 
-                    // Show Image
+                    // Show Image only after it is actually loadable in the DOM.
+                    imgEl.onload = () => {
+                        imgEl.classList.add('loaded');
+                        overlay.classList.add('visible');
+                    };
+                    imgEl.onerror = () => {
+                        imgEl.classList.add('error');
+                        window.imgError(imgEl, 'Rendered image failed to load. Please retry generation.');
+                    };
                     imgEl.src = finalUrl;
-                    imgEl.classList.add('loaded');
-
-                    // Show Overlay
-                    overlay.classList.add('visible');
                 });
             }
         };

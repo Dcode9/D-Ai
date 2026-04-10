@@ -98,6 +98,48 @@ export default async function handler(req) {
       });
     }
 
+    // Some edit endpoints return JSON metadata with a URL instead of raw binary image.
+    // Normalize that case so the frontend always receives an actual image stream.
+    const responseType = imageRes.headers.get('Content-Type') || '';
+    if (responseType.includes('application/json')) {
+      const payload = await imageRes.json();
+      const imageUrl =
+        payload?.url ||
+        payload?.image ||
+        payload?.data?.[0]?.url ||
+        payload?.result?.url;
+
+      if (!imageUrl) {
+        return new Response(JSON.stringify({ error: 'Pollinations API returned JSON without an image URL.' }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const resolvedImageRes = await fetch(imageUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'image/*'
+        }
+      });
+
+      if (!resolvedImageRes.ok) {
+        return new Response(JSON.stringify({ error: `Failed to resolve generated image URL (${resolvedImageRes.status}).` }), {
+          status: resolvedImageRes.status,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(resolvedImageRes.body, {
+        headers: {
+          'Content-Type': resolvedImageRes.headers.get('Content-Type') || 'image/jpeg',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
     return new Response(imageRes.body, {
       headers: {
         'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
