@@ -2,6 +2,115 @@ export const config = {
   runtime: 'edge',
 };
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*'
+};
+
+function jsonResponse(payload, status) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...CORS_HEADERS
+    }
+  });
+}
+
+function imageResponse(stream, contentType) {
+  return new Response(stream, {
+    headers: {
+      'Content-Type': contentType || 'image/jpeg',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      ...CORS_HEADERS
+    }
+  });
+}
+
+function toPositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
+function toSeed(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.trunc(parsed);
+}
+
+function decodeBase64Image(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.trim()) {
+    return null;
+  }
+
+  const trimmed = rawValue.trim();
+  let mimeType = 'image/png';
+  let base64Payload = trimmed;
+
+  const dataUrlMatch = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (dataUrlMatch) {
+    mimeType = dataUrlMatch[1];
+    base64Payload = dataUrlMatch[2];
+  }
+
+  try {
+    const binary = atob(base64Payload.replace(/\s+/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return { bytes, mimeType };
+  } catch (e) {
+    return null;
+  }
+}
+
+function extractImageData(payload) {
+  const firstDataItem = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
+
+  const urlCandidates = [
+    payload?.url,
+    payload?.image,
+    payload?.result?.url,
+    payload?.output?.url,
+    payload?.output?.[0]?.url,
+    payload?.images?.[0]?.url,
+    firstDataItem?.url,
+    firstDataItem?.image,
+  ];
+
+  const imageUrl = urlCandidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value));
+
+  const base64Candidates = [
+    firstDataItem?.b64_json,
+    payload?.b64_json,
+    payload?.image_base64,
+    payload?.result?.b64_json,
+    payload?.output?.[0]?.b64_json,
+  ];
+
+  let decodedBase64 = null;
+  for (const candidate of base64Candidates) {
+    decodedBase64 = decodeBase64Image(candidate);
+    if (decodedBase64) {
+      break;
+    }
+  }
+
+  return {
+    imageUrl,
+    decodedBase64,
+    debug: {
+      topLevelKeys: payload && typeof payload === 'object' ? Object.keys(payload).slice(0, 20) : [],
+      firstDataKeys: firstDataItem && typeof firstDataItem === 'object' ? Object.keys(firstDataItem).slice(0, 20) : []
+    }
+  };
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -10,19 +119,28 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, seed, model, image } = await req.json();
 
-    console.log('[API /api/image] Received request:', { prompt, width, height, seed, model, hasImage: !!image, imageUrl: image });
+    const finalWidth = toPositiveInt(width, 1024);
+    const finalHeight = toPositiveInt(height, 1024);
+    const finalSeed = toSeed(seed, 0);
+
+    console.log('[API /api/image] Received request:', {
+      prompt,
+      width: finalWidth,
+      height: finalHeight,
+      seed: finalSeed,
+      model,
+      hasImage: !!image,
+      imageUrl: image
+    });
 
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API key is missing." }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 401);
     }
 
-    const finalPrompt = prompt && prompt.trim() ? prompt : "abstract art";
-    const finalModel = model || 'qwen-image';
+    const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
+    const finalModel = model || (image ? 'p-image-edit' : 'qwen-image');
 
     let url, fetchOptions;
 
@@ -35,10 +153,10 @@ export default async function handler(req) {
         image: image,
         prompt: finalPrompt,
         model: finalModel,
-        width: width,
-        height: height,
-        seed: seed,
-        nologo: true
+        size: `${finalWidth}x${finalHeight}`,
+        seed: finalSeed,
+        n: 1,
+        response_format: 'url'
       };
 
       console.log('[API /api/image] Using /v1/images/edits endpoint with body:', requestBody);
@@ -48,7 +166,7 @@ export default async function handler(req) {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'Accept': 'image/*'
+          'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody)
       };
@@ -57,9 +175,9 @@ export default async function handler(req) {
       const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
 
       const params = new URLSearchParams();
-      params.append('width', width);
-      params.append('height', height);
-      params.append('seed', seed);
+      params.append('width', finalWidth);
+      params.append('height', finalHeight);
+      params.append('seed', finalSeed);
       params.append('model', finalModel);
       params.append('nologo', 'true');
       params.append('safe', 'false');
@@ -77,7 +195,7 @@ export default async function handler(req) {
       };
     }
 
-    // 3. Fetch from Pollinations
+    // Fetch from Pollinations
     const imageRes = await fetch(url, fetchOptions);
 
     if (!imageRes.ok) {
@@ -92,66 +210,96 @@ export default async function handler(req) {
         }
       } catch (e) { }
 
-      return new Response(JSON.stringify({ error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` }), { 
-        status: imageRes.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` }, imageRes.status);
     }
 
-    // Some edit endpoints return JSON metadata with a URL instead of raw binary image.
-    // Normalize that case so the frontend always receives an actual image stream.
     const responseType = imageRes.headers.get('Content-Type') || '';
+
+    if (responseType.startsWith('image/')) {
+      return imageResponse(imageRes.body, responseType);
+    }
+
     if (responseType.includes('application/json')) {
       const payload = await imageRes.json();
-      const imageUrl =
-        payload?.url ||
-        payload?.image ||
-        payload?.data?.[0]?.url ||
-        payload?.result?.url;
 
-      if (!imageUrl) {
-        return new Response(JSON.stringify({ error: 'Pollinations API returned JSON without an image URL.' }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json' }
-        });
+      if (payload?.success === false && payload?.error) {
+        const errorMessage = typeof payload.error === 'string'
+          ? payload.error
+          : payload.error.message || JSON.stringify(payload.error);
+        return jsonResponse({ error: `Pollinations API JSON Error: ${errorMessage}` }, 502);
       }
 
-      const resolvedImageRes = await fetch(imageUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'image/*'
-        }
-      });
+      const extracted = extractImageData(payload);
 
-      if (!resolvedImageRes.ok) {
-        return new Response(JSON.stringify({ error: `Failed to resolve generated image URL (${resolvedImageRes.status}).` }), {
-          status: resolvedImageRes.status,
-          headers: { 'Content-Type': 'application/json' }
+      if (extracted.imageUrl) {
+        const resolvedImageRes = await fetch(extracted.imageUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'image/*'
+          }
         });
+
+        if (resolvedImageRes.ok) {
+          return imageResponse(resolvedImageRes.body, resolvedImageRes.headers.get('Content-Type') || 'image/jpeg');
+        }
+
+        return jsonResponse({ error: `Failed to resolve generated image URL (${resolvedImageRes.status}).` }, resolvedImageRes.status);
       }
 
-      return new Response(resolvedImageRes.body, {
-        headers: {
-          'Content-Type': resolvedImageRes.headers.get('Content-Type') || 'image/jpeg',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-          'Access-Control-Allow-Origin': '*'
+      if (extracted.decodedBase64) {
+        return imageResponse(extracted.decodedBase64.bytes, extracted.decodedBase64.mimeType);
+      }
+
+      // Fallback path for edit requests: use /image endpoint with reference image parameter.
+      if (image) {
+        const fallbackBaseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
+        const fallbackParams = new URLSearchParams();
+        fallbackParams.append('width', finalWidth);
+        fallbackParams.append('height', finalHeight);
+        fallbackParams.append('seed', finalSeed);
+        fallbackParams.append('model', finalModel);
+        fallbackParams.append('nologo', 'true');
+        fallbackParams.append('safe', 'false');
+        fallbackParams.append('image', image);
+
+        const fallbackUrl = `${fallbackBaseUrl}?${fallbackParams.toString()}`;
+        const fallbackRes = await fetch(fallbackUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'image/*'
+          }
+        });
+
+        if (fallbackRes.ok) {
+          return imageResponse(fallbackRes.body, fallbackRes.headers.get('Content-Type') || 'image/jpeg');
         }
-      });
+
+        let fallbackDetail = fallbackRes.statusText;
+        try {
+          const fallbackText = await fallbackRes.text();
+          if (fallbackText.trim().startsWith('{')) {
+            fallbackDetail = JSON.stringify(JSON.parse(fallbackText));
+          }
+        } catch (e) { }
+
+        return jsonResponse({
+          error: `Image edit fallback failed (${fallbackRes.status}): ${fallbackDetail}`,
+          debug: extracted.debug
+        }, 502);
+      }
+
+      return jsonResponse({
+        error: 'Pollinations API returned JSON without image URL or b64 data.',
+        debug: extracted.debug
+      }, 502);
     }
 
-    return new Response(imageRes.body, {
-      headers: {
-        'Content-Type': imageRes.headers.get('Content-Type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Access-Control-Allow-Origin': '*' 
-      }
-    });
+    // If content type is missing or unknown, pass through as image to keep compatibility.
+    return imageResponse(imageRes.body, imageRes.headers.get('Content-Type') || 'image/jpeg');
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, 
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: error.message }, 500);
   }
 }

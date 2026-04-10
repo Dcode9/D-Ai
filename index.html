@@ -7,7 +7,25 @@
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     
     <script>
-        // Define before loading Tailwind CDN to suppress production warning.
+        // Filter known non-actionable console noise from external scripts/extensions.
+        (function() {
+            const originalWarn = console.warn;
+            console.warn = function(...args) {
+                const first = args && args.length ? String(args[0] || '') : '';
+                if (first.includes('cdn.tailwindcss.com should not be used in production')) {
+                    return;
+                }
+                return originalWarn.apply(console, args);
+            };
+
+            window.addEventListener('error', (event) => {
+                const message = `${event?.message || ''} ${event?.error?.message || ''}`;
+                if (message.includes('has already been defined')) {
+                    event.preventDefault();
+                }
+            }, true);
+        })();
+
         window.process = { env: { NODE_ENV: 'production' } };
     </script>
 
