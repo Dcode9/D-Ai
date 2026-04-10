@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, duration, aspectRatio, model } = await req.json();
+    const { prompt, width, height, duration, aspectRatio, model, image } = await req.json();
 
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
@@ -35,6 +35,11 @@ export default async function handler(req) {
     params.append('duration', finalDuration);
     params.append('aspectRatio', finalAspectRatio);
     params.append('nologo', 'true');
+
+    // Add image parameter if provided (for image-to-video generation)
+    if (image) {
+      params.append('image', image);
+    }
 
     const url = `${baseUrl}?${params.toString()}`;
 
