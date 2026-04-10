@@ -111,6 +111,21 @@ function extractImageData(payload) {
   };
 }
 
+function selectModel(requestedModel, hasSourceImage) {
+  const normalized = (requestedModel || '').trim().toLowerCase();
+
+  if (!hasSourceImage) {
+    return requestedModel || 'qwen-image';
+  }
+
+  // Models like flux/zimage are text-to-image focused and may ignore edit references.
+  if (!normalized || normalized === 'flux' || normalized === 'zimage') {
+    return 'p-image-edit';
+  }
+
+  return requestedModel;
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -140,7 +155,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
-    const finalModel = model || (image ? 'p-image-edit' : 'qwen-image');
+    const finalModel = selectModel(model, !!image);
 
     let url, fetchOptions;
 
@@ -150,13 +165,12 @@ export default async function handler(req) {
       url = 'https://gen.pollinations.ai/v1/images/edits';
 
       const requestBody = {
-        image: image,
         prompt: finalPrompt,
         model: finalModel,
+        image: Array.isArray(image) ? image : [image],
         size: `${finalWidth}x${finalHeight}`,
-        seed: finalSeed,
         n: 1,
-        response_format: 'url'
+        response_format: 'b64_json'
       };
 
       console.log('[API /api/image] Using /v1/images/edits endpoint with body:', requestBody);
