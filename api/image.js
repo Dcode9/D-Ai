@@ -115,7 +115,7 @@ function selectModel(requestedModel, hasSourceImage) {
   const normalized = (requestedModel || '').trim().toLowerCase();
 
   if (!hasSourceImage) {
-    return requestedModel || 'qwen-image';
+    return requestedModel || 'wan-image';
   }
 
   // Models like flux/zimage are text-to-image focused and may ignore edit references.
