@@ -120,7 +120,7 @@ function selectModel(requestedModel, hasSourceImage) {
 
   // Models like flux/zimage are text-to-image focused and may ignore edit references.
   if (!normalized || normalized === 'flux' || normalized === 'zimage') {
-    return 'p-image-edit';
+    return 'gptimage-large';
   }
 
   return requestedModel;
