@@ -20,7 +20,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
-    const finalModel = model || 'nova-reel';
+    const finalModel = model || 'veo';
     const finalDuration = duration || 4;
     const finalAspectRatio = aspectRatio || '16:9';
 
