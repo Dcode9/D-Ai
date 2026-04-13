@@ -650,8 +650,8 @@
             }
 
             try {
-                const parsedDuration = parseInt(duration, 10);
-                const clampedDuration = Number.isFinite(parsedDuration) ? Math.min(8, Math.max(1, parsedDuration)) : 8;
+                const parsedDuration = Number(duration);
+                const clampedDuration = Number.isFinite(parsedDuration) ? Math.min(8, Math.max(1, Math.floor(parsedDuration))) : 8;
 
                 const body = {
                     prompt,
