@@ -851,7 +851,7 @@
                     const filename = parts[3] || `DAi_Video_${Date.now()}`;
                     const sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
 
-                    console.log('[Putter.generateVideo] Parsed:', { prompt, aspectRatio, duration: "8", filename, sourceImage });
+                    console.log('[Putter.generateVideo] Parsed:', { prompt, aspectRatio, filename, sourceImage, fixedDuration: 8 });
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
@@ -953,10 +953,10 @@
                                  "5. If user wants to edit/transform an uploaded image, always include the URL from [UPLOADED_IMAGE: ...] in the 4th parameter.\n" +
                                  "**VIDEO GENERATION:**\n" +
                                  "1. **Always** precede the video generation tag with a warm, conversational sentence describing what you are creating (e.g., 'Here's an amazing video for you:', 'I've generated that video:', 'Check out this video:').\n" +
-                                 "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration | filename_slug | source_image_url (optional)>>\n" +
+                                 "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration(8 only) | filename_slug | source_image_url (optional)>>\n" +
                                  "3. You have access to Pollinations AI video generation using the **veo** model. You can create videos with these specifications:\n" +
                                  "   - **Aspect Ratios**: 16:9, 9:16 (default: 16:9)\n" +
-                                 "   - **Duration**: exactly 8 seconds (required for veo)\n" +
+                                 "   - **Duration**: exactly 8 seconds (required for veo; any other value is forced to 8)\n" +
                                  "   - **Prompt Requirements**: Be descriptive and creative (maximum 500 characters recommended)\n" +
                                  "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', you can use it for image-to-video by copying that URL into the 5th parameter.\n" +
                                  "5. Example with image: <<GENERATE_VIDEO: Animate this with camera pan | 16:9 | 8 | animated | https://example.com/img.jpg>>\n" +
