@@ -802,14 +802,14 @@
                     body: JSON.stringify(body)
                 });
 
-                if (!res.ok) {
-                    let detail = res.statusText;
-                    try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
-                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Music API is overloaded. Please wait a moment.");
+                    if (!res.ok) {
+                        let detail = res.statusText;
+                        try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
+                        if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
+                        }
+                        throw new Error(`Server Error (${res.status}): ${detail}`);
                     }
-                    throw new Error(`Server Error (${res.status}): ${detail}`);
-                }
 
                 const audioBlob = await res.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
@@ -824,7 +824,7 @@
                 progSvg.classList.remove('active');
                 genStatus.classList.remove('active');
                 audioEl.classList.add('error');
-                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that music.";
+                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that music. Please try again.";
                 window.audioError(audioEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
             }
 

@@ -31,7 +31,8 @@ export default async function handler(req) {
       return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 500);
     }
 
-    const finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'ambient cinematic instrumental';
+    const promptText = typeof prompt === 'string' ? prompt.trim() : '';
+    const finalPrompt = promptText || 'ambient cinematic instrumental';
     const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
     const finalDuration = toDuration(duration, 15);
 
