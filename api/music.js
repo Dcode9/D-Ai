@@ -28,7 +28,7 @@ export default async function handler(req) {
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
     if (!apiKey) {
-      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 401);
+      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 500);
     }
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
