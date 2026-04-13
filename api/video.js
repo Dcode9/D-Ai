@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, duration, aspectRatio, model, image } = await req.json();
+    const { prompt, width, height, aspectRatio, model, image } = await req.json();
 
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 

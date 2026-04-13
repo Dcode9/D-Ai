@@ -848,11 +848,10 @@
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const aspectRatio = parts[1] || "16:9";
-                    const duration = "8";
                     const filename = parts[3] || `DAi_Video_${Date.now()}`;
                     const sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
 
-                    console.log('[Putter.generateVideo] Parsed:', { prompt, aspectRatio, duration, filename, sourceImage });
+                    console.log('[Putter.generateVideo] Parsed:', { prompt, aspectRatio, duration: "8", filename, sourceImage });
 
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
@@ -883,7 +882,7 @@
                         if (container) {
                             const videoEl = container.querySelector('video');
                             if (videoEl) {
-                                window.fetchServerVideo(videoEl, safePrompt, w, h, duration, containerId, aspectRatio, safeSource);
+                                window.fetchServerVideo(videoEl, safePrompt, w, h, "8", containerId, aspectRatio, safeSource);
                             }
                         }
                     }, 0);
