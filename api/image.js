@@ -115,7 +115,7 @@ function selectModel(requestedModel, hasSourceImage) {
   const normalized = (requestedModel || '').trim().toLowerCase();
 
   if (!hasSourceImage) {
-    return requestedModel || 'gptimage-large';
+    return requestedModel || 'flux';
   }
 
   // Legacy aliases/models can be remapped to the default edit-capable model.
