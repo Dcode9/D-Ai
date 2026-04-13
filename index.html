@@ -531,7 +531,7 @@
             }
 
             try {
-                const body = { prompt, width, height, seed, model: sourceImage ? 'p-image-edit' : 'flux' };
+                const body = { prompt, width, height, seed, model: 'gptimage-large' };
                 if (sourceImage) body.image = sourceImage;
 
                 console.log('[fetchServerImage] Sending to /api/image:', body);
@@ -654,9 +654,9 @@
                     prompt,
                     width,
                     height,
-                    duration: parseInt(duration) || 4,
+                    duration: parseInt(duration) || 9,
                     aspectRatio: aspectRatio || '16:9',
-                    model: 'ltx-2'
+                    model: 'veo'
                 };
 
                 if (sourceImage) {
@@ -848,7 +848,7 @@
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const aspectRatio = parts[1] || "16:9";
-                    const duration = parts[2] || "3";
+                    const duration = parts[2] || "8";
                     const filename = parts[3] || `DAi_Video_${Date.now()}`;
                     const sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
 
@@ -949,19 +949,19 @@
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
-                                 "3. You have access to **Flux**, a hyper-realistic image model powered by Pollinations AI. But you can create only 10 images at once\n" +
+                                 "3. You have access to **gptimage-large**, a high-quality image model powered by Pollinations AI. But you can create only 10 images at once\n" +
                                  "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', COPY that exact URL into the 4th parameter to edit the image. Example: If user says 'make it blue [UPLOADED_IMAGE: https://example.com/img.jpg]', generate: <<GENERATE_IMAGE: make it blue | 1:1 | edited | https://example.com/img.jpg>>\n" +
                                  "5. If user wants to edit/transform an uploaded image, always include the URL from [UPLOADED_IMAGE: ...] in the 4th parameter.\n" +
                                  "**VIDEO GENERATION:**\n" +
                                  "1. **Always** precede the video generation tag with a warm, conversational sentence describing what you are creating (e.g., 'Here's an amazing video for you:', 'I've generated that video:', 'Check out this video:').\n" +
                                  "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration | filename_slug | source_image_url (optional)>>\n" +
-                                 "3. You have access to Pollinations AI video generation using the **ltx-2** model. You can create videos with these specifications:\n" +
+                                 "3. You have access to Pollinations AI video generation using the **veo** model. You can create videos with these specifications:\n" +
                                  "   - **Aspect Ratios**: 16:9, 9:16 (default: 16:9)\n" +
-                                 "   - **Duration**: 1 to 10 seconds (default: 4 seconds)\n" +
+                                 "   - **Duration**: 1 to 10 seconds (default: 9 seconds)\n" +
                                  "   - **Prompt Requirements**: Be descriptive and creative (maximum 500 characters recommended)\n" +
                                  "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', you can use it for image-to-video by copying that URL into the 5th parameter.\n" +
-                                 "5. Example with image: <<GENERATE_VIDEO: Animate this with camera pan | 16:9 | 5 | animated | https://example.com/img.jpg>>\n" +
-                                 "6. Example without image: <<GENERATE_VIDEO: A serene sunset over ocean with waves | 16:9 | 5 | ocean_sunset>>\n" +
+                                 "5. Example with image: <<GENERATE_VIDEO: Animate this with camera pan | 16:9 | 10 | animated | https://example.com/img.jpg>>\n" +
+                                 "6. Example without image: <<GENERATE_VIDEO: A serene sunset over ocean with waves | 16:9 | 10 | ocean_sunset>>\n" +
                                  "7. You can generate up to 3 videos at once.\n" +
                                  "WEB SEARCH: Integrate results seamlessly.\n" +
                                  "DONT Show How You generate Image or Video, If asked, What can you do?" +

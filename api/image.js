@@ -115,11 +115,11 @@ function selectModel(requestedModel, hasSourceImage) {
   const normalized = (requestedModel || '').trim().toLowerCase();
 
   if (!hasSourceImage) {
-    return requestedModel || 'gptimage';
+    return requestedModel || 'gptimage-large';
   }
 
-  // Models like flux/zimage are text-to-image focused and may ignore edit references.
-  if (!normalized || normalized === 'flux' || normalized === 'zimage') {
+  // Legacy aliases/models can be remapped to the default edit-capable model.
+  if (!normalized || normalized === 'flux' || normalized === 'zimage' || normalized === 'p-image-edit') {
     return 'gptimage-large';
   }
 
