@@ -26,11 +26,6 @@ export default async function handler(req) {
   try {
     const { prompt, duration, style, model } = await req.json();
 
-    const apiKey = process.env.POLLINATIONS_API;
-    if (!apiKey) {
-      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 500);
-    }
-
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
     const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
@@ -45,31 +40,7 @@ export default async function handler(req) {
     }
 
     const url = `${baseUrl}?${params.toString()}`;
-    const audioRes = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'audio/mpeg,audio/*'
-      }
-    });
-
-    if (!audioRes.ok) {
-      let detail = audioRes.statusText;
-      try {
-        const text = await audioRes.text();
-        detail = text || detail;
-      } catch (e) {}
-
-      return jsonResponse({ error: `Pollinations API Error (${audioRes.status}): ${detail}` }, audioRes.status);
-    }
-
-    return new Response(audioRes.body, {
-      headers: {
-        'Content-Type': audioRes.headers.get('Content-Type') || 'audio/mpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    return jsonResponse({ url });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }

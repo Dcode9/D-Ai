@@ -811,7 +811,31 @@
                         throw new Error(`Server Error (${res.status}): ${detail}`);
                     }
 
-                const audioBlob = await res.blob();
+                const { url } = await res.json();
+                if (!url) {
+                    throw new Error("Server Error: Missing music URL");
+                }
+
+                const audioRes = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'audio/mpeg,audio/*'
+                    }
+                });
+
+                if (!audioRes.ok) {
+                    let detail = audioRes.statusText;
+                    try {
+                        const text = await audioRes.text();
+                        detail = text || detail;
+                    } catch (e) {}
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
+                    }
+                    throw new Error(`Pollinations API Error (${audioRes.status}): ${detail}`);
+                }
+
+                const audioBlob = await audioRes.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
 
                 if (!window.mCache) window.mCache = new Map();
