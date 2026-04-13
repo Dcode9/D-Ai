@@ -813,7 +813,7 @@
 
                 const { url, apiKey } = await res.json();
                 if (!url || !apiKey) {
-                    throw new Error("Server Error: Missing music URL or API key");
+                    throw new Error("Unable to initialize music generation. Please refresh and try again.");
                 }
 
                 const audioRes = await fetch(url, {
