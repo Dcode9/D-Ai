@@ -25,6 +25,11 @@ export default async function handler(req) {
 
   try {
     const { prompt, duration, style, model } = await req.json();
+    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+
+    if (!apiKey) {
+      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 401);
+    }
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
@@ -40,7 +45,7 @@ export default async function handler(req) {
     }
 
     const url = `${baseUrl}?${params.toString()}`;
-    return jsonResponse({ url });
+    return jsonResponse({ url, apiKey });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }

@@ -811,14 +811,15 @@
                         throw new Error(`Server Error (${res.status}): ${detail}`);
                     }
 
-                const { url } = await res.json();
-                if (!url) {
-                    throw new Error("Server Error: Missing music URL");
+                const { url, apiKey } = await res.json();
+                if (!url || !apiKey) {
+                    throw new Error("Server Error: Missing music URL or API key");
                 }
 
                 const audioRes = await fetch(url, {
                     method: 'GET',
                     headers: {
+                        'Authorization': `Bearer ${apiKey}`,
                         'Accept': 'audio/mpeg,audio/*'
                     }
                 });
