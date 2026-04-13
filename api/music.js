@@ -43,9 +43,31 @@ export default async function handler(req) {
       params.append('style', String(style).trim());
     }
 
-    return jsonResponse({
-      url: `${baseUrl}?${params.toString()}`,
-      apiKey
+    const url = `${baseUrl}?${params.toString()}`;
+    const audioRes = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'audio/mpeg,audio/*'
+      }
+    });
+
+    if (!audioRes.ok) {
+      let detail = audioRes.statusText;
+      try {
+        const text = await audioRes.text();
+        detail = text || detail;
+      } catch (e) {}
+
+      return jsonResponse({ error: `Pollinations API Error (${audioRes.status}): ${detail}` }, audioRes.status);
+    }
+
+    return new Response(audioRes.body, {
+      headers: {
+        'Content-Type': audioRes.headers.get('Content-Type') || 'audio/mpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Access-Control-Allow-Origin': '*'
+      }
     });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
