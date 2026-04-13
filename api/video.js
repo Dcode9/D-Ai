@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, aspectRatio, model, image } = await req.json();
+    const { prompt, width, height, duration, aspectRatio, model, image } = await req.json();
 
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
@@ -23,6 +23,10 @@ export default async function handler(req) {
     const finalModel = model || 'veo';
     const finalDuration = 8;
     const finalAspectRatio = aspectRatio || '16:9';
+
+    if (duration !== undefined && Number(duration) !== 8) {
+      console.warn('[API /api/video] Non-8 duration received; forcing to 8 for veo compatibility:', duration);
+    }
 
     // Construct the Pollinations video URL
     const baseUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(finalPrompt)}`;
