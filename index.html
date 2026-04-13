@@ -977,7 +977,7 @@
                     const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
 
                     // Generate Unique DOM IDs to prevent animation collisions
-                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
                     const btnId = `dl-${uniqueSuffix}`;
                     const containerId = `cnt-${uniqueSuffix}`;
 
@@ -1019,7 +1019,7 @@
 
                     console.log('[Putter.generateMusic] Parsed:', { prompt, duration, filename, style });
 
-                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
                     const btnId = `dl-${uniqueSuffix}`;
                     const containerId = `cnt-${uniqueSuffix}`;
 
