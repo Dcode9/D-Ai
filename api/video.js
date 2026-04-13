@@ -21,10 +21,7 @@ export default async function handler(req) {
 
     const finalPrompt = prompt && prompt.trim() ? prompt : "abstract video";
     const finalModel = model || 'veo';
-    const parsedDuration = Number(duration);
-    const finalDuration = Number.isFinite(parsedDuration)
-      ? Math.min(8, Math.max(1, Math.floor(parsedDuration)))
-      : 8;
+    const finalDuration = 8;
     const finalAspectRatio = aspectRatio || '16:9';
 
     // Construct the Pollinations video URL

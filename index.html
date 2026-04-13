@@ -650,14 +650,11 @@
             }
 
             try {
-                const parsedDuration = Number(duration);
-                const clampedDuration = Number.isFinite(parsedDuration) ? Math.min(8, Math.max(1, Math.floor(parsedDuration))) : 8;
-
                 const body = {
                     prompt,
                     width,
                     height,
-                    duration: clampedDuration,
+                    duration: 8,
                     aspectRatio: aspectRatio || '16:9',
                     model: 'veo'
                 };
@@ -851,7 +848,7 @@
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
                     const aspectRatio = parts[1] || "16:9";
-                    const duration = parts[2] || "8";
+                    const duration = "8";
                     const filename = parts[3] || `DAi_Video_${Date.now()}`;
                     const sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
 
@@ -960,7 +957,7 @@
                                  "2. Format: <<GENERATE_VIDEO: detailed_prompt | aspect_ratio | duration | filename_slug | source_image_url (optional)>>\n" +
                                  "3. You have access to Pollinations AI video generation using the **veo** model. You can create videos with these specifications:\n" +
                                  "   - **Aspect Ratios**: 16:9, 9:16 (default: 16:9)\n" +
-                                 "   - **Duration**: 1 to 8 seconds (default: 8 seconds)\n" +
+                                 "   - **Duration**: exactly 8 seconds (required for veo)\n" +
                                  "   - **Prompt Requirements**: Be descriptive and creative (maximum 500 characters recommended)\n" +
                                  "4. **IMPORTANT**: When user message contains '[UPLOADED_IMAGE: URL]', you can use it for image-to-video by copying that URL into the 5th parameter.\n" +
                                  "5. Example with image: <<GENERATE_VIDEO: Animate this with camera pan | 16:9 | 8 | animated | https://example.com/img.jpg>>\n" +
