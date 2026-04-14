@@ -808,19 +808,13 @@
                         throw new Error(`Server Error (${res.status}): ${detail}`);
                     }
 
-                const { url, apiKey } = await res.json();
+                const { url } = await res.json();
                 if (!url) {
                     throw new Error("Unable to initialize music generation. Please refresh and try again.");
                 }
 
-                const headers = { 'Accept': 'audio/mpeg,audio/*' };
-                if (apiKey) {
-                    headers['Authorization'] = `Bearer ${apiKey}`;
-                }
-
                 const audioRes = await fetch(url, {
-                    method: 'GET',
-                    headers
+                    method: 'GET'
                 });
 
                 if (!audioRes.ok) {

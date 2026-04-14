@@ -40,9 +40,10 @@ export default async function handler(req) {
     const params = new URLSearchParams();
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
+    params.append('key', apiKey);
 
     const url = `${baseUrl}?${params.toString()}`;
-    return jsonResponse({ url, apiKey });
+    return jsonResponse({ url });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }
