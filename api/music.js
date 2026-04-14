@@ -50,7 +50,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, duration, style, model, instrumental, response_format } = await req.json();
+    const { prompt, duration, style, instrumental, response_format } = await req.json();
     const apiKey = process.env.POLLINATIONS_API;
 
     if (!apiKey) {
@@ -59,7 +59,7 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
+    const finalModel = 'acestep';
     const finalDuration = toDuration(duration, 15);
     let finalFormat = 'mp3';
     try {
