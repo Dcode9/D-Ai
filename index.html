@@ -799,37 +799,16 @@
                     body: JSON.stringify(body)
                 });
 
-                    if (!res.ok) {
-                        let detail = res.statusText;
-                        try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
-                        if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
-                        }
-                        throw new Error(`Server Error (${res.status}): ${detail}`);
-                    }
-
-                const { url } = await res.json();
-                if (!url) {
-                    throw new Error("Unable to initialize music generation. Please refresh and try again.");
-                }
-
-                const audioRes = await fetch(url, {
-                    method: 'GET'
-                });
-
-                if (!audioRes.ok) {
-                    let detail = audioRes.statusText;
-                    try {
-                        const text = await audioRes.text();
-                        detail = text || detail;
-                    } catch (e) {}
+                if (!res.ok) {
+                    let detail = res.statusText;
+                    try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
                     if (detail.includes("429") || detail.includes("Resource exhausted")) {
                         throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
                     }
-                    throw new Error(`Pollinations API Error (${audioRes.status}): ${detail}`);
+                    throw new Error(`Server Error (${res.status}): ${detail}`);
                 }
 
-                const audioBlob = await audioRes.blob();
+                const audioBlob = await res.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
 
                 if (!window.mCache) window.mCache = new Map();

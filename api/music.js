@@ -40,10 +40,33 @@ export default async function handler(req) {
     const params = new URLSearchParams();
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
-    params.append('key', apiKey);
-
     const url = `${baseUrl}?${params.toString()}`;
-    return jsonResponse({ url });
+
+    const pollRes = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'audio/mpeg,audio/*'
+      }
+    });
+
+    if (!pollRes.ok) {
+      let detail = pollRes.statusText;
+      try {
+        const text = await pollRes.text();
+        if (text) detail = text;
+      } catch (e) {}
+      return jsonResponse({ error: `Pollinations error (${pollRes.status}): ${detail}` }, pollRes.status);
+    }
+
+    const contentType = pollRes.headers.get('content-type') || 'audio/mpeg';
+    return new Response(pollRes.body, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }
