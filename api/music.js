@@ -18,6 +18,7 @@ function toDuration(value, fallback = 15) {
   return Math.min(300, Math.max(3, Math.round(parsed)));
 }
 
+// Accepts common boolean representations from clients: boolean, "true"/"false", 1/0.
 function toInstrumentalString(value) {
   if (value === undefined || value === null || value === '') return null;
   if (value === true || value === 'true' || value === 1 || value === '1') return 'true';
@@ -55,7 +56,7 @@ export default async function handler(req) {
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
     params.append('response_format', finalFormat);
-    if (instrumentalValue) {
+    if (instrumentalValue !== null) {
       params.append('instrumental', instrumentalValue);
     }
     if (style && String(style).trim()) {
