@@ -24,7 +24,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, duration, style, model } = await req.json();
+    const { prompt, duration } = await req.json();
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
     if (!apiKey) {
@@ -33,17 +33,13 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'elevenmusic';
+    const finalModel = 'acestep';
     const finalDuration = toDuration(duration, 15);
 
     const baseUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(finalPrompt)}`;
     const params = new URLSearchParams();
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
-    params.append('key', apiKey);
-    if (style && String(style).trim()) {
-      params.append('style', String(style).trim());
-    }
 
     const url = `${baseUrl}?${params.toString()}`;
     return jsonResponse({ url, apiKey });

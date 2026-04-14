@@ -751,10 +751,9 @@
             }
         };
 
-        window.fetchServerMusic = async (audioEl, encPrompt, duration, containerId, encStyle) => {
+        window.fetchServerMusic = async (audioEl, encPrompt, duration, containerId) => {
             const prompt = decodeURIComponent(encPrompt);
-            const style = encStyle ? decodeURIComponent(encStyle) : "";
-            const urlKey = `${prompt}-${duration}-${style}-music`;
+            const urlKey = `${prompt}-${duration}-music`;
 
             const container = document.getElementById(containerId);
             if (!container) {
@@ -791,10 +790,8 @@
             try {
                 const body = {
                     prompt,
-                    duration: parseInt(duration) || 15,
-                    model: 'acestep'
+                    duration: parseInt(duration) || 15
                 };
-                if (style) body.style = style;
 
                 const res = await fetch('/api/music', {
                     method: 'POST',
@@ -1042,9 +1039,8 @@
                     const prompt = parts[0];
                     const duration = parts[1] || "15";
                     const filename = parts[2] || `DAi_Music_${Date.now()}`;
-                    const style = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no style") ? parts[3] : "";
 
-                    console.log('[Putter.generateMusic] Parsed:', { prompt, duration, filename, style });
+                    console.log('[Putter.generateMusic] Parsed:', { prompt, duration, filename });
 
                     const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
                     const btnId = `dl-${uniqueSuffix}`;
@@ -1052,7 +1048,6 @@
 
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
-                    const safeStyle = style ? encodeURIComponent(style).replace(/'/g, "%27") : "";
 
                     const html = `
 <div id="${containerId}" class="dai-audio-container">
@@ -1071,7 +1066,7 @@
                         if (container) {
                             const audioEl = container.querySelector('audio');
                             if (audioEl) {
-                                window.fetchServerMusic(audioEl, safePrompt, duration, containerId, safeStyle);
+                                window.fetchServerMusic(audioEl, safePrompt, duration, containerId);
                             }
                         }
                     }, 0);
