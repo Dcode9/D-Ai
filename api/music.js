@@ -42,13 +42,28 @@ export default async function handler(req) {
     params.append('duration', String(finalDuration));
     const url = `${baseUrl}?${params.toString()}`;
 
-    const pollRes = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'audio/mpeg,audio/*'
-      }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
+    let pollRes;
+    try {
+      pollRes = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'audio/mpeg,audio/*'
+        },
+        signal: controller.signal
+      });
+    } catch (err) {
+      const aborted = err && err.name === 'AbortError';
+      return jsonResponse(
+        { error: aborted ? 'Pollinations timed out while generating audio.' : `Request failed: ${err.message || err}` },
+        aborted ? 504 : 502
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!pollRes.ok) {
       let detail = pollRes.statusText;
