@@ -59,7 +59,7 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'elevenmusic';
+    const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
     const finalDuration = toDuration(duration, 15);
     let finalFormat = 'mp3';
     try {
