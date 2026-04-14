@@ -18,6 +18,24 @@ function toDuration(value, fallback = 15) {
   return Math.min(300, Math.max(3, Math.round(parsed)));
 }
 
+const AUDIO_FORMAT_MIME = {
+  mp3: 'audio/mpeg',
+  opus: 'audio/opus',
+  aac: 'audio/aac',
+  flac: 'audio/flac',
+  wav: 'audio/wav',
+  pcm: 'audio/L16'
+};
+
+function toResponseFormat(value, fallback = 'mp3') {
+  if (!value) return fallback;
+  const format = String(value).trim().toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(AUDIO_FORMAT_MIME, format)) {
+    throw new Error('Invalid response_format. Use one of: mp3, opus, aac, flac, wav, pcm.');
+  }
+  return format;
+}
+
 // Accepts common boolean representations from clients: boolean, "true"/"false", 1/0.
 function toInstrumentalString(value) {
   if (value === undefined || value === null || value === '') return null;
@@ -43,7 +61,12 @@ export default async function handler(req) {
     const finalPrompt = promptText || 'ambient cinematic instrumental';
     const finalModel = model && String(model).trim() ? String(model).trim() : 'elevenmusic';
     const finalDuration = toDuration(duration, 15);
-    const finalFormat = response_format && String(response_format).trim() ? String(response_format).trim() : 'mp3';
+    let finalFormat = 'mp3';
+    try {
+      finalFormat = toResponseFormat(response_format, 'mp3');
+    } catch (error) {
+      return jsonResponse({ error: error.message }, 400);
+    }
     let instrumentalValue = null;
     try {
       instrumentalValue = toInstrumentalString(instrumental);
@@ -85,7 +108,7 @@ export default async function handler(req) {
     return new Response(audioBuffer, {
       status: 200,
       headers: {
-        'Content-Type': pollinationsRes.headers.get('content-type') || 'audio/mpeg',
+        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat],
         'Access-Control-Allow-Origin': '*'
       }
     });
