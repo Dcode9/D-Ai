@@ -108,7 +108,7 @@ export default async function handler(req) {
     return new Response(audioBuffer, {
       status: 200,
       headers: {
-        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat] || 'audio/mpeg',
+        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat],
         'Access-Control-Allow-Origin': '*'
       }
     });
