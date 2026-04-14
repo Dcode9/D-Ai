@@ -2,8 +2,6 @@ export const config = {
   runtime: 'edge',
 };
 
-import { getPollinationsApiKey } from './_pollinations.js';
-
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -27,7 +25,7 @@ export default async function handler(req) {
 
   try {
     const { prompt, duration, style, model } = await req.json();
-    const apiKey = getPollinationsApiKey();
+    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
     if (!apiKey) {
       return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 500);
