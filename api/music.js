@@ -2,6 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
+import { getPollinationsApiKey } from './_pollinations.js';
+
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -16,18 +18,6 @@ function toDuration(value, fallback = 15) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(300, Math.max(3, Math.round(parsed)));
-}
-
-function getPollinationsApiKey() {
-  const candidates = [
-    process.env.POLLINATIONS_API,
-    process.env.POLLINATIONS_API_KEY,
-    process.env.NEXT_PUBLIC_POLLINATIONS_API
-  ];
-  for (const value of candidates) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
 }
 
 export default async function handler(req) {

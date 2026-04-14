@@ -2,6 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
+import { getPollinationsApiKey } from './_pollinations.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*'
 };
@@ -124,18 +126,6 @@ function selectModel(requestedModel, hasSourceImage) {
   }
 
   return requestedModel;
-}
-
-function getPollinationsApiKey() {
-  const candidates = [
-    process.env.POLLINATIONS_API,
-    process.env.POLLINATIONS_API_KEY,
-    process.env.NEXT_PUBLIC_POLLINATIONS_API
-  ];
-  for (const value of candidates) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
 }
 
 export default async function handler(req) {
