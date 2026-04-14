@@ -10,7 +10,7 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, duration, aspectRatio, model, image } = await req.json();
 
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+    const apiKey = process.env.POLLINATIONS_API;
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API key is missing." }), {
