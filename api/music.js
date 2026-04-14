@@ -105,10 +105,14 @@ export default async function handler(req) {
     }
 
     const audioBuffer = await pollinationsRes.arrayBuffer();
+    const upstreamType = pollinationsRes.headers.get('content-type');
+    const safeContentType = upstreamType && upstreamType.startsWith('audio/')
+      ? upstreamType
+      : AUDIO_FORMAT_MIME[finalFormat];
     return new Response(audioBuffer, {
       status: 200,
       headers: {
-        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat],
+        'Content-Type': safeContentType,
         'Access-Control-Allow-Origin': '*'
       }
     });
