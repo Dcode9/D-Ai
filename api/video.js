@@ -2,6 +2,18 @@ export const config = {
   runtime: 'edge',
 };
 
+function getPollinationsApiKey() {
+  const candidates = [
+    process.env.POLLINATIONS_API,
+    process.env.POLLINATIONS_API_KEY,
+    process.env.NEXT_PUBLIC_POLLINATIONS_API
+  ];
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -10,7 +22,7 @@ export default async function handler(req) {
   try {
     const { prompt, width, height, duration, aspectRatio, model, image } = await req.json();
 
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+    const apiKey = getPollinationsApiKey();
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Configuration Error: POLLINATIONS_API key is missing." }), {
