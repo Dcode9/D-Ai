@@ -812,16 +812,18 @@
                     }
 
                 const { url, apiKey } = await res.json();
-                if (!url || !apiKey) {
+                if (!url) {
                     throw new Error("Unable to initialize music generation. Please refresh and try again.");
+                }
+
+                const headers = { 'Accept': 'audio/mpeg,audio/*' };
+                if (apiKey) {
+                    headers['Authorization'] = `Bearer ${apiKey}`;
                 }
 
                 const audioRes = await fetch(url, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'audio/mpeg,audio/*'
-                    }
+                    headers
                 });
 
                 if (!audioRes.ok) {
