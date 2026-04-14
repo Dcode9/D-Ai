@@ -18,10 +18,11 @@ function toDuration(value, fallback = 15) {
   return Math.min(300, Math.max(3, Math.round(parsed)));
 }
 
-function toBooleanString(value) {
-  if (value === true || value === 'true') return 'true';
-  if (value === false || value === 'false') return 'false';
-  return null;
+function toInstrumentalString(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (value === true || value === 'true' || value === 1 || value === '1') return 'true';
+  if (value === false || value === 'false' || value === 0 || value === '0') return 'false';
+  throw new Error('Invalid instrumental value. Use true or false.');
 }
 
 export default async function handler(req) {
@@ -42,7 +43,12 @@ export default async function handler(req) {
     const finalModel = model && String(model).trim() ? String(model).trim() : 'elevenmusic';
     const finalDuration = toDuration(duration, 15);
     const finalFormat = response_format && String(response_format).trim() ? String(response_format).trim() : 'mp3';
-    const instrumentalValue = toBooleanString(instrumental);
+    let instrumentalValue = null;
+    try {
+      instrumentalValue = toInstrumentalString(instrumental);
+    } catch (error) {
+      return jsonResponse({ error: error.message }, 400);
+    }
 
     const baseUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(finalPrompt)}`;
     const params = new URLSearchParams();
@@ -52,7 +58,7 @@ export default async function handler(req) {
     if (instrumentalValue) {
       params.append('instrumental', instrumentalValue);
     }
-    if (finalModel === 'acestep' && style && String(style).trim()) {
+    if (style && String(style).trim()) {
       params.append('style', String(style).trim());
     }
 
