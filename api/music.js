@@ -53,10 +53,6 @@ export default async function handler(req) {
     const { prompt, duration, style, instrumental, response_format } = await req.json();
     const apiKey = process.env.POLLINATIONS_API;
 
-    if (!apiKey) {
-      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 500);
-    }
-
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
     const finalModel = 'acestep';
@@ -87,13 +83,18 @@ export default async function handler(req) {
     }
 
     const url = `${baseUrl}?${params.toString()}`;
-    const pollinationsRes = await fetch(url, {
+    const fetchAudio = (includeAuth) => fetch(url, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        ...(includeAuth && apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         Accept: 'audio/*'
       }
     });
+
+    let pollinationsRes = await fetchAudio(!!apiKey);
+    if (pollinationsRes.status === 401 && apiKey) {
+      pollinationsRes = await fetchAudio(false);
+    }
 
     if (!pollinationsRes.ok) {
       let detail = pollinationsRes.statusText;
