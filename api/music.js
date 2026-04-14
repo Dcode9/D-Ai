@@ -30,7 +30,7 @@ const AUDIO_FORMAT_MIME = {
 function toResponseFormat(value, fallback = 'mp3') {
   if (!value) return fallback;
   const format = String(value).trim().toLowerCase();
-  if (!Object.prototype.hasOwnProperty.call(AUDIO_FORMAT_MIME, format)) {
+  if (!(format in AUDIO_FORMAT_MIME)) {
     throw new Error('Invalid response_format. Use one of: mp3, opus, aac, flac, wav, pcm.');
   }
   return format;
@@ -108,7 +108,7 @@ export default async function handler(req) {
     return new Response(audioBuffer, {
       status: 200,
       headers: {
-        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat],
+        'Content-Type': pollinationsRes.headers.get('content-type') || AUDIO_FORMAT_MIME[finalFormat] || 'audio/mpeg',
         'Access-Control-Allow-Origin': '*'
       }
     });
