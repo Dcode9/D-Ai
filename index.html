@@ -792,7 +792,8 @@
                 const body = {
                     prompt,
                     duration: parseInt(duration) || 15,
-                    model: 'acestep'
+                    model: 'elevenmusic',
+                    instrumental: true
                 };
                 if (style) body.style = style;
 
@@ -811,32 +812,7 @@
                         throw new Error(`Server Error (${res.status}): ${detail}`);
                     }
 
-                const { url, apiKey } = await res.json();
-                if (!url || !apiKey) {
-                    throw new Error("Unable to initialize music generation. Please refresh and try again.");
-                }
-
-                const audioRes = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'audio/mpeg,audio/*'
-                    }
-                });
-
-                if (!audioRes.ok) {
-                    let detail = audioRes.statusText;
-                    try {
-                        const text = await audioRes.text();
-                        detail = text || detail;
-                    } catch (e) {}
-                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
-                    }
-                    throw new Error(`Pollinations API Error (${audioRes.status}): ${detail}`);
-                }
-
-                const audioBlob = await audioRes.blob();
+                const audioBlob = await res.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
 
                 if (!window.mCache) window.mCache = new Map();
@@ -1152,7 +1128,7 @@
                                  "**MUSIC GENERATION:**\n" +
                                  "1. **Always** precede the music generation tag with a warm, conversational sentence describing what you are creating.\n" +
                                  "2. Format: <<GENERATE_MUSIC: detailed_prompt | duration_seconds | filename_slug | style_tags (optional)>>\n" +
-                                 "3. Use Pollinations audio generation with model **acestep** for music.\n" +
+                                 "3. Use Pollinations audio generation with model **elevenmusic** for music.\n" +
                                  "4. Duration should be between 3 and 300 seconds (default: 15).\n" +
                                  "5. Example: <<GENERATE_MUSIC: energetic synthwave track with punchy drums | 20 | synthwave_track | synthwave upbeat electronic>>\n" +
                                  "6. You can generate up to 3 music tracks at once.\n" +

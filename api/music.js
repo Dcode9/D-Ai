@@ -18,13 +18,19 @@ function toDuration(value, fallback = 15) {
   return Math.min(300, Math.max(3, Math.round(parsed)));
 }
 
+function toBooleanString(value) {
+  if (value === true || value === 'true') return 'true';
+  if (value === false || value === 'false') return 'false';
+  return null;
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
   try {
-    const { prompt, duration, style, model } = await req.json();
+    const { prompt, duration, style, model, instrumental, response_format } = await req.json();
     const apiKey = process.env.POLLINATIONS_API;
 
     if (!apiKey) {
@@ -33,19 +39,49 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
+    const finalModel = model && String(model).trim() ? String(model).trim() : 'elevenmusic';
     const finalDuration = toDuration(duration, 15);
+    const finalFormat = response_format && String(response_format).trim() ? String(response_format).trim() : 'mp3';
+    const instrumentalValue = toBooleanString(instrumental);
 
     const baseUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(finalPrompt)}`;
     const params = new URLSearchParams();
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
-    if (style && String(style).trim()) {
+    params.append('response_format', finalFormat);
+    if (instrumentalValue) {
+      params.append('instrumental', instrumentalValue);
+    }
+    if (finalModel === 'acestep' && style && String(style).trim()) {
       params.append('style', String(style).trim());
     }
 
     const url = `${baseUrl}?${params.toString()}`;
-    return jsonResponse({ url, apiKey });
+    const pollinationsRes = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'audio/*'
+      }
+    });
+
+    if (!pollinationsRes.ok) {
+      let detail = pollinationsRes.statusText;
+      try {
+        const text = await pollinationsRes.text();
+        if (text) detail = text;
+      } catch {}
+      return jsonResponse({ error: `Pollinations API Error (${pollinationsRes.status}): ${detail}` }, pollinationsRes.status);
+    }
+
+    const audioBuffer = await pollinationsRes.arrayBuffer();
+    return new Response(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': pollinationsRes.headers.get('content-type') || 'audio/mpeg',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }
