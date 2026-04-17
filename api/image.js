@@ -115,7 +115,7 @@ function selectModel(requestedModel, hasSourceImage) {
   const normalized = (requestedModel || '').trim().toLowerCase();
 
   if (!hasSourceImage) {
-    return requestedModel || 'gptimage';
+    return requestedModel || 'zimage';
   }
 
   // Models like flux/zimage are text-to-image focused and may ignore edit references.
