@@ -32,7 +32,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     
     <script>
-        // Filter non-actionable extension script errors.
         (function() {
             window.addEventListener('error', (event) => {
                 const message = `${event?.message || ''} ${event?.error?.message || ''}`;
@@ -102,8 +101,8 @@
         
         @keyframes thinkRotate {
             0%, 20% { content: "Analyzing Request..."; }
-            25%, 45% { content: "Searching Knowledge Base..."; }
-            50%, 70% { content: "Reasoning & Formulating..."; }
+            25%, 45% { content: "Reasoning Step..."; }
+            50%, 70% { content: "Formulating..."; }
             75%, 95% { content: "Structuring Response..."; }
             100% { content: "Analyzing Request..."; }
         }
@@ -140,7 +139,7 @@
         .gen-status.active { opacity: 0.7; }
 
         /* Scroll Button */
-        #scroll-btn { position: fixed; bottom: 100px; right: 20px; z-index: 40; background: #1A1A1A; color: #3b82f6; border: 1px solid #333; padding: 10px 14px; border-radius: 50%; cursor: pointer; opacity: 0; transition: all 0.3s; transform: translateY(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        #scroll-btn { position: absolute; bottom: 20px; right: 20px; z-index: 40; background: #1A1A1A; color: #3b82f6; border: 1px solid #333; padding: 10px 14px; border-radius: 50%; cursor: pointer; opacity: 0; transition: all 0.3s; transform: translateY(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         #scroll-btn.visible { opacity: 1; transform: translateY(0); }
         #scroll-btn:hover { background: #2563eb; color: white; border-color: #2563eb; }
 
@@ -160,25 +159,19 @@
         .error-countdown { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 50%; font-weight: 600; font-size: 0.8rem; color: #3b82f6; margin: 0 4px; }
     </style>
 </head>
-<body class="flex flex-col h-screen relative">
+<body class="flex h-screen bg-dark-bg text-white overflow-hidden">
     
-    <!-- Sidebar Overlay -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm transition-opacity opacity-0" onclick="window.toggleSidebar()"></div>
-
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-[#0f0f0f] border-r border-[#222] z-40 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-[#222] flex justify-between items-center">
-            <button onclick="location.reload()" class="flex items-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors w-full justify-center">
+    <aside id="sidebar" class="w-72 h-full flex-shrink-0 transition-[margin] duration-300 ease-in-out bg-[#0f0f0f] border-r border-[#222] flex flex-col relative z-30 -ml-72 md:ml-0 shadow-2xl">
+        <div class="p-4 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a]">
+            <button onclick="window.newChat()" class="flex items-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors w-full justify-center">
                 <i class="fa-solid fa-plus"></i> New Chat
             </button>
-            <button onclick="window.toggleSidebar()" class="ml-2 text-gray-500 hover:text-white p-2"><i class="fa-solid fa-times"></i></button>
+            <button onclick="window.toggleSidebar()" class="ml-2 text-gray-500 hover:text-white p-2 md:hidden"><i class="fa-solid fa-times"></i></button>
         </div>
         
         <div class="flex-1 overflow-y-auto p-3 space-y-1" id="chat-history-list">
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2 px-2">Today</div>
-            <button class="w-full text-left px-3 py-2.5 rounded-lg bg-[#1a1a1a] border border-[#333] text-sm text-gray-200 truncate hover:bg-[#252525] transition-colors flex items-center gap-3">
-                <i class="fa-regular fa-message text-gray-500"></i> <span id="current-chat-title">New Conversation</span>
-            </button>
+            <!-- Chat history items will be injected here -->
         </div>
 
         <!-- Personalization Toggle -->
@@ -188,74 +181,62 @@
                     <i class="fa-solid fa-user-astronaut text-brand"></i>
                     <div>
                         <div class="text-sm font-medium text-white">Personalization</div>
-                        <div class="text-[10px] text-gray-500">Uses memory to adapt to you</div>
+                        <div class="text-[10px] text-gray-500">Uses memory to adapt</div>
                     </div>
                 </div>
                 <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="toggle" id="personalization-toggle" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-gray-300" onchange="window.toggleMemory(this.checked)"/>
+                    <input type="checkbox" name="toggle" id="personalization-toggle" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-gray-300" onchange="window.toggleMemory(this.checked)"/>
                     <label for="personalization-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-600 cursor-pointer transition-colors duration-200 ease-in-out"></label>
                 </div>
             </div>
         </div>
     </aside>
 
-    <!-- Header -->
-    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm">
-        <div class="max-w-4xl mx-auto flex justify-between items-center px-4">
-            <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white transition-colors p-2 -ml-2" title="Menu">
-                <i class="fa-solid fa-bars text-xl"></i>
-            </button>
-            <div class="flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-                <div>
-                    <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
-                    <p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p>
+    <!-- Main Content -->
+    <div id="main-content" class="flex-1 flex flex-col h-full relative min-w-0 transition-all duration-300">
+        
+        <!-- Header -->
+        <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
+            <div class="max-w-4xl mx-auto flex justify-between items-center px-4">
+                <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white transition-colors p-2 -ml-2" title="Toggle Sidebar">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
+                    <div>
+                        <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
+                        <p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p>
+                    </div>
                 </div>
+                <button onclick="window.newChat()" class="text-gray-400 hover:text-white transition-colors p-2 -mr-2" title="New Chat">
+                    <i class="fa-regular fa-pen-to-square text-lg"></i>
+                </button>
             </div>
-            <button onclick="location.reload()" class="text-gray-400 hover:text-white transition-colors p-2 -mr-2" title="New Chat">
-                <i class="fa-regular fa-pen-to-square text-lg"></i>
-            </button>
-        </div>
-    </header>
+        </header>
 
-    <main class="flex-1 flex flex-col pt-20 w-full max-w-4xl mx-auto overflow-hidden relative">
-        <div id="chat" class="flex-1 overflow-y-auto px-4 py-6 pb-60 space-y-8 scroll-smooth">
+        <!-- Chat Area -->
+        <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
                 <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                 <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
-            </div>
-        </div>
-        <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
-    </main>
-
-    <!-- Bottom Input Area -->
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-16 px-4 z-10 pointer-events-none">
-        <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 relative pointer-events-auto">
-            
-            <!-- Suggestions Row -->
-            <div id="suggestions" class="flex gap-2 overflow-x-auto w-full scrollbar-hide pb-2 transition-all duration-300">
-                <button class="whitespace-nowrap px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">
-                    🖼️ Generate Image
-                </button>
-                <button class="whitespace-nowrap px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">
-                    🎬 Make a Video
-                </button>
-                <button class="whitespace-nowrap px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">
-                    🎵 Compose Music
-                </button>
-                <button class="whitespace-nowrap px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Solve this logic puzzle: If you have a 3-gallon jug and a 5-gallon jug, how do you measure exactly 4 gallons?')">
-                    🤔 Logic Puzzle
-                </button>
-                <button class="whitespace-nowrap px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Write a clean, responsive React component for a pricing card using Tailwind CSS')">
-                    💻 Write React Code
-                </button>
-            </div>
-
-            <!-- Main Input Box -->
-            <div class="w-full flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative">
                 
-                <!-- Image Preview Area -->
+                <!-- Suggestions Centered on Hero -->
+                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 max-w-2xl transition-all duration-300">
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Solve this logic puzzle: If you have a 3-gallon jug and a 5-gallon jug, how do you measure exactly 4 gallons?')">🤔 Logic Puzzle</button>
+                </div>
+            </div>
+            
+            <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+        </main>
+
+        <!-- Bottom Input Area -->
+        <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
+            <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative">
+                
                 <div id="img-preview" class="hidden w-full px-3 pt-2">
                     <div class="relative inline-block group">
                         <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
@@ -269,12 +250,6 @@
                 <div class="w-full flex items-end">
                     <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-400 hover:text-white transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
                     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
-                    
-                    <!-- Thinking Toggle -->
-                    <button id="think-btn" onclick="window.toggleThinking()" class="p-3.5 text-brand hover:text-blue-400 transition-colors rounded-full relative group" title="Thinking Mode: ON">
-                        <i class="fa-solid fa-brain text-lg"></i>
-                        <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-[#222] text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none" id="think-tooltip">Reasoning ON</span>
-                    </button>
                     
                     <textarea id="in" rows="1" class="w-full bg-transparent text-white py-3.5 px-2 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
                     
@@ -296,33 +271,14 @@
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
         // --- ERROR MESSAGES & LOADER ---
-        const busyReasons = [
-            "Processing a million thoughts at once! 🧠", "My neural networks are taking a coffee break ☕",
-            "Traffic jam in the AI highway! 🚗", "Quantum computing taking longer than expected ⚛️",
-            "My GPUs are doing yoga stretches 🧘", "Running a marathon through the data centers 🏃",
-            "Downloading more intelligence... 📥", "Server elves are organizing my files 🧝"
-        ];
+        const busyReasons = ["Processing thoughts! 🧠", "Neural networks working ☕", "Quantum computing... ⚛️", "Downloading intelligence... 📥"];
 
         window.showErrorLoader = (container, retryCallback) => {
-            const randomReason = busyReasons[Math.floor(Math.random() * busyReasons.length)];
-            let countdown = 10;
-            let intervalId;
-
-            container.innerHTML = `
-                <div class="error-loader-container">
-                    <div class="error-spinner"></div>
-                    <div class="text-center">
-                        <div class="text-white text-md font-semibold mb-2 error-pulse">D'Ai is Busy! 🚀</div>
-                        <div class="text-gray-400 text-xs mb-3">${randomReason}</div>
-                        <div class="text-gray-500 text-[10px] font-mono">Retrying in <span class="error-countdown" id="error-countdown">10</span>s...</div>
-                    </div>
-                </div>
-            `;
-            const countdownEl = document.getElementById('error-countdown');
+            let countdown = 10; let intervalId;
+            container.innerHTML = `<div class="error-loader-container"><div class="error-spinner"></div><div class="text-center"><div class="text-white text-md font-semibold mb-2 error-pulse">D'Ai is Busy! 🚀</div><div class="text-gray-400 text-xs mb-3">${busyReasons[Math.floor(Math.random() * busyReasons.length)]}</div><div class="text-gray-500 text-[10px] font-mono">Retrying in <span id="error-countdown">10</span>s...</div></div></div>`;
             intervalId = setInterval(() => {
-                countdown--;
-                if (countdownEl) countdownEl.textContent = countdown;
-                if (countdown <= 0) { clearInterval(intervalId); if (retryCallback) retryCallback(); }
+                countdown--; const cd = document.getElementById('error-countdown'); if(cd) cd.textContent = countdown;
+                if (countdown <= 0) { clearInterval(intervalId); if(retryCallback) retryCallback(); }
             }, 1000);
             return () => clearInterval(intervalId);
         };
@@ -330,49 +286,123 @@
         // --- APP STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
-        window.useThinkingMode = true;
-        window.usePersonalization = true;
+        window.usePersonalization = false; // Off by default as requested
         window.chatHasStarted = false;
+        window.chats = JSON.parse(localStorage.getItem('dai_chats')) || [];
+        window.currentChatId = null;
 
-        // --- Sidebar & Toggles Logic ---
+        // --- Sidebar & Logic ---
         window.toggleSidebar = () => {
             const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('opacity-0');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        };
-
-        window.toggleThinking = () => {
-            window.useThinkingMode = !window.useThinkingMode;
-            const btn = document.getElementById('think-btn');
-            const tooltip = document.getElementById('think-tooltip');
-            if(window.useThinkingMode) {
-                btn.classList.remove('text-gray-500'); btn.classList.add('text-brand'); tooltip.innerText = "Reasoning ON";
-            } else {
-                btn.classList.remove('text-brand'); btn.classList.add('text-gray-500'); tooltip.innerText = "Reasoning OFF";
-            }
+            if (sidebar.classList.contains('-ml-72')) { sidebar.classList.remove('-ml-72'); } 
+            else { sidebar.classList.add('-ml-72'); }
         };
 
         window.toggleMemory = (enabled) => { window.usePersonalization = enabled; };
+        
         window.useSuggestion = (text) => {
             const input = document.getElementById('in'); input.value = text;
             input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px';
             window.send();
         };
 
+        window.newChat = () => {
+            window.currentChatId = null;
+            window.S.msg = [];
+            window.S.gen = false;
+            window.chatHasStarted = false;
+            document.getElementById('chat').innerHTML = `
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6">
+                <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
+                <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
+                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 max-w-2xl transition-all duration-300">
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Solve this logic puzzle: If you have a 3-gallon jug and a 5-gallon jug, how do you measure exactly 4 gallons?')">🤔 Logic Puzzle</button>
+                </div>
+            </div><button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>`;
+            window.E.h = document.getElementById('hero');
+            window.E.c = document.getElementById('chat');
+            document.getElementById('in').value = '';
+            document.getElementById('in').style.height = 'auto';
+            if(window.innerWidth < 768) window.toggleSidebar();
+            renderSidebarChats();
+        };
+
+        const renderSidebarChats = () => {
+            const list = document.getElementById('chat-history-list');
+            let html = `<div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2 px-2">History</div>`;
+            window.chats.forEach(chat => {
+                const isActive = chat.id === window.currentChatId;
+                html += `<button onclick="window.loadChat('${chat.id}')" class="w-full text-left px-3 py-2.5 rounded-lg mb-1 ${isActive ? 'bg-[#252525] border-[#555]' : 'bg-[#1a1a1a] border-[#333]'} border text-sm text-gray-200 truncate hover:bg-[#252525] transition-colors flex items-center gap-3">
+                    <i class="fa-regular fa-message text-gray-500"></i> <span>${chat.title}</span>
+                </button>`;
+            });
+            list.innerHTML = html;
+        };
+
+        const saveCurrentChat = (titleUpdate = null) => {
+            if(!window.currentChatId && window.S.msg.length > 1) {
+                window.currentChatId = Date.now().toString();
+                window.chats.unshift({ id: window.currentChatId, title: titleUpdate || "New Chat", messages: window.S.msg });
+            } else if (window.currentChatId) {
+                const chat = window.chats.find(c => c.id === window.currentChatId);
+                if(chat) {
+                    chat.messages = window.S.msg;
+                    if(titleUpdate) chat.title = titleUpdate;
+                }
+            }
+            localStorage.setItem('dai_chats', JSON.stringify(window.chats));
+            renderSidebarChats();
+        };
+
+        window.loadChat = (id) => {
+            const chat = window.chats.find(c => c.id === id);
+            if(!chat) return;
+            window.currentChatId = id;
+            window.S.msg = JSON.parse(JSON.stringify(chat.messages)); // Deep copy to prevent reference issues
+            window.chatHasStarted = true;
+            
+            // Clear DOM
+            window.E.c.innerHTML = '<button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>'; 
+            
+            // Re-render messages
+            chat.messages.forEach(m => {
+                if(m.role === 'user') {
+                    const content = m.content.replace(/\[UPLOADED_IMAGE:.*?\]/, '');
+                    let displayHtml = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    if(m.content.includes('[UPLOADED_IMAGE:')) displayHtml += `<br><span class="text-xs text-brand mt-1 block"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
+                    window.addMsg('user', displayHtml);
+                } else if(m.role === 'assistant') {
+                    const {firstElementChild:el} = window.addMsg('assistant','');
+                    const mdRenderer = window.getMd();
+                    let processedContent = m.content.replace(/<think>([\s\S]*?)(?:<\/think>|$)/g, (match, inner) => {
+                        const isClosed = match.endsWith('</think>');
+                        const headerHtml = `<i class="fa-solid fa-lightbulb text-yellow-500"></i> <span class="text-gray-300 font-semibold text-[0.7rem] tracking-[0.1em] uppercase">Thought Process</span>`;
+                        return `\n\n<div class="think-block"><div class="think-header" onclick="this.nextElementSibling.classList.toggle('hidden')">${headerHtml}</div><div class="think-content ${isClosed ? 'hidden' : ''}">\n\n${inner}\n\n</div></div>\n\n`;
+                    });
+                    processedContent = processedContent.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m, inp) => window.Putter.generate(inp));
+                    processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => window.Putter.generateVideo(inp));
+                    processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => window.Putter.generateMusic(inp));
+                    
+                    let finalHtml = mdRenderer.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                    el.querySelector('.markdown-body').innerHTML = finalHtml;
+                }
+            });
+            window.scrollToBottom();
+            renderSidebarChats();
+            if(window.innerWidth < 768) window.toggleSidebar();
+        };
+
         // --- Scroll Logic ---
         const chatContainer = document.getElementById('chat');
-        const scrollBtn = document.getElementById('scroll-btn');
         chatContainer.addEventListener('scroll', () => {
-            const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-            if (isNearBottom) scrollBtn.classList.remove('visible'); else scrollBtn.classList.add('visible');
+            const btn = document.getElementById('scroll-btn');
+            if(!btn) return;
+            if (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100) btn.classList.remove('visible'); 
+            else btn.classList.add('visible');
         });
         window.scrollToBottom = () => { chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); };
 
@@ -389,23 +419,14 @@
             fetch('/api/upload', { method: 'POST', body: formData })
                 .then(res => { if(!res.ok) throw new Error(`Upload Error: ${res.status}`); return res.json(); })
                 .then(data => {
-                    if (data.success) {
-                        window.uploadedImageUrl = data.link; thumb.classList.remove('opacity-50'); thumb.classList.add('opacity-100'); progress.classList.add('hidden');
-                    } else throw new Error(data.error || 'Upload failed');
+                    if (data.success) { window.uploadedImageUrl = data.link; thumb.classList.remove('opacity-50'); thumb.classList.add('opacity-100'); progress.classList.add('hidden'); } 
+                    else throw new Error(data.error || 'Upload failed');
                 })
                 .catch(err => { console.error(err); alert("Image upload failed. Please try again."); window.removeImage(); })
                 .finally(() => { window.isUploading = false; });
         };
-
-        window.removeImage = () => {
-            document.getElementById('file-input').value = ""; document.getElementById('img-preview').classList.add('hidden');
-            window.uploadedImageUrl = null; window.isUploading = false;
-        };
-
-        document.addEventListener('paste', (e) => {
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let item of items) { if (item.kind === 'file' && item.type.startsWith('image/')) window.handleFile(item.getAsFile()); }
-        });
+        window.removeImage = () => { document.getElementById('file-input').value = ""; document.getElementById('img-preview').classList.add('hidden'); window.uploadedImageUrl = null; window.isUploading = false; };
+        document.addEventListener('paste', (e) => { const items = (e.clipboardData || e.originalEvent.clipboardData).items; for (let item of items) { if (item.kind === 'file' && item.type.startsWith('image/')) window.handleFile(item.getAsFile()); } });
 
         // --- Fluid Animations & Media ---
         async function processAndWatermark(blob) {
@@ -420,9 +441,7 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; const margin = fontSize * 0.8;
             ctx.fillText("D'Ai", img.width - margin, img.height - margin);
             URL.revokeObjectURL(img.src);
-            return new Promise((resolve, reject) => {
-                canvas.toBlob(b => { if (!b) reject(new Error('Encode failed')); else resolve(URL.createObjectURL(b)); }, 'image/jpeg', 0.95);
-            });
+            return new Promise((resolve, reject) => { canvas.toBlob(b => { if (!b) reject(new Error('Encode failed')); else resolve(URL.createObjectURL(b)); }, 'image/jpeg', 0.95); });
         }
 
         const FluidAnim = {
@@ -462,9 +481,7 @@
             const genStatus = container.querySelector('.gen-status'); const overlay = container.querySelector('.dai-overlay');
 
             FluidAnim.init(containerId); fluidCont.classList.add('active'); progSvg.classList.add('active'); genStatus.classList.add('active');
-            FluidAnim.run(containerId, 0, 85, 4000, () => {
-                if (!imgEl.classList.contains('loaded') && !imgEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 16000);
-            });
+            FluidAnim.run(containerId, 0, 85, 4000, () => { if (!imgEl.classList.contains('loaded') && !imgEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 16000); });
 
             if(window.pCache && window.pCache.has(urlKey)) { imgEl.src = window.pCache.get(urlKey); setTimeout(() => finishAnimation(imgEl.src), 100); return; }
 
@@ -500,9 +517,7 @@
             const genStatus = container.querySelector('.gen-status'); const overlay = container.querySelector('.dai-overlay');
 
             FluidAnim.init(containerId); fluidCont.classList.add('active'); progSvg.classList.add('active'); genStatus.classList.add('active');
-            FluidAnim.run(containerId, 0, 85, 8000, () => {
-                if (!videoEl.classList.contains('loaded') && !videoEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 24000);
-            });
+            FluidAnim.run(containerId, 0, 85, 8000, () => { if (!videoEl.classList.contains('loaded') && !videoEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 24000); });
 
             if(window.vCache && window.vCache.has(urlKey)) { videoEl.src = window.vCache.get(urlKey); setTimeout(() => finishAnimation(videoEl.src), 100); return; }
 
@@ -541,9 +556,7 @@
             const genStatus = container.querySelector('.gen-status'); const overlay = container.querySelector('.dai-overlay');
 
             FluidAnim.init(containerId); fluidCont.classList.add('active'); progSvg.classList.add('active'); genStatus.classList.add('active');
-            FluidAnim.run(containerId, 0, 85, 6000, () => {
-                if (!audioEl.classList.contains('loaded') && !audioEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 18000);
-            });
+            FluidAnim.run(containerId, 0, 85, 6000, () => { if (!audioEl.classList.contains('loaded') && !audioEl.classList.contains('error')) FluidAnim.run(containerId, 85, 99, 18000); });
 
             if (window.mCache && window.mCache.has(urlKey)) { audioEl.src = window.mCache.get(urlKey); setTimeout(() => finishAnimation(audioEl.src), 100); return; }
 
@@ -578,11 +591,7 @@
             const container = btn.closest('.dai-img-container'); const img = container.querySelector('img');
             const blobUrl = img.src; const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            try {
-                const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.png` : `DAi-${Date.now()}.png`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            } catch(e) { window.open(blobUrl,'_blank'); }
-            btn.innerHTML = ogHtml;
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.png` : `DAi-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch(e) { window.open(blobUrl,'_blank'); } btn.innerHTML = ogHtml;
         };
         window.imgError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
 
@@ -591,11 +600,7 @@
             const container = btn.closest('.dai-video-container'); const video = container.querySelector('video');
             const blobUrl = video.src; const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            try {
-                const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp4` : `DAi-${Date.now()}.mp4`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            } catch(e) { window.open(blobUrl,'_blank'); }
-            btn.innerHTML = ogHtml;
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp4` : `DAi-${Date.now()}.mp4`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch(e) { window.open(blobUrl,'_blank'); } btn.innerHTML = ogHtml;
         };
         window.videoError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
 
@@ -604,11 +609,7 @@
             const container = btn.closest('.dai-audio-container'); const audio = container.querySelector('audio');
             const blobUrl = audio.src; const ogHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            try {
-                const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp3` : `DAi-${Date.now()}.mp3`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            } catch (e) { window.open(blobUrl, '_blank'); }
-            btn.innerHTML = ogHtml;
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp3` : `DAi-${Date.now()}.mp3`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch (e) { window.open(blobUrl, '_blank'); } btn.innerHTML = ogHtml;
         };
         window.audioError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
 
@@ -616,20 +617,18 @@
         const searchTavily = async (query) => {
             try {
                 const res = await fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
-                if(!res.ok) return null;
-                const data = await res.json();
+                if(!res.ok) return null; const data = await res.json();
                 return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
             } catch (e) { return null; }
         };
-        const shouldSearch = (text) => {
-            const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
-            return keywords.some(k => text.toLowerCase().includes(k));
-        };
+        const shouldSearch = (text) => { const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update']; return keywords.some(k => text.toLowerCase().includes(k)); };
 
         // --- Initialization ---
         document.addEventListener("DOMContentLoaded", () => {
+            renderSidebarChats();
+            
             let md = null;
-            const getMd = () => {
+            window.getMd = () => {
                 if(md) return md;
                 if(!(window.markdownit && window.texmath && window.katex && window.hljs)) return null;
                 md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
@@ -638,7 +637,7 @@
                 return md;
             };
 
-            const Putter = {
+            window.Putter = {
                 generate: (input) => {
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0], ratio = parts[1] || "1:1", filename = parts[2] || `DAi_Image`, sourceImage = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no source image") ? parts[3] : "";
@@ -646,17 +645,18 @@
                     const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
                     const seed = Math.abs(hashCode(prompt)) % 10000;
                     
-                    // Use prompt hash to ensure Morphdom keeps the node stable
                     const uniqueSuffix = Math.abs(hashCode(prompt + ratio)).toString(16);
                     const btnId = `dl-${uniqueSuffix}`; const containerId = `cnt-${uniqueSuffix}`;
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27"); const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27"); const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
+
+                    setTimeout(() => { const c = document.getElementById(containerId); if (c) { const v = c.querySelector('img'); if (v && !v.dataset.fetched) { v.dataset.fetched="true"; window.fetchServerImage(v, safePrompt, w, h, seed, containerId, safeSource); } } }, 100);
 
                     return `
 <div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}">
     <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="16" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">Generating Image...</div>
-    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image">
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="dai-img" alt="Generated Image">
     <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
                 },
@@ -706,15 +706,15 @@
                 }
             };
 
-            const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            window.S={msg:[],gen:false}; window.E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             
-            const add = (r,t) => { 
+            window.addMsg = (r,t) => { 
                 const d=document.createElement('div'); 
                 d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'} msg-appear`; 
                 d.innerHTML=r==='user'
                     ?`<div class="bg-[#2A2A2A] px-5 py-3 rounded-3xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-[0.95rem] shadow-sm">${t}</div>`
                     :`<div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div>`; 
-                E.c.appendChild(d); 
+                window.E.c.insertBefore(d, document.getElementById('scroll-btn')); 
                 if (r === 'user') d.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return d; 
             };
@@ -733,54 +733,51 @@
                         const data = await res.json();
                         let title = data.choices?.[0]?.message?.content?.replace(/["']/g, "").trim() || "New Chat";
                         if(title.length > 25) title = title.substring(0, 22) + "...";
-                        document.getElementById('current-chat-title').innerText = title;
-                        document.getElementById('current-chat-title').parentElement.classList.add('border-brand', 'text-white');
+                        saveCurrentChat(title);
                     }
                 } catch(e) { console.error("Title gen failed", e); }
             };
 
             window.send = async function() {
-                const t=E.i.value.trim(); 
-                if((!t && !window.uploadedImageUrl) ||S.gen || window.isUploading) return;
+                const t=window.E.i.value.trim(); 
+                if((!t && !window.uploadedImageUrl) ||window.S.gen || window.isUploading) return;
                 
-                if(!getMd()){
+                if(!window.getMd()){
                     const btn = document.getElementById('btn');
                     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
                     setTimeout(window.send, 100); 
                     return;
                 }
 
-                S.gen=true; E.i.value=''; E.i.style.height='auto'; 
+                window.S.gen=true; window.E.i.value=''; window.E.i.style.height='auto'; 
                 
                 if (!window.chatHasStarted) {
-                    E.h.classList.add('hidden'); 
-                    document.getElementById('suggestions').classList.add('opacity-0');
-                    setTimeout(() => document.getElementById('suggestions').classList.add('hidden'), 300);
-                    generateChatTitle(t || "Image Context");
+                    if(window.E.h) window.E.h.classList.add('hidden'); 
                     window.chatHasStarted = true;
                 }
 
                 document.getElementById('btn').disabled=true;
                 
-                if(!S.msg.length) {
+                if(!window.S.msg.length) {
                     let systemPrompt = "You are D'Ai, a lightning-fast, highly intelligent AI assistant.\n\n";
                     
                     if(window.usePersonalization) {
                         systemPrompt += "**PERSONALIZATION MEMORY (HIDDEN FROM USER):**\nUser prefers highly technical answers, likes synthwave music, and often codes in React. Use this context to personalize your responses when relevant.\n\n";
                     }
 
-                    if(window.useThinkingMode) {
-                        systemPrompt += "**CRITICAL INSTRUCTION - THINKING MODE:**\nYou MUST output a <think> block at the very beginning of EVERY response to outline your reasoning process, analyze the request, and plan your answer. Example:\n<think>\nAnalyzing the user's request...\nFormulating structure...\n</think>\nAfter the </think> tag, provide your final response.\n\n";
-                    }
-
-                    systemPrompt += "**MEDIA CAPABILITIES (ONLY OUTPUT THESE IF EXPLICITLY REQUESTED):**\n" +
-                                 "Image: <<GENERATE_IMAGE: prompt | aspect_ratio(16:9/1:1) | filename | source_image_url>>\n" +
-                                 "Video: <<GENERATE_VIDEO: prompt | aspect_ratio | duration_sec | filename | source_image_url>>\n" +
-                                 "Music: <<GENERATE_MUSIC: prompt | duration_sec | filename | style_tags>>\n\n";
-
-                    systemPrompt += "**FORMATTING:**\nFormat your final answers beautifully using Markdown. Use headings (##), bullet points, bold text, and code blocks to structure your response exactly like ChatGPT. Be structured, clear, highly detailed, and comprehensive. Ensure high readability.";
+                    systemPrompt += "**THOUGHT PROCESS:** You have the ability to reason. If the user asks a complex question, math problem, or logic puzzle, output a `<think>...</think>` block before your response. If the query is simple or just requesting media, DO NOT use a think block. You decide.\n\n";
                     
-                    S.msg.push({ role: "system", content: systemPrompt });
+                    systemPrompt += "**LATEX FORMATTING:** Use standard LaTeX formatting for ALL mathematical and scientific notation. Use `$$ equation $$` for block display and `$ equation $` for inline display.\n\n";
+
+                    systemPrompt += "**MEDIA CAPABILITIES (ONLY OUTPUT THESE TAGS IF EXPLICITLY REQUESTED):**\n" +
+                                 "Image: <<GENERATE_IMAGE: prompt | aspect_ratio(16:9/1:1) | filename | source_image_url>>\n" +
+                                 "Video: <<GENERATE_VIDEO: prompt | aspect_ratio | duration_sec(1 to 10) | filename | source_image_url>>\n" +
+                                 "Music: <<GENERATE_MUSIC: prompt | duration_sec(3 to 300) | filename | style_tags>>\n\n" +
+                                 "**CRITICAL RULE:** When generating media, provide NO UNNECESSARY DETAILS. Provide only one brief conversational sentence followed immediately by the strict tag.\n\n";
+
+                    systemPrompt += "**FORMATTING:** Format your final answers beautifully using Markdown. Use headings (##), bullet points, bold text, and code blocks to structure your response exactly like ChatGPT. Be structured, clear, highly detailed, and comprehensive. Ensure high readability.";
+                    
+                    window.S.msg.push({ role: "system", content: systemPrompt });
                 }
                 
                 let userContent = t;
@@ -792,10 +789,14 @@
                     window.removeImage();
                 }
 
-                S.msg.push({role:"user",content:userContent}); 
-                add('user', displayHtml);
+                window.S.msg.push({role:"user",content:userContent}); 
+                window.addMsg('user', displayHtml);
+                saveCurrentChat();
                 
-                const {firstElementChild:el} = add('assistant','');
+                // If it is the first user message, generate title asynchronously
+                if(window.S.msg.length === 2) { generateChatTitle(t || "Image Context"); }
+
+                const {firstElementChild:el} = window.addMsg('assistant','');
                 const mdContainer = el.querySelector('.markdown-body');
 
                 let searchContext = "";
@@ -807,7 +808,7 @@
                 }
                 
                 try {
-                    const messagesToSend = [...S.msg];
+                    const messagesToSend = [...window.S.msg];
                     if(searchContext) {
                         messagesToSend[messagesToSend.length - 1] = { 
                             role: messagesToSend[messagesToSend.length - 1].role, 
@@ -826,7 +827,7 @@
                     const dec = new TextDecoder();
                     let fullText = "";
                     let buffer = "";
-                    const mdRenderer = getMd();
+                    const mdRenderer = window.getMd();
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -859,16 +860,31 @@
                                             </div>\n\n`;
                                         });
 
-                                        processedContent = processedContent.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m, inp) => Putter.generate(inp));
-                                        processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => Putter.generateVideo(inp));
-                                        processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => Putter.generateMusic(inp));
+                                        processedContent = processedContent.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m, inp) => window.Putter.generate(inp));
+                                        processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => window.Putter.generateVideo(inp));
+                                        processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => window.Putter.generateMusic(inp));
                                         
                                         let finalHtml = mdRenderer.render(processedContent
                                             .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
                                             .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
                                         );
 
-                                        morphdom(mdContainer, `<div class="markdown-body streaming">${finalHtml}</div>`, { childrenOnly: true });
+                                        morphdom(mdContainer, `<div class="markdown-body streaming">${finalHtml}</div>`, { 
+                                            childrenOnly: true,
+                                            onBeforeElUpdated: function(fromEl, toEl) {
+                                                // Prevent morphdom from updating media containers to protect their internal animations
+                                                if (fromEl.classList && (fromEl.classList.contains('dai-img-container') || fromEl.classList.contains('dai-video-container') || fromEl.classList.contains('dai-audio-container'))) {
+                                                    return false;
+                                                }
+                                                // Prevent think blocks from closing during stream updates if user clicked them
+                                                if (fromEl.classList && fromEl.classList.contains('think-block')) {
+                                                    if(fromEl.querySelector('.think-content').classList.contains('hidden')) {
+                                                        toEl.querySelector('.think-content').classList.add('hidden');
+                                                    }
+                                                }
+                                                return true;
+                                            }
+                                        });
                                         window.scrollToBottom();
                                     }
                                 } catch (e) {}
@@ -876,17 +892,18 @@
                         }
                     }
 
-                    S.msg.push({role:"assistant",content:fullText}); 
+                    window.S.msg.push({role:"assistant",content:fullText}); 
+                    saveCurrentChat();
 
                 } catch(e) {
                     console.error("Chat API Error:", e);
-                    S.msg.pop();
+                    window.S.msg.pop();
                     window.showErrorLoader(el, async () => {
                         el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2 mt-4 ml-4"><i class="fa-solid fa-circle-notch fa-spin"></i> RETRYING...</span>';
-                        setTimeout(() => window.send(), 500); // Wait then trigger send again safely since we popped the msg
+                        setTimeout(() => window.send(), 500); 
                     });
                 } finally {
-                    S.gen=false; 
+                    window.S.gen=false; 
                     if(mdContainer) mdContainer.classList.remove('streaming');
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').innerHTML = '<i class="fa-solid fa-arrow-up text-md"></i>';
