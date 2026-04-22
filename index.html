@@ -73,7 +73,7 @@
         .markdown-body blockquote { border-left: 4px solid #3b82f6; margin: 1rem 0; padding-left: 1rem; color: #9ca3af; background: rgba(59,130,246,0.05); padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 0 8px 8px 0; }
 
         .markdown-body code:not(.hljs) { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
-        .code-box { margin: 1.5em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .code-box { margin: 1.5em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 100%; }
         .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
         .code-body pre { margin: 0; padding: 0; background: transparent; overflow: hidden; }
         .code-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; border: none; }
@@ -92,7 +92,7 @@
         }
 
         /* --- Think Block Animations & UI --- */
-        .think-block { margin: 1rem 0; border: 1px solid #222; border-radius: 12px; background: #080808; overflow: hidden; }
+        .think-block { margin: 1rem 0; border: 1px solid #222; border-radius: 12px; background: #080808; overflow: hidden; max-width: 100%; }
         .think-header { padding: 0.75rem 1rem; background: #111; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none; transition: background 0.2s; border-bottom: 1px solid #222; }
         .think-header:hover { background: #161616; }
         .think-content { padding: 1rem; font-size: 0.85rem; color: #9ca3af; border-left: 2px solid transparent; transition: all 0.3s; }
@@ -109,7 +109,7 @@
         .think-title-anim::after { content: ""; animation: thinkRotate 4s infinite; }
 
         /* --- Media Generation UI & Fluid Animations --- */
-        .dai-img-container, .dai-video-container, .dai-audio-container { position: relative; overflow: hidden; border-radius: 16px; margin: 1rem 0; border: 1px solid #333; background: #080808; display: inline-block; width: 100%; max-width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .dai-img-container, .dai-video-container, .dai-audio-container { position: relative; overflow: hidden; border-radius: 16px; margin: 1rem 0; border: 1px solid #333; background: #080808; display: inline-block; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .dai-img, .dai-video { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.7s ease, filter 0.7s ease; position: relative; z-index: 10; filter: blur(24px); }
         .dai-img.loaded, .dai-video.loaded { opacity: 1; filter: blur(0); }
         .dai-audio-shell { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 10px; justify-content: center; min-height: 160px; padding: 18px; background: radial-gradient(circle at top left, rgba(59,130,246,0.16), rgba(0,0,0,0.6)); }
@@ -149,7 +149,7 @@
         .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
 
         /* Error Loading Animation */
-        .error-loader-container { background: linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(20,20,20,0.98) 100%); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 2rem; margin: 1rem 0; position: relative; overflow: hidden; backdrop-filter: blur(10px); }
+        .error-loader-container { background: linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(20,20,20,0.98) 100%); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 2rem; margin: 1rem 0; position: relative; overflow: hidden; backdrop-filter: blur(10px); max-width: 400px; }
         .error-loader-container::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #3b82f6, transparent); animation: shimmer 2s infinite; }
         @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
         .error-spinner { width: 40px; height: 40px; border: 3px solid rgba(59,130,246,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
@@ -161,13 +161,16 @@
 </head>
 <body class="flex h-screen bg-dark-bg text-white overflow-hidden">
     
+    <!-- Sidebar Overlay (Mobile Only) -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm transition-opacity opacity-0 md:hidden" onclick="window.toggleSidebar()"></div>
+
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-72 h-full flex-shrink-0 transition-[margin] duration-300 ease-in-out bg-[#0f0f0f] border-r border-[#222] flex flex-col relative z-30 -ml-72 md:ml-0 shadow-2xl">
+    <aside id="sidebar" class="w-72 h-full flex-shrink-0 transition-[margin] duration-300 ease-in-out bg-[#0f0f0f] border-r border-[#222] flex flex-col relative z-40 -ml-72 shadow-2xl absolute md:relative">
         <div class="p-4 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a]">
-            <button onclick="window.newChat()" class="flex items-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors w-full justify-center">
+            <button onclick="window.newChat()" class="flex items-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors flex-1 justify-center mr-2">
                 <i class="fa-solid fa-plus"></i> New Chat
             </button>
-            <button onclick="window.toggleSidebar()" class="ml-2 text-gray-500 hover:text-white p-2 md:hidden"><i class="fa-solid fa-times"></i></button>
+            <button onclick="window.toggleSidebar()" class="text-gray-500 hover:text-white p-2"><i class="fa-solid fa-times"></i></button>
         </div>
         
         <div class="flex-1 overflow-y-auto p-3 space-y-1" id="chat-history-list">
@@ -197,32 +200,37 @@
         
         <!-- Header -->
         <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
-            <div class="max-w-4xl mx-auto flex justify-between items-center px-4">
-                <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white transition-colors p-2 -ml-2" title="Toggle Sidebar">
-                    <i class="fa-solid fa-bars text-xl"></i>
-                </button>
-                <div class="flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
-                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-                    <div>
+            <div class="max-w-4xl mx-auto flex items-center px-4 w-full">
+                <!-- Header Left (Hamburger + Brand) -->
+                <div class="flex items-center gap-3 w-1/3">
+                    <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white p-2 -ml-2" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div class="flex items-center gap-2 hidden sm:flex">
+                        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
                         <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
-                        <p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p>
                     </div>
                 </div>
-                <button onclick="window.newChat()" class="text-gray-400 hover:text-white transition-colors p-2 -mr-2" title="New Chat">
-                    <i class="fa-regular fa-pen-to-square text-lg"></i>
-                </button>
+                
+                <!-- Header Center (Chat Title) -->
+                <div class="w-1/3 text-center">
+                    <span id="header-chat-title" class="text-sm font-medium text-gray-300 truncate block w-full">New Chat</span>
+                </div>
+                
+                <!-- Header Right (Empty for balance) -->
+                <div class="w-1/3"></div>
             </div>
         </header>
 
         <!-- Chat Area -->
         <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
                 <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                 <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
                 
                 <!-- Suggestions Centered on Hero -->
-                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 max-w-2xl transition-all duration-300">
+                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
@@ -235,7 +243,7 @@
 
         <!-- Bottom Input Area -->
         <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
-            <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative">
+            <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative w-full">
                 
                 <div id="img-preview" class="hidden w-full px-3 pt-2">
                     <div class="relative inline-block group">
@@ -286,7 +294,7 @@
         // --- APP STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
-        window.usePersonalization = false; // Off by default as requested
+        window.usePersonalization = false; // Off by default
         window.chatHasStarted = false;
         window.chats = JSON.parse(localStorage.getItem('dai_chats')) || [];
         window.currentChatId = null;
@@ -294,8 +302,16 @@
         // --- Sidebar & Logic ---
         window.toggleSidebar = () => {
             const sidebar = document.getElementById('sidebar');
-            if (sidebar.classList.contains('-ml-72')) { sidebar.classList.remove('-ml-72'); } 
-            else { sidebar.classList.add('-ml-72'); }
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-ml-72')) { 
+                sidebar.classList.remove('-ml-72'); 
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else { 
+                sidebar.classList.add('-ml-72'); 
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
         };
 
         window.toggleMemory = (enabled) => { window.usePersonalization = enabled; };
@@ -311,12 +327,13 @@
             window.S.msg = [];
             window.S.gen = false;
             window.chatHasStarted = false;
+            document.getElementById('header-chat-title').innerText = "New Chat";
             document.getElementById('chat').innerHTML = `
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300">
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6">
                 <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                 <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
-                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 max-w-2xl transition-all duration-300">
+                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
                     <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
@@ -351,7 +368,7 @@
                 const chat = window.chats.find(c => c.id === window.currentChatId);
                 if(chat) {
                     chat.messages = window.S.msg;
-                    if(titleUpdate) chat.title = titleUpdate;
+                    if(titleUpdate) { chat.title = titleUpdate; document.getElementById('header-chat-title').innerText = titleUpdate; }
                 }
             }
             localStorage.setItem('dai_chats', JSON.stringify(window.chats));
@@ -362,13 +379,12 @@
             const chat = window.chats.find(c => c.id === id);
             if(!chat) return;
             window.currentChatId = id;
-            window.S.msg = JSON.parse(JSON.stringify(chat.messages)); // Deep copy to prevent reference issues
+            window.S.msg = JSON.parse(JSON.stringify(chat.messages)); 
             window.chatHasStarted = true;
+            document.getElementById('header-chat-title').innerText = chat.title;
             
-            // Clear DOM
             window.E.c.innerHTML = '<button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>'; 
             
-            // Re-render messages
             chat.messages.forEach(m => {
                 if(m.role === 'user') {
                     const content = m.content.replace(/\[UPLOADED_IMAGE:.*?\]/, '');
@@ -632,7 +648,7 @@
                 if(md) return md;
                 if(!(window.markdownit && window.texmath && window.katex && window.hljs)) return null;
                 md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
-                md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
+                md.use(texmath,{engine:katex,delimiters:'dollars'});
                 md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
                 return md;
             };
@@ -710,12 +726,16 @@
             
             window.addMsg = (r,t) => { 
                 const d=document.createElement('div'); 
-                d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'} msg-appear`; 
+                d.className=`flex w-full msg-appear mb-6`; 
                 d.innerHTML=r==='user'
-                    ?`<div class="bg-[#2A2A2A] px-5 py-3 rounded-3xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-[0.95rem] shadow-sm">${t}</div>`
-                    :`<div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div>`; 
+                    ?`<div class="max-w-4xl mx-auto w-full flex justify-end"><div class="bg-[#2A2A2A] px-5 py-3 rounded-3xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-[0.95rem] shadow-sm">${t}</div></div>`
+                    :`<div class="max-w-4xl mx-auto w-full flex justify-start"><div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div></div>`; 
                 window.E.c.insertBefore(d, document.getElementById('scroll-btn')); 
-                if (r === 'user') d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (r === 'user') {
+                    setTimeout(() => {
+                        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 10);
+                }
                 return d; 
             };
 
@@ -767,13 +787,13 @@
 
                     systemPrompt += "**THOUGHT PROCESS:** You have the ability to reason. If the user asks a complex question, math problem, or logic puzzle, output a `<think>...</think>` block before your response. If the query is simple or just requesting media, DO NOT use a think block. You decide.\n\n";
                     
-                    systemPrompt += "**LATEX FORMATTING:** Use standard LaTeX formatting for ALL mathematical and scientific notation. Use `$$ equation $$` for block display and `$ equation $` for inline display.\n\n";
+                    systemPrompt += "**LATEX FORMATTING:** Use standard LaTeX formatting for ALL mathematical and scientific notation. Use `$$equation$$` for block display and `$equation$` for inline display. **CRITICAL:** Do NOT put spaces immediately inside the dollar signs (e.g., use `$\\mathbf{u}$`, NOT `$ \\mathbf{u} $`). This ensures proper rendering.\n\n";
 
                     systemPrompt += "**MEDIA CAPABILITIES (ONLY OUTPUT THESE TAGS IF EXPLICITLY REQUESTED):**\n" +
                                  "Image: <<GENERATE_IMAGE: prompt | aspect_ratio(16:9/1:1) | filename | source_image_url>>\n" +
                                  "Video: <<GENERATE_VIDEO: prompt | aspect_ratio | duration_sec(1 to 10) | filename | source_image_url>>\n" +
                                  "Music: <<GENERATE_MUSIC: prompt | duration_sec(3 to 300) | filename | style_tags>>\n\n" +
-                                 "**CRITICAL RULE:** When generating media, provide NO UNNECESSARY DETAILS. Provide only one brief conversational sentence followed immediately by the strict tag.\n\n";
+                                 "**CRITICAL RULE FOR MEDIA:** When generating media, YOU MUST ONLY OUTPUT THE TAG and absolutely NO other text, conversational filler, or explanations. Act as an expert prompt engineer INSIDE the tag to maximize the quality of the requested media.\n\n";
 
                     systemPrompt += "**FORMATTING:** Format your final answers beautifully using Markdown. Use headings (##), bullet points, bold text, and code blocks to structure your response exactly like ChatGPT. Be structured, clear, highly detailed, and comprehensive. Ensure high readability.";
                     
@@ -793,7 +813,6 @@
                 window.addMsg('user', displayHtml);
                 saveCurrentChat();
                 
-                // If it is the first user message, generate title asynchronously
                 if(window.S.msg.length === 2) { generateChatTitle(t || "Image Context"); }
 
                 const {firstElementChild:el} = window.addMsg('assistant','');
@@ -872,11 +891,9 @@
                                         morphdom(mdContainer, `<div class="markdown-body streaming">${finalHtml}</div>`, { 
                                             childrenOnly: true,
                                             onBeforeElUpdated: function(fromEl, toEl) {
-                                                // Prevent morphdom from updating media containers to protect their internal animations
                                                 if (fromEl.classList && (fromEl.classList.contains('dai-img-container') || fromEl.classList.contains('dai-video-container') || fromEl.classList.contains('dai-audio-container'))) {
                                                     return false;
                                                 }
-                                                // Prevent think blocks from closing during stream updates if user clicked them
                                                 if (fromEl.classList && fromEl.classList.contains('think-block')) {
                                                     if(fromEl.querySelector('.think-content').classList.contains('hidden')) {
                                                         toEl.querySelector('.think-content').classList.add('hidden');
@@ -885,7 +902,6 @@
                                                 return true;
                                             }
                                         });
-                                        window.scrollToBottom();
                                     }
                                 } catch (e) {}
                             }
