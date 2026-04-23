@@ -195,77 +195,104 @@
         </div>
     </aside>
 
-    <!-- Main Content -->
-    <div id="main-content" class="flex-1 flex flex-col h-full relative min-w-0 transition-all duration-300">
+    <!-- Main Workspace (Chat + Preview) -->
+    <div class="flex-1 flex w-full h-full relative overflow-hidden">
         
-        <!-- Header -->
-        <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
-            <div class="max-w-4xl mx-auto flex items-center px-4 w-full">
-                <!-- Header Left (Hamburger + Brand) -->
-                <div class="flex items-center gap-3 w-1/3">
-                    <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white p-2 -ml-2" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars text-xl"></i>
-                    </button>
-                    <div class="flex items-center gap-2 hidden sm:flex">
-                        <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
-                        <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
-                    </div>
-                </div>
-                
-                <!-- Header Center (Chat Title) -->
-                <div class="w-1/3 text-center">
-                    <span id="header-chat-title" class="text-sm font-medium text-gray-300 truncate block w-full">New Chat</span>
-                </div>
-                
-                <!-- Header Right (Empty for balance) -->
-                <div class="w-1/3"></div>
-            </div>
-        </header>
-
-        <!-- Chat Area -->
-        <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
-                <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
-                <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
-                
-                <!-- Suggestions Centered on Hero -->
-                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Solve this logic puzzle: If you have a 3-gallon jug and a 5-gallon jug, how do you measure exactly 4 gallons?')">🤔 Logic Puzzle</button>
-                </div>
-            </div>
+        <!-- Chat Column -->
+        <div id="chat-column" class="flex-1 flex flex-col h-full relative min-w-[40%] transition-all duration-300">
             
-            <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
-        </main>
-
-        <!-- Bottom Input Area -->
-        <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
-            <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative w-full">
-                
-                <div id="img-preview" class="hidden w-full px-3 pt-2">
-                    <div class="relative inline-block group">
-                        <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
-                        <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
-                            <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+            <!-- Header -->
+            <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
+                <div class="max-w-4xl mx-auto flex items-center px-4 w-full">
+                    <div class="flex items-center gap-3 w-1/3">
+                        <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white p-2 -ml-2" title="Toggle Sidebar">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                        <div class="flex items-center gap-2 hidden sm:flex">
+                            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
+                            <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
                         </div>
-                        <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                    
+                    <div class="w-1/3 text-center">
+                        <span id="header-chat-title" class="text-sm font-medium text-gray-300 truncate block w-full">New Chat</span>
+                    </div>
+                    
+                    <div class="w-1/3"></div>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
+                <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
+                    <img src="[https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico](https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico)" class="h-24 w-auto mb-6" alt="Logo">
+                    <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
+                    <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
+                    
+                    <!-- Dynamic Suggestions -->
+                    <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">🖼️ Creative Image</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">🎬 Random Video</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">🎵 Compose Music</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea! First, use the <think> block to list features and plan the architecture, then output the complete code.')">💻 Build a Web App</button>
                     </div>
                 </div>
+                
+                <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+            </main>
 
-                <div class="w-full flex items-end">
-                    <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-400 hover:text-white transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
-                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+            <!-- Bottom Input Area -->
+            <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
+                <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative w-full">
                     
-                    <textarea id="in" rows="1" class="w-full bg-transparent text-white py-3.5 px-2 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-                    
-                    <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-white bg-brand/10 hover:bg-brand/30 rounded-full disabled:opacity-50 transition-colors mr-1 mb-1" title="Send Message"><i class="fa-solid fa-arrow-up text-md"></i></button>
+                    <div id="img-preview" class="hidden w-full px-3 pt-2">
+                        <div class="relative inline-block group">
+                            <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
+                            <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
+                                <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+                            </div>
+                            <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex items-end">
+                        <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-400 hover:text-white transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
+                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+                        
+                        <textarea id="in" rows="1" class="w-full bg-transparent text-white py-3.5 px-2 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                        
+                        <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-white bg-brand/10 hover:bg-brand/30 rounded-full disabled:opacity-50 transition-colors mr-1 mb-1" title="Send Message"><i class="fa-solid fa-arrow-up text-md"></i></button>
+                    </div>
                 </div>
+                <div class="text-center mt-2 w-full max-w-4xl mx-auto"><p class="text-[10px] text-gray-500">D'Ai can make mistakes. Verify important information.</p></div>
             </div>
-            <div class="text-center mt-2 w-full"><p class="text-[10px] text-gray-500">D'Ai can make mistakes. Verify important information.</p></div>
         </div>
+
+        <!-- Live Preview Sidebar -->
+        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-white transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative shadow-2xl">
+            <div class="bg-[#111] p-3 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wide text-gray-400 flex items-center gap-2"><i class="fa-solid fa-bolt text-brand"></i> Live App Preview</span>
+                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-2"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <iframe id="preview-iframe" class="flex-1 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+        </aside>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="[https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js](https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js)" defer></script>
+            </div>
+        </div>
+
+        <!-- Live Preview Sidebar -->
+        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-white transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative">
+            <div class="bg-[#111] p-3 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wide text-gray-400 flex items-center gap-2"><i class="fa-solid fa-bolt text-brand"></i> Live Preview</span>
+                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-2"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <iframe id="preview-iframe" class="flex-1 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+        </aside>
+
     </div>
 
     <!-- Scripts -->
@@ -277,6 +304,14 @@
 
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+
+        // --- SAFE STORAGE WRAPPER ---
+        const safeStorageGet = (key) => {
+            try { return JSON.parse(localStorage.getItem(key)); } catch(e) { return null; }
+        };
+        const safeStorageSet = (key, val) => {
+            try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.warn("Storage restricted", e); }
+        };
 
         // --- ERROR MESSAGES & LOADER ---
         const busyReasons = ["Processing thoughts! 🧠", "Neural networks working ☕", "Quantum computing... ⚛️", "Downloading intelligence... 📥"];
@@ -296,10 +331,11 @@
         window.isUploading = false;
         window.usePersonalization = false; // Off by default
         window.chatHasStarted = false;
-        window.chats = JSON.parse(localStorage.getItem('dai_chats')) || [];
+        window.chats = safeStorageGet('dai_chats') || [];
         window.currentChatId = null;
+        window.isPreviewOpen = false;
 
-        // --- Sidebar & Logic ---
+        // --- Layout & Logic ---
         window.toggleSidebar = () => {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -315,6 +351,20 @@
         };
 
         window.toggleMemory = (enabled) => { window.usePersonalization = enabled; };
+
+        // --- Preview Sidebar Logic ---
+        window.openPreview = () => {
+            document.getElementById('preview-column').style.width = window.innerWidth < 768 ? '100%' : '60%';
+            window.isPreviewOpen = true;
+        };
+        window.closePreview = () => {
+            document.getElementById('preview-column').style.width = '0px';
+            window.isPreviewOpen = false;
+        };
+        window.previewCode = (code) => {
+            window.openPreview();
+            document.getElementById('preview-iframe').srcdoc = code;
+        };
         
         window.useSuggestion = (text) => {
             const input = document.getElementById('in'); input.value = text;
@@ -327,17 +377,18 @@
             window.S.msg = [];
             window.S.gen = false;
             window.chatHasStarted = false;
+            window.closePreview();
             document.getElementById('header-chat-title').innerText = "New Chat";
             document.getElementById('chat').innerHTML = `
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6">
+                <img src="[https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico](https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico)" class="h-24 w-auto mb-6">
                 <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                 <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
                 <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a high quality photorealistic image of a futuristic cyberpunk city')">🖼️ Generate Image</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a beautiful 5 second video of a sunset over the ocean')">🎬 Make a Video</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a 15 second synthwave electronic music track')">🎵 Compose Music</button>
-                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Solve this logic puzzle: If you have a 3-gallon jug and a 5-gallon jug, how do you measure exactly 4 gallons?')">🤔 Logic Puzzle</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">🖼️ Creative Image</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">🎬 Random Video</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">🎵 Compose Music</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea! First, use the <think> block to list features and plan the architecture, then output the complete code.')">💻 Build a Web App</button>
                 </div>
             </div><button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>`;
             window.E.h = document.getElementById('hero');
@@ -350,6 +401,7 @@
 
         const renderSidebarChats = () => {
             const list = document.getElementById('chat-history-list');
+            if(!list) return;
             let html = `<div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2 px-2">History</div>`;
             window.chats.forEach(chat => {
                 const isActive = chat.id === window.currentChatId;
@@ -371,7 +423,7 @@
                     if(titleUpdate) { chat.title = titleUpdate; document.getElementById('header-chat-title').innerText = titleUpdate; }
                 }
             }
-            localStorage.setItem('dai_chats', JSON.stringify(window.chats));
+            safeStorageSet('dai_chats', window.chats);
             renderSidebarChats();
         };
 
@@ -381,6 +433,7 @@
             window.currentChatId = id;
             window.S.msg = JSON.parse(JSON.stringify(chat.messages)); 
             window.chatHasStarted = true;
+            window.closePreview();
             document.getElementById('header-chat-title').innerText = chat.title;
             
             window.E.c.innerHTML = '<button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>'; 
@@ -649,7 +702,15 @@
                 if(!(window.markdownit && window.texmath && window.katex && window.hljs)) return null;
                 md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
                 md.use(texmath,{engine:katex,delimiters:'dollars'});
-                md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
+                md.renderer.rules.fence=(t,i)=>{
+                    const lang = (t[i].info||'text').split(' ')[0];
+                    const content = t[i].content;
+                    let previewBtn = '';
+                    if(lang === 'html') {
+                        previewBtn = `<button onclick="window.previewCode(this.parentElement.parentElement.nextElementSibling.innerText)" class="hover:text-brand transition-colors ml-3" title="Live Preview"><i class="fa-solid fa-play"></i> Preview</button>`;
+                    }
+                    return `<div class="code-box"><div class="code-head"><span>${lang}</span><div><button onclick="navigator.clipboard.writeText(this.parentElement.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button>${previewBtn}</div></div><div class="code-body"><pre><code class="hljs language-${lang}">${md.utils.escapeHtml(content)}</code></pre></div></div>`;
+                };
                 return md;
             };
 
@@ -724,6 +785,9 @@
 
             window.S={msg:[],gen:false}; window.E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             
+            // To track the current user message node for scrolling
+            let currentUserMsgNode = null;
+            
             window.addMsg = (r,t) => { 
                 const d=document.createElement('div'); 
                 d.className=`flex w-full msg-appear mb-6`; 
@@ -732,6 +796,7 @@
                     :`<div class="max-w-4xl mx-auto w-full flex justify-start"><div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div></div>`; 
                 window.E.c.insertBefore(d, document.getElementById('scroll-btn')); 
                 if (r === 'user') {
+                    currentUserMsgNode = d;
                     setTimeout(() => {
                         d.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }, 10);
@@ -785,12 +850,16 @@
                         systemPrompt += "**PERSONALIZATION MEMORY (HIDDEN FROM USER):**\nUser prefers highly technical answers, likes synthwave music, and often codes in React. Use this context to personalize your responses when relevant.\n\n";
                     }
 
-                    systemPrompt += "**THOUGHT PROCESS:** You have the ability to reason. If the user asks a complex question, math problem, or logic puzzle, output a `<think>...</think>` block before your response. If the query is simple or just requesting media, DO NOT use a think block. You decide.\n\n";
+                    systemPrompt += "**THOUGHT PROCESS:** You have the ability to reason. If the user asks a complex question, math problem, logic puzzle, or requests an app/code, output a `<think>...</think>` block before your response to brainstorm and plan. If the query is simple or just requesting media generation without logic, DO NOT use a think block. You decide autonomously.\n\n";
                     
+                    systemPrompt += "**WEB APP DEVELOPMENT:** When asked to build a web app, you MUST first use a `<think>` block to brainstorm the idea, list all features, and outline the architecture. Then, output a SINGLE `html` code block containing all HTML, Tailwind CSS, and JavaScript. Ensure the design is modern, responsive, and visually stunning.\n\n";
+
                     systemPrompt += "**LATEX FORMATTING:** Use standard LaTeX formatting for ALL mathematical and scientific notation. Use `$$equation$$` for block display and `$equation$` for inline display. **CRITICAL:** Do NOT put spaces immediately inside the dollar signs (e.g., use `$\\mathbf{u}$`, NOT `$ \\mathbf{u} $`). This ensures proper rendering.\n\n";
 
+                    systemPrompt += "**ASPECT RATIO:** When generating images or videos, you must intelligently autonomously select the aspect ratio (1:1, 16:9, 9:16, 4:3, 3:4) that best fits the subject (e.g., landscapes -> 16:9, portraits -> 9:16) and inject it into the tag.\n\n";
+
                     systemPrompt += "**MEDIA CAPABILITIES (ONLY OUTPUT THESE TAGS IF EXPLICITLY REQUESTED):**\n" +
-                                 "Image: <<GENERATE_IMAGE: prompt | aspect_ratio(16:9/1:1) | filename | source_image_url>>\n" +
+                                 "Image: <<GENERATE_IMAGE: prompt | aspect_ratio | filename | source_image_url>>\n" +
                                  "Video: <<GENERATE_VIDEO: prompt | aspect_ratio | duration_sec(1 to 10) | filename | source_image_url>>\n" +
                                  "Music: <<GENERATE_MUSIC: prompt | duration_sec(3 to 300) | filename | style_tags>>\n\n" +
                                  "**CRITICAL RULE FOR MEDIA:** When generating media, YOU MUST ONLY OUTPUT THE TAG and absolutely NO other text, conversational filler, or explanations. Act as an expert prompt engineer INSIDE the tag to maximize the quality of the requested media.\n\n";
@@ -823,7 +892,7 @@
                     el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2 mt-4 ml-4"><i class="fa-solid fa-globe fa-spin"></i> SEARCHING WEB...</span>';
                     const results = await searchTavily(t);
                     if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
-                    el.innerHTML = `<div class="markdown-body streaming"></div>`; 
+                    el.innerHTML = `<div class="max-w-4xl mx-auto w-full flex justify-start"><div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div></div>`; 
                 }
                 
                 try {
@@ -847,6 +916,7 @@
                     let fullText = "";
                     let buffer = "";
                     const mdRenderer = window.getMd();
+                    let hasOpenedPreviewForThisMsg = false;
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -883,6 +953,19 @@
                                         processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => window.Putter.generateVideo(inp));
                                         processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => window.Putter.generateMusic(inp));
                                         
+                                        // Auto Live Preview Logic
+                                        const fence = '`' + '`' + '`';
+                                        const htmlRegex = new RegExp(fence + 'html\\n([\\s\\S]*?)(?:' + fence + '|$)', 'g');
+                                        const htmlMatches = [...fullText.matchAll(htmlRegex)];
+                                        if(htmlMatches.length > 0) {
+                                            const lastHtml = htmlMatches[htmlMatches.length - 1][1];
+                                            if(!window.isPreviewOpen && !hasOpenedPreviewForThisMsg) {
+                                                window.openPreview();
+                                                hasOpenedPreviewForThisMsg = true;
+                                            }
+                                            document.getElementById('preview-iframe').srcdoc = lastHtml;
+                                        }
+
                                         let finalHtml = mdRenderer.render(processedContent
                                             .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
                                             .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
@@ -902,6 +985,13 @@
                                                 return true;
                                             }
                                         });
+                                        
+                                        // Dynamic anchored scroll (Keep user message near top of view if possible, otherwise just keep chat scrolling naturally, but avoid aggressive bottom forcing if user scrolls up)
+                                        const isNearBottom = window.E.c.scrollHeight - window.E.c.scrollTop - window.E.c.clientHeight < 150;
+                                        if(isNearBottom && currentUserMsgNode) {
+                                           // If we are still generating and the user hasn't scrolled up manually, ensure visibility
+                                           window.scrollToBottom();
+                                        }
                                     }
                                 } catch (e) {}
                             }
