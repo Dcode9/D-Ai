@@ -1,319 +1,1307 @@
-export const config = {
-  runtime: 'edge',
-};
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*'
-};
-
-function jsonResponse(payload, status) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...CORS_HEADERS
-    }
-  });
-}
-
-function imageResponse(stream, contentType) {
-  return new Response(stream, {
-    headers: {
-      'Content-Type': contentType || 'image/jpeg',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      ...CORS_HEADERS
-    }
-  });
-}
-
-function toPositiveInt(value, fallback) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return Math.floor(parsed);
-}
-
-function toSeed(value, fallback) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.trunc(parsed);
-}
-
-function decodeBase64Image(rawValue) {
-  if (typeof rawValue !== 'string' || !rawValue.trim()) {
-    return null;
-  }
-
-  const trimmed = rawValue.trim();
-  let mimeType = 'image/png';
-  let base64Payload = trimmed;
-
-  const dataUrlMatch = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-  if (dataUrlMatch) {
-    mimeType = dataUrlMatch[1];
-    base64Payload = dataUrlMatch[2];
-  }
-
-  try {
-    const binary = atob(base64Payload.replace(/\s+/g, ''));
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return { bytes, mimeType };
-  } catch (e) {
-    return null;
-  }
-}
-
-function extractImageData(payload) {
-  const firstDataItem = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
-
-  const urlCandidates = [
-    payload?.url,
-    payload?.image,
-    payload?.result?.url,
-    payload?.output?.url,
-    payload?.output?.[0]?.url,
-    payload?.images?.[0]?.url,
-    firstDataItem?.url,
-    firstDataItem?.image,
-  ];
-
-  const imageUrl = urlCandidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value));
-
-  const base64Candidates = [
-    firstDataItem?.b64_json,
-    payload?.b64_json,
-    payload?.image_base64,
-    payload?.result?.b64_json,
-    payload?.output?.[0]?.b64_json,
-  ];
-
-  let decodedBase64 = null;
-  for (const candidate of base64Candidates) {
-    decodedBase64 = decodeBase64Image(candidate);
-    if (decodedBase64) {
-      break;
-    }
-  }
-
-  return {
-    imageUrl,
-    decodedBase64,
-    debug: {
-      topLevelKeys: payload && typeof payload === 'object' ? Object.keys(payload).slice(0, 20) : [],
-      firstDataKeys: firstDataItem && typeof firstDataItem === 'object' ? Object.keys(firstDataItem).slice(0, 20) : []
-    }
-  };
-}
-
-function selectModel(requestedModel, hasSourceImage) {
-  const normalized = (requestedModel || '').trim().toLowerCase();
-
-  if (!hasSourceImage) {
-    return requestedModel || 'klein';
-  }
-
-  // Models like flux/zimage are text-to-image focused and may ignore edit references.
-  if (!normalized || normalized === 'flux' || normalized === 'zimage') {
-    return 'gptimage-large';
-  }
-
-  return requestedModel;
-}
-
-export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
-  try {
-    const { prompt, width, height, seed, model, image } = await req.json();
-
-    const finalWidth = toPositiveInt(width, 1024);
-    const finalHeight = toPositiveInt(height, 1024);
-    const finalSeed = toSeed(seed, 0);
-
-    console.log('[API /api/image] Received request:', {
-      prompt,
-      width: finalWidth,
-      height: finalHeight,
-      seed: finalSeed,
-      model,
-      hasImage: !!image,
-      imageUrl: image
-    });
-
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
-
-    if (!apiKey) {
-      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 401);
-    }
-
-    const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
-    const finalModel = selectModel(model, !!image);
-
-    let url, fetchOptions;
-
-    // Use different endpoints based on whether we're editing an image or generating new
-    if (image) {
-      // IMAGE EDITING: Use OpenAI-compatible /v1/images/edits endpoint
-      url = 'https://gen.pollinations.ai/v1/images/edits';
-
-      const requestBody = {
-        prompt: finalPrompt,
-        model: finalModel,
-        image: Array.isArray(image) ? image : [image],
-        size: `${finalWidth}x${finalHeight}`,
-        n: 1,
-        response_format: 'b64_json'
-      };
-
-      console.log('[API /api/image] Using /v1/images/edits endpoint with body:', requestBody);
-
-      fetchOptions = {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      };
-    } else {
-      // IMAGE GENERATION: Use simple /image/{prompt} endpoint
-      const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
-
-      const params = new URLSearchParams();
-      params.append('width', finalWidth);
-      params.append('height', finalHeight);
-      params.append('seed', finalSeed);
-      params.append('model', finalModel);
-      params.append('nologo', 'true');
-      params.append('safe', 'false');
-
-      url = `${baseUrl}?${params.toString()}`;
-
-      console.log('[API /api/image] Using /image endpoint:', url);
-
-      fetchOptions = {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'image/*'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D'Ai - Smart & Fast</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#050505',
+                        'dark-surface': '#0d0d0d',
+                        'dark-border': '#333333',
+                        'brand': '#3b82f6'
+                    }
+                }
+            }
         }
-      };
-    }
+    </script>
 
-    // Fetch from Pollinations
-    const imageRes = await fetch(url, fetchOptions);
+    <!-- Critical Assets -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <!-- Deferred Libraries -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <script>
+        (function() {
+            window.addEventListener('error', (event) => {
+                const message = `${event?.message || ''} ${event?.error?.message || ''}`;
+                if (message.includes('has already been defined')) { event.preventDefault(); }
+            }, true);
+            window.onerror = function(message) {
+                if (String(message || '').includes('has already been defined')) return true;
+                return false;
+            };
+        })();
+    </script>
 
-    if (!imageRes.ok) {
-      let errorMessage = imageRes.statusText;
-      try {
-        const text = await imageRes.text();
-        if (text.trim().startsWith('{')) {
-            const json = JSON.parse(text);
-            errorMessage = JSON.stringify(json);
-        } else {
-            errorMessage = `Request blocked (${imageRes.status}). content filter or invalid param.`;
+    <style>
+        body { background: #050505; color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
+        *::-webkit-scrollbar { width: 6px; height: 6px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        *::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Typography & ChatGPT-like Markdown Formatting */
+        .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
+        .markdown-body p { margin-bottom: 1rem; }
+        .markdown-body h1 { font-size: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.3em; margin-top: 1.5rem; margin-bottom: 1rem; color: #FFF; font-weight: 600; }
+        .markdown-body h2 { font-size: 1.3rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #FFF; font-weight: 600; }
+        .markdown-body h3 { font-size: 1.1rem; margin-top: 1.2rem; margin-bottom: 0.5rem; color: #FFF; font-weight: 600; }
+        .markdown-body strong { color: #FFF; font-weight: 600; }
+        .markdown-body a { color: #3b82f6; text-decoration: none; border-bottom: 1px solid rgba(59,130,246,0.3); transition: border-color 0.2s; }
+        .markdown-body a:hover { border-bottom-color: #3b82f6; }
+        
+        .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-body li { margin-bottom: 0.25rem; }
+        .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.9rem; }
+        .markdown-body th, .markdown-body td { border: 1px solid #333; padding: 0.6rem 0.8rem; text-align: left; }
+        .markdown-body th { background: #151515; color: #FFF; font-weight: 600; }
+        .markdown-body blockquote { border-left: 4px solid #3b82f6; margin: 1rem 0; padding-left: 1rem; color: #9ca3af; background: rgba(59,130,246,0.05); padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 0 8px 8px 0; }
+
+        .markdown-body code:not(.hljs) { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
+        .code-box { margin: 1.5em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 100%; }
+        .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .code-body pre { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+        .code-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; border: none; }
+
+        /* --- Streaming Animations --- */
+        .msg-appear { animation: slideUpFade 0.3s cubic-bezier(0.2, 0.9, 0.4, 1) forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes slideUpFade { to { opacity: 1; transform: translateY(0); } }
+
+        .markdown-body.streaming > * {
+            animation: swipeUpLine 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) both;
+            transform-origin: bottom;
         }
-      } catch (e) { }
+        @keyframes swipeUpLine {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
 
-      return jsonResponse({ error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` }, imageRes.status);
-    }
+        /* --- Think Block Animations & UI --- */
+        .think-block { margin: 1rem 0; border: 1px solid #222; border-radius: 12px; background: #080808; overflow: hidden; max-width: 100%; }
+        .think-header { padding: 0.75rem 1rem; background: #111; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none; transition: background 0.2s; border-bottom: 1px solid #222; }
+        .think-header:hover { background: #161616; }
+        .think-content { padding: 1rem; font-size: 0.85rem; color: #9ca3af; border-left: 2px solid transparent; transition: all 0.3s; }
+        .think-content:hover { border-left-color: rgba(59,130,246,0.5); }
+        .think-content.hidden { display: none; }
+        
+        @keyframes thinkRotate {
+            0%, 20% { content: "Analyzing Request..."; }
+            25%, 45% { content: "Reasoning Step..."; }
+            50%, 70% { content: "Formulating..."; }
+            75%, 95% { content: "Structuring Response..."; }
+            100% { content: "Analyzing Request..."; }
+        }
+        .think-title-anim::after { content: ""; animation: thinkRotate 4s infinite; }
 
-    const responseType = imageRes.headers.get('Content-Type') || '';
+        /* --- Media Generation UI & Fluid Animations --- */
+        .dai-img-container, .dai-video-container, .dai-audio-container { position: relative; overflow: hidden; border-radius: 16px; margin: 1rem 0; border: 1px solid #333; background: #080808; display: inline-block; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .dai-img, .dai-video { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.7s ease, filter 0.7s ease; position: relative; z-index: 10; filter: blur(24px); }
+        .dai-img.loaded, .dai-video.loaded { opacity: 1; filter: blur(0); }
+        .dai-audio-shell { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 10px; justify-content: center; min-height: 160px; padding: 18px; background: radial-gradient(circle at top left, rgba(59,130,246,0.16), rgba(0,0,0,0.6)); }
+        .dai-audio { width: 100%; }
+        
+        .dai-watermark { position: absolute; bottom: 12px; right: 12px; font-size: clamp(16px, 3.5vw, 28px); font-weight: 800; color: rgba(255, 255, 255, 0.9); text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); z-index: 15; pointer-events: none; font-family: 'Inter', sans-serif; }
+        .dai-overlay { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 0.2s; display: flex; gap: 8px; z-index: 20; pointer-events: none; }
+        .dai-img-container:hover .dai-overlay, .dai-video-container:hover .dai-overlay, .dai-audio-container:hover .dai-overlay { opacity: 1; pointer-events: auto; }
+        .dai-overlay.visible { display: flex; opacity: 1; pointer-events: auto; } 
+        
+        .dai-btn { background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.15); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; backdrop-filter: blur(4px); }
+        .dai-btn:hover { background: #3b82f6; border-color: #3b82f6; transform: scale(1.05); box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
 
-    if (responseType.startsWith('image/')) {
-      return imageResponse(imageRes.body, responseType);
-    }
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.6; animation: float 3s ease-in-out infinite alternate; will-change: transform; }
+        .fluid-container { position: absolute; inset: 0; transition: opacity 1000ms; opacity: 0; z-index: 5; background: #000; }
+        .fluid-container.active { opacity: 1; }
+        .progress-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; transition: opacity 300ms; opacity: 0; }
+        .progress-svg.active { opacity: 1; }
+        .progress-rect { mix-blend-mode: screen; transition: stroke-opacity 0.3s; }
+        .gen-status { position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; z-index: 35; text-shadow: 0 2px 4px rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.3s; }
+        .gen-status.active { opacity: 0.7; }
 
-    if (responseType.includes('application/json')) {
-      const payload = await imageRes.json();
+        /* Scroll Button */
+        #scroll-btn { position: absolute; bottom: 20px; right: 20px; z-index: 40; background: #1A1A1A; color: #3b82f6; border: 1px solid #333; padding: 10px 14px; border-radius: 50%; cursor: pointer; opacity: 0; transition: all 0.3s; transform: translateY(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        #scroll-btn.visible { opacity: 1; transform: translateY(0); }
+        #scroll-btn:hover { background: #2563eb; color: white; border-color: #2563eb; }
 
-      if (payload?.success === false && payload?.error) {
-        const errorMessage = typeof payload.error === 'string'
-          ? payload.error
-          : payload.error.message || JSON.stringify(payload.error);
-        return jsonResponse({ error: `Pollinations API JSON Error: ${errorMessage}` }, 502);
-      }
+        /* Toggle switches */
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
 
-      const extracted = extractImageData(payload);
+        /* Error Loading Animation */
+        .error-loader-container { background: linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(20,20,20,0.98) 100%); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 2rem; margin: 1rem 0; position: relative; overflow: hidden; backdrop-filter: blur(10px); max-width: 400px; }
+        .error-loader-container::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #3b82f6, transparent); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
+        .error-spinner { width: 40px; height: 40px; border: 3px solid rgba(59,130,246,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .error-countdown { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 50%; font-weight: 600; font-size: 0.8rem; color: #3b82f6; margin: 0 4px; }
+    </style>
+</head>
+<body class="flex h-screen bg-dark-bg text-white overflow-hidden">
+    
+    <!-- Sidebar Overlay (Mobile Only) -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm transition-opacity opacity-0 md:hidden" onclick="window.toggleSidebar()"></div>
 
-      if (extracted.imageUrl) {
-        const resolvedImageRes = await fetch(extracted.imageUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'image/*'
-          }
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 h-full flex-shrink-0 transition-[margin] duration-300 ease-in-out bg-[#0f0f0f] border-r border-[#222] flex flex-col relative z-40 -ml-72 shadow-2xl absolute md:relative">
+        <div class="p-4 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a]">
+            <button onclick="window.newChat()" class="flex items-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors flex-1 justify-center mr-2">
+                <i class="fa-solid fa-plus"></i> New Chat
+            </button>
+            <button onclick="window.toggleSidebar()" class="text-gray-500 hover:text-white p-2"><i class="fa-solid fa-times"></i></button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-3 space-y-1" id="chat-history-list">
+            <!-- Chat history items will be injected here -->
+        </div>
+
+        <!-- Personalization Toggle -->
+        <div class="p-4 border-t border-[#222] bg-[#0a0a0a]">
+            <div class="flex items-center justify-between mb-2 cursor-pointer" onclick="document.getElementById('personalization-toggle').click()">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-user-astronaut text-brand"></i>
+                    <div>
+                        <div class="text-sm font-medium text-white">Personalization</div>
+                        <div class="text-[10px] text-gray-500">Uses memory to adapt</div>
+                    </div>
+                </div>
+                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="personalization-toggle" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-gray-300" onchange="window.toggleMemory(this.checked)"/>
+                    <label for="personalization-toggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-600 cursor-pointer transition-colors duration-200 ease-in-out"></label>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace (Chat + Preview) -->
+    <div class="flex-1 flex w-full h-full relative overflow-hidden">
+        
+        <!-- Chat Column -->
+        <div id="chat-column" class="flex-1 flex flex-col h-full relative min-w-[40%] transition-all duration-300">
+            
+            <!-- Header -->
+            <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
+                <div class="max-w-4xl mx-auto flex items-center px-4 w-full">
+                    <div class="flex items-center gap-3 w-1/3">
+                        <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white p-2 -ml-2" title="Toggle Sidebar">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                        <div class="flex items-center gap-2 hidden sm:flex">
+                            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
+                            <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
+                        </div>
+                    </div>
+                    
+                    <div class="w-1/3 text-center">
+                        <span id="header-chat-title" class="text-sm font-medium text-gray-300 truncate block w-full">New Chat</span>
+                    </div>
+                    
+                    <div class="w-1/3"></div>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
+                <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
+                    <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
+                    <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
+                    
+                    <!-- Dynamic Suggestions -->
+                    <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">🖼️ Creative Image</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">🎬 Random Video</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">🎵 Compose Music</button>
+                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea! First, use the <think> block to list features and plan the architecture, then output the complete code.')">💻 Build a Web App</button>
+                    </div>
+                </div>
+                
+                <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+            </main>
+
+            <!-- Bottom Input Area -->
+            <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
+                <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative w-full">
+                    
+                    <div id="img-preview" class="hidden w-full px-3 pt-2">
+                        <div class="relative inline-block group">
+                            <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
+                            <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
+                                <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+                            </div>
+                            <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex items-end">
+                        <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-400 hover:text-white transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
+                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+                        
+                        <textarea id="in" rows="1" class="w-full bg-transparent text-white py-3.5 px-2 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                        
+                        <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-white bg-brand/10 hover:bg-brand/30 rounded-full disabled:opacity-50 transition-colors mr-1 mb-1" title="Send Message"><i class="fa-solid fa-arrow-up text-md"></i></button>
+                    </div>
+                </div>
+                <div class="text-center mt-2 w-full max-w-4xl mx-auto"><p class="text-[10px] text-gray-500">D'Ai can make mistakes. Verify important information.</p></div>
+            </div>
+        </div>
+
+        <!-- Live Preview Sidebar -->
+        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-dark-bg transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative shadow-2xl">
+            <div class="bg-[#111] p-2 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
+                <div class="flex bg-[#0a0a0a] rounded-lg p-1 border border-[#222]">
+                    <button id="tab-preview" onclick="window.switchPreviewTab('preview')" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-[#333] text-white transition-colors">Preview</button>
+                    <button id="tab-code" onclick="window.switchPreviewTab('code')" class="px-3 py-1.5 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition-colors">Code</button>
+                </div>
+                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#222] transition-colors"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="relative w-full h-full flex-1 bg-white">
+                <iframe id="preview-iframe" class="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+                <textarea id="code-editor" class="absolute inset-0 w-full h-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-sm p-4 hidden resize-none outline-none focus:ring-2 focus:ring-brand" spellcheck="false"></textarea>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/morphdom@2.7.2/dist/morphdom-umd.min.js" defer></script>
+
+    <script>
+        const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+
+        // --- SAFE STORAGE WRAPPER ---
+        const safeStorageGet = (key) => {
+            try { return JSON.parse(localStorage.getItem(key)); } catch(e) { return null; }
+        };
+        const safeStorageSet = (key, val) => {
+            try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.warn("Storage restricted", e); }
+        };
+
+        // --- ERROR MESSAGES & LOADER ---
+        const busyReasons = ["Processing thoughts! 🧠", "Neural networks working ☕", "Quantum computing... ⚛️", "Downloading intelligence... 📥"];
+
+        window.showErrorLoader = (container, retryCallback) => {
+            let countdown = 10; let intervalId;
+            container.innerHTML = `<div class="error-loader-container"><div class="error-spinner"></div><div class="text-center"><div class="text-white text-md font-semibold mb-2 error-pulse">D'Ai is Busy! 🚀</div><div class="text-gray-400 text-xs mb-3">${busyReasons[Math.floor(Math.random() * busyReasons.length)]}</div><div class="text-gray-500 text-[10px] font-mono">Retrying in <span id="error-countdown">10</span>s...</div></div></div>`;
+            intervalId = setInterval(() => {
+                countdown--; const cd = document.getElementById('error-countdown'); if(cd) cd.textContent = countdown;
+                if (countdown <= 0) { clearInterval(intervalId); if(retryCallback) retryCallback(); }
+            }, 1000);
+            return () => clearInterval(intervalId);
+        };
+
+        // --- APP STATE ---
+        window.uploadedImageUrl = null;
+        window.isUploading = false;
+        window.usePersonalization = false; 
+        window.chatHasStarted = false;
+        window.chats = safeStorageGet('dai_chats') || [];
+        window.currentChatId = null;
+        window.isPreviewOpen = false;
+        window.activePreviewTab = 'preview';
+
+        // --- Layout & Logic ---
+        window.toggleSidebar = () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-ml-72')) { 
+                sidebar.classList.remove('-ml-72'); 
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else { 
+                sidebar.classList.add('-ml-72'); 
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        };
+
+        window.toggleMemory = (enabled) => { window.usePersonalization = enabled; };
+
+        // --- Preview Sidebar Logic ---
+        window.openPreview = () => {
+            document.getElementById('preview-column').style.width = window.innerWidth < 768 ? '100%' : '60%';
+            window.isPreviewOpen = true;
+        };
+        window.closePreview = () => {
+            document.getElementById('preview-column').style.width = '0px';
+            window.isPreviewOpen = false;
+        };
+        window.previewCode = (code) => {
+            window.openPreview();
+            const editor = document.getElementById('code-editor');
+            const iframe = document.getElementById('preview-iframe');
+            editor.value = decodeURIComponent(code);
+            iframe.srcdoc = decodeURIComponent(code);
+            // reset to preview mode when opening a new code
+            window.switchPreviewTab('preview');
+        };
+
+        window.switchPreviewTab = (tab) => {
+            const iframe = document.getElementById('preview-iframe');
+            const editor = document.getElementById('code-editor');
+            const btnPreview = document.getElementById('tab-preview');
+            const btnCode = document.getElementById('tab-code');
+            
+            if (tab === 'code') {
+                iframe.classList.add('hidden');
+                editor.classList.remove('hidden');
+                btnCode.classList.add('text-white', 'bg-[#333]');
+                btnCode.classList.remove('text-gray-400');
+                btnPreview.classList.add('text-gray-400');
+                btnPreview.classList.remove('text-white', 'bg-[#333]');
+                window.activePreviewTab = 'code';
+            } else {
+                iframe.classList.remove('hidden');
+                editor.classList.add('hidden');
+                btnPreview.classList.add('text-white', 'bg-[#333]');
+                btnPreview.classList.remove('text-gray-400');
+                btnCode.classList.add('text-gray-400');
+                btnCode.classList.remove('text-white', 'bg-[#333]');
+                
+                // Sync iframe with editor content
+                iframe.srcdoc = editor.value;
+                window.activePreviewTab = 'preview';
+            }
+        };
+        
+        window.useSuggestion = (text) => {
+            const input = document.getElementById('in'); input.value = text;
+            input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px';
+            window.send();
+        };
+
+        window.newChat = () => {
+            window.currentChatId = null;
+            window.S.msg = [];
+            window.S.gen = false;
+            window.chatHasStarted = false;
+            window.closePreview();
+            document.getElementById('header-chat-title').innerText = "New Chat";
+            document.getElementById('chat').innerHTML = `
+            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6">
+                <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
+                <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
+                <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">🖼️ Creative Image</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">🎬 Random Video</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">🎵 Compose Music</button>
+                    <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea! First, use the <think> block to list features and plan the architecture, then output the complete code.')">💻 Build a Web App</button>
+                </div>
+            </div><button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>`;
+            window.E.h = document.getElementById('hero');
+            window.E.c = document.getElementById('chat');
+            document.getElementById('in').value = '';
+            document.getElementById('in').style.height = 'auto';
+            if(window.innerWidth < 768) window.toggleSidebar();
+            renderSidebarChats();
+        };
+
+        const renderSidebarChats = () => {
+            const list = document.getElementById('chat-history-list');
+            if(!list) return;
+            let html = `<div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2 px-2">History</div>`;
+            window.chats.forEach(chat => {
+                const isActive = chat.id === window.currentChatId;
+                html += `<button onclick="window.loadChat('${chat.id}')" class="w-full text-left px-3 py-2.5 rounded-lg mb-1 ${isActive ? 'bg-[#252525] border-[#555]' : 'bg-[#1a1a1a] border-[#333]'} border text-sm text-gray-200 truncate hover:bg-[#252525] transition-colors flex items-center gap-3">
+                    <i class="fa-regular fa-message text-gray-500"></i> <span>${chat.title}</span>
+                </button>`;
+            });
+            list.innerHTML = html;
+        };
+
+        const saveCurrentChat = (titleUpdate = null) => {
+            if(!window.currentChatId && window.S.msg.length > 1) {
+                window.currentChatId = Date.now().toString();
+                window.chats.unshift({ id: window.currentChatId, title: titleUpdate || "New Chat", messages: window.S.msg });
+            } else if (window.currentChatId) {
+                const chat = window.chats.find(c => c.id === window.currentChatId);
+                if(chat) {
+                    chat.messages = window.S.msg;
+                    if(titleUpdate) { chat.title = titleUpdate; document.getElementById('header-chat-title').innerText = titleUpdate; }
+                }
+            }
+            safeStorageSet('dai_chats', window.chats);
+            renderSidebarChats();
+        };
+
+        window.loadChat = (id) => {
+            const chat = window.chats.find(c => c.id === id);
+            if(!chat) return;
+            window.currentChatId = id;
+            window.S.msg = JSON.parse(JSON.stringify(chat.messages)); 
+            window.chatHasStarted = true;
+            window.closePreview();
+            document.getElementById('header-chat-title').innerText = chat.title;
+            
+            window.E.c.innerHTML = '<button id="scroll-btn" onclick="window.scrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>'; 
+            
+            chat.messages.forEach(m => {
+                if(m.role === 'user') {
+                    const content = m.content.replace(/\[UPLOADED_IMAGE:.*?\]/, '');
+                    let displayHtml = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    if(m.content.includes('[UPLOADED_IMAGE:')) displayHtml += `<br><span class="text-xs text-brand mt-1 block"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
+                    window.addMsg('user', displayHtml);
+                } else if(m.role === 'assistant') {
+                    const {firstElementChild:el} = window.addMsg('assistant','');
+                    const mdRenderer = window.getMd();
+                    let processedContent = m.content.replace(/<think>([\s\S]*?)(?:<\/think>|$)/g, (match, inner) => {
+                        const isClosed = match.endsWith('</think>');
+                        const headerHtml = `<i class="fa-solid fa-lightbulb text-yellow-500"></i> <span class="text-gray-300 font-semibold text-[0.7rem] tracking-[0.1em] uppercase">Thought Process</span>`;
+                        return `\n\n<div class="think-block"><div class="think-header" onclick="this.nextElementSibling.classList.toggle('hidden')">${headerHtml}</div><div class="think-content ${isClosed ? 'hidden' : ''}">\n\n${inner}\n\n</div></div>\n\n`;
+                    });
+                    processedContent = processedContent.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m, inp) => window.Putter.generate(inp));
+                    processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => window.Putter.generateVideo(inp));
+                    processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => window.Putter.generateMusic(inp));
+                    
+                    let finalHtml = mdRenderer.render(processedContent.replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$').replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$'));
+                    el.querySelector('.markdown-body').innerHTML = finalHtml;
+                }
+            });
+            window.scrollToBottom();
+            renderSidebarChats();
+            if(window.innerWidth < 768) window.toggleSidebar();
+        };
+
+        // --- Scroll Logic ---
+        const chatContainer = document.getElementById('chat');
+        chatContainer.addEventListener('scroll', () => {
+            const btn = document.getElementById('scroll-btn');
+            if(!btn) return;
+            if (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100) btn.classList.remove('visible'); 
+            else btn.classList.add('visible');
         });
+        window.scrollToBottom = () => { chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); };
 
-        if (resolvedImageRes.ok) {
-          return imageResponse(resolvedImageRes.body, resolvedImageRes.headers.get('Content-Type') || 'image/jpeg');
+        // --- Upload Logic ---
+        window.handleFile = (file) => {
+            if (!file || window.isUploading) return;
+            if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
+
+            const preview = document.getElementById('img-preview'); const thumb = document.getElementById('preview-thumb'); const progress = document.getElementById('upload-progress');
+            preview.classList.remove('hidden'); thumb.src = URL.createObjectURL(file); thumb.classList.remove('opacity-100'); thumb.classList.add('opacity-50'); progress.classList.remove('hidden');
+            window.isUploading = true;
+
+            const formData = new FormData(); formData.append('file', file);
+            fetch('/api/upload', { method: 'POST', body: formData })
+                .then(res => { if(!res.ok) throw new Error(`Upload Error: ${res.status}`); return res.json(); })
+                .then(data => {
+                    if (data.success) { window.uploadedImageUrl = data.link; thumb.classList.remove('opacity-50'); thumb.classList.add('opacity-100'); progress.classList.add('hidden'); } 
+                    else throw new Error(data.error || 'Upload failed');
+                })
+                .catch(err => { console.error(err); alert("Image upload failed. Please try again."); window.removeImage(); })
+                .finally(() => { window.isUploading = false; });
+        };
+        window.removeImage = () => { document.getElementById('file-input').value = ""; document.getElementById('img-preview').classList.add('hidden'); window.uploadedImageUrl = null; window.isUploading = false; };
+        document.addEventListener('paste', (e) => { const items = (e.clipboardData || e.originalEvent.clipboardData).items; for (let item of items) { if (item.kind === 'file' && item.type.startsWith('image/')) window.handleFile(item.getAsFile()); } });
+
+        // --- Fluid Animations & Media ---
+        // RESTORED USER'S EXACT LOGIC FOR MEDIA APIS
+        async function processAndWatermark(blob) {
+            if (!blob || !blob.type || !blob.type.startsWith('image/')) {
+                throw new Error(`Invalid image payload received (${blob?.type || 'unknown type'})`);
+            }
+
+            const img = new Image();
+            img.src = URL.createObjectURL(blob);
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error('Failed to decode generated image payload'));
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(img, 0, 0);
+
+            const fontSize = Math.max(24, img.width * 0.035);
+            ctx.font = `800 ${fontSize}px 'Inter', sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            const margin = fontSize * 0.8;
+            ctx.fillText("D'Ai", img.width - margin, img.height - margin);
+
+            URL.revokeObjectURL(img.src);
+
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(b => {
+                    if (!b) {
+                        reject(new Error('Failed to encode watermarked image'));
+                        return;
+                    }
+                    resolve(URL.createObjectURL(b));
+                }, 'image/jpeg', 0.95);
+            });
         }
 
-        return jsonResponse({ error: `Failed to resolve generated image URL (${resolvedImageRes.status}).` }, resolvedImageRes.status);
-      }
+        const FluidAnim = {
+            rafs: {},
+            init: (containerId) => {
+                const wrapper = document.querySelector(`#${containerId} .blobs-wrapper`);
+                if(!wrapper) return;
+                
+                const colors = ['#475569', '#64748b', '#94a3b8', '#1e293b'];
+                for (let i = 0; i < 12; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'blob';
+                    const left = Math.random() * 110 - 5;
+                    const top = Math.random() * 110 - 5;
+                    const color = colors[i % 4];
+                    const delay = -(Math.random() * 20);
+                    b.style.left = `${left}%`;
+                    b.style.top = `${top}%`;
+                    b.style.backgroundColor = color;
+                    b.style.width = `270px`; 
+                    b.style.height = `270px`;
+                    b.style.animationDuration = `3.2s`; 
+                    b.style.animationDelay = `${delay}s`;
+                    wrapper.appendChild(b);
+                }
+            },
+            run: (containerId, from, to, duration, onDone) => {
+                const rect = document.querySelector(`#${containerId} .progress-rect`);
+                if(!rect) return;
+                
+                if(FluidAnim.rafs[containerId]) cancelAnimationFrame(FluidAnim.rafs[containerId]);
 
-      if (extracted.decodedBase64) {
-        return imageResponse(extracted.decodedBase64.bytes, extracted.decodedBase64.mimeType);
-      }
+                let startTimestamp = performance.now();
+                
+                function loop(now) {
+                    const elapsed = now - startTimestamp;
+                    const dt = Math.min(elapsed / duration, 1);
+                    const val = from + (to - from) * dt;
+                    
+                    rect.setAttribute('stroke-dashoffset', 100 - val);
+                    rect.style.strokeOpacity = val <= 0 ? '0' : '0.8';
 
-      // Fallback path for edit requests: use /image endpoint with reference image parameter.
-      if (image) {
-        const fallbackBaseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
-        const fallbackParams = new URLSearchParams();
-        fallbackParams.append('width', finalWidth);
-        fallbackParams.append('height', finalHeight);
-        fallbackParams.append('seed', finalSeed);
-        fallbackParams.append('model', finalModel);
-        fallbackParams.append('nologo', 'true');
-        fallbackParams.append('safe', 'false');
-        fallbackParams.append('image', image);
+                    if (dt < 1) {
+                        FluidAnim.rafs[containerId] = requestAnimationFrame(loop);
+                    } else {
+                        delete FluidAnim.rafs[containerId];
+                        if (onDone) onDone();
+                    }
+                }
+                FluidAnim.rafs[containerId] = requestAnimationFrame(loop);
+            }
+        };
 
-        const fallbackUrl = `${fallbackBaseUrl}?${fallbackParams.toString()}`;
-        const fallbackRes = await fetch(fallbackUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'image/*'
-          }
+        window.fetchServerImage = async (imgEl, encPrompt, width, height, seed, containerId, encSourceImage) => {
+            imgEl.removeAttribute('onload');
+            const prompt = decodeURIComponent(encPrompt);
+            const sourceImage = encSourceImage ? decodeURIComponent(encSourceImage) : null;
+            const urlKey = `${prompt}-${width}-${height}-${seed}-${sourceImage ? 'edit' : 'new'}-watermarked`;
+
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const fluidCont = container.querySelector('.fluid-container');
+            const progSvg = container.querySelector('.progress-svg');
+            const genStatus = container.querySelector('.gen-status');
+            const overlay = container.querySelector('.dai-overlay');
+
+            if (!fluidCont || !progSvg || !genStatus || !overlay) return;
+
+            FluidAnim.init(containerId);
+            fluidCont.classList.add('active');
+            progSvg.classList.add('active');
+            genStatus.classList.add('active');
+
+            FluidAnim.run(containerId, 0, 85, 4000, () => {
+                if (!imgEl.classList.contains('loaded') && !imgEl.classList.contains('error')) {
+                    FluidAnim.run(containerId, 85, 99, 16000);
+                }
+            });
+
+            if(window.pCache && window.pCache.has(urlKey)) {
+                imgEl.src = window.pCache.get(urlKey);
+                setTimeout(() => finishAnimation(imgEl.src), 100);
+                return;
+            }
+
+            try {
+                const body = { prompt, width, height, seed, model: sourceImage ? 'p-image-edit' : 'flux' };
+                if (sourceImage) body.image = sourceImage;
+
+                const res = await fetch('/api/image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!res.ok) {
+                    let detail = res.statusText;
+                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Image API is overloaded. Please wait a moment.");
+                    }
+                    if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
+                        throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
+                    }
+                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                }
+
+                const rawBlob = await res.blob();
+                const watermarkedUrl = await processAndWatermark(rawBlob);
+
+                if(!window.pCache) window.pCache = new Map();
+                window.pCache.set(urlKey, watermarkedUrl);
+
+                finishAnimation(watermarkedUrl);
+
+            } catch (e) {
+                console.error("Image Gen Failed:", e);
+                fluidCont.classList.remove('active');
+                progSvg.classList.remove('active');
+                genStatus.classList.remove('active');
+                imgEl.classList.add('error');
+                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that image.";
+                window.imgError(imgEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+            }
+
+            function finishAnimation(finalUrl) {
+                FluidAnim.run(containerId, 95, 100, 500, () => {
+                    fluidCont.classList.remove('active');
+                    progSvg.classList.remove('active');
+                    genStatus.classList.remove('active');
+                    imgEl.onload = () => {
+                        imgEl.classList.add('loaded');
+                        overlay.classList.add('visible');
+                    };
+                    imgEl.onerror = () => {
+                        imgEl.classList.add('error');
+                        window.imgError(imgEl, 'Rendered image failed to load. Please retry generation.');
+                    };
+                    imgEl.src = finalUrl;
+                });
+            }
+        };
+
+        window.fetchServerVideo = async (videoEl, encPrompt, width, height, duration, containerId, aspectRatio, encSourceImage) => {
+            const prompt = decodeURIComponent(encPrompt);
+            const sourceImage = encSourceImage ? decodeURIComponent(encSourceImage) : null;
+            const urlKey = `${prompt}-${width}-${height}-${duration}-${sourceImage ? 'edit' : 'new'}-video`;
+
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const fluidCont = container.querySelector('.fluid-container');
+            const progSvg = container.querySelector('.progress-svg');
+            const genStatus = container.querySelector('.gen-status');
+            const overlay = container.querySelector('.dai-overlay');
+
+            if (!fluidCont || !progSvg || !genStatus || !overlay) return;
+
+            FluidAnim.init(containerId);
+            fluidCont.classList.add('active');
+            progSvg.classList.add('active');
+            genStatus.classList.add('active');
+
+            FluidAnim.run(containerId, 0, 85, 8000, () => {
+                if (!videoEl.classList.contains('loaded') && !videoEl.classList.contains('error')) {
+                    FluidAnim.run(containerId, 85, 99, 24000);
+                }
+            });
+
+            if(window.vCache && window.vCache.has(urlKey)) {
+                videoEl.src = window.vCache.get(urlKey);
+                setTimeout(() => finishAnimation(videoEl.src), 100);
+                return;
+            }
+
+            try {
+                const body = {
+                    prompt, width, height, duration: parseInt(duration) || 4, aspectRatio: aspectRatio || '16:9', model: 'ltx-2'
+                };
+                if (sourceImage) body.image = sourceImage;
+
+                const res = await fetch('/api/video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!res.ok) {
+                    let detail = res.statusText;
+                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Video API is overloaded. Please wait a moment.");
+                    }
+                    if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
+                        throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
+                    }
+                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                }
+
+                const { url, apiKey } = await res.json();
+                if (!url || !apiKey) throw new Error("Server Error: Missing video URL or API key");
+
+                const videoRes = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'video/mp4,video/*' }
+                });
+
+                if (!videoRes.ok) {
+                    let detail = videoRes.statusText;
+                    try {
+                        const j = await videoRes.json();
+                        if (j.error) detail = typeof j.error === 'object' ? j.error.message : j.error;
+                    } catch(e) {}
+                    throw new Error(`Pollinations API Error (${videoRes.status}): ${detail}`);
+                }
+
+                const videoBlob = await videoRes.blob();
+                const videoUrl = URL.createObjectURL(videoBlob);
+
+                if(!window.vCache) window.vCache = new Map();
+                window.vCache.set(urlKey, videoUrl);
+
+                finishAnimation(videoUrl);
+
+            } catch (e) {
+                console.error("Video Gen Failed:", e);
+                fluidCont.classList.remove('active');
+                progSvg.classList.remove('active');
+                genStatus.classList.remove('active');
+                videoEl.classList.add('error');
+                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that video.";
+                window.videoError(videoEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+            }
+
+            function finishAnimation(finalUrl) {
+                FluidAnim.run(containerId, 95, 100, 500, () => {
+                    fluidCont.classList.remove('active');
+                    progSvg.classList.remove('active');
+                    genStatus.classList.remove('active');
+                    videoEl.src = finalUrl;
+                    videoEl.classList.add('loaded');
+                    overlay.classList.add('visible');
+                });
+            }
+        };
+
+        window.fetchServerMusic = async (audioEl, encPrompt, duration, containerId, encStyle) => {
+            const prompt = decodeURIComponent(encPrompt);
+            const style = encStyle ? decodeURIComponent(encStyle) : "";
+            const urlKey = `${prompt}-${duration}-${style}-music`;
+
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const fluidCont = container.querySelector('.fluid-container');
+            const progSvg = container.querySelector('.progress-svg');
+            const genStatus = container.querySelector('.gen-status');
+            const overlay = container.querySelector('.dai-overlay');
+
+            if (!fluidCont || !progSvg || !genStatus || !overlay) return;
+
+            FluidAnim.init(containerId);
+            fluidCont.classList.add('active');
+            progSvg.classList.add('active');
+            genStatus.classList.add('active');
+
+            FluidAnim.run(containerId, 0, 85, 6000, () => {
+                if (!audioEl.classList.contains('loaded') && !audioEl.classList.contains('error')) {
+                    FluidAnim.run(containerId, 85, 99, 18000);
+                }
+            });
+
+            if (window.mCache && window.mCache.has(urlKey)) {
+                audioEl.src = window.mCache.get(urlKey);
+                setTimeout(() => finishAnimation(audioEl.src), 100);
+                return;
+            }
+
+            try {
+                const body = { prompt, duration: parseInt(duration) || 15, model: 'acestep' };
+                if (style) body.style = style;
+
+                const res = await fetch('/api/music', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!res.ok) {
+                    let detail = res.statusText;
+                    try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
+                    }
+                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                }
+
+                const { url, apiKey } = await res.json();
+                if (!url || !apiKey) throw new Error("Unable to initialize music generation.");
+
+                const audioRes = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'audio/mpeg,audio/*' }
+                });
+
+                if (!audioRes.ok) {
+                    let detail = audioRes.statusText;
+                    try {
+                        const text = await audioRes.text();
+                        detail = text || detail;
+                    } catch (e) {}
+                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
+                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
+                    }
+                    throw new Error(`Pollinations API Error (${audioRes.status}): ${detail}`);
+                }
+
+                const audioBlob = await audioRes.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                if (!window.mCache) window.mCache = new Map();
+                window.mCache.set(urlKey, audioUrl);
+
+                finishAnimation(audioUrl);
+            } catch (e) {
+                console.error("Music Gen Failed:", e);
+                fluidCont.classList.remove('active');
+                progSvg.classList.remove('active');
+                genStatus.classList.remove('active');
+                audioEl.classList.add('error');
+                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that music. Please try again.";
+                window.audioError(audioEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+            }
+
+            function finishAnimation(finalUrl) {
+                FluidAnim.run(containerId, 95, 100, 500, () => {
+                    fluidCont.classList.remove('active');
+                    progSvg.classList.remove('active');
+                    genStatus.classList.remove('active');
+                    audioEl.src = finalUrl;
+                    audioEl.classList.add('loaded');
+                    overlay.classList.add('visible');
+                });
+            }
+        };
+
+        window.dlImg = async (id, encFilename) => {
+            const filename = decodeURIComponent(encFilename); const btn = document.getElementById(id);
+            const container = btn.closest('.dai-img-container'); const img = container.querySelector('img');
+            const blobUrl = img.src; const ogHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.png` : `DAi-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch(e) { window.open(blobUrl,'_blank'); } btn.innerHTML = ogHtml;
+        };
+        window.imgError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
+
+        window.dlVideo = async (id, encFilename) => {
+            const filename = decodeURIComponent(encFilename); const btn = document.getElementById(id);
+            const container = btn.closest('.dai-video-container'); const video = container.querySelector('video');
+            const blobUrl = video.src; const ogHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp4` : `DAi-${Date.now()}.mp4`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch(e) { window.open(blobUrl,'_blank'); } btn.innerHTML = ogHtml;
+        };
+        window.videoError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
+
+        window.dlAudio = async (id, encFilename) => {
+            const filename = decodeURIComponent(encFilename); const btn = document.getElementById(id);
+            const container = btn.closest('.dai-audio-container'); const audio = container.querySelector('audio');
+            const blobUrl = audio.src; const ogHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try { const a = document.createElement('a'); a.href = blobUrl; a.download = filename ? `${filename}.mp3` : `DAi-${Date.now()}.mp3`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } catch (e) { window.open(blobUrl, '_blank'); } btn.innerHTML = ogHtml;
+        };
+        window.audioError = (el, msg) => { el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`; };
+
+        // --- SEARCH INTEGRATION ---
+        const searchTavily = async (query) => {
+            try {
+                const res = await fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+                if(!res.ok) return null; const data = await res.json();
+                return data.results ? data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n') : null;
+            } catch (e) { return null; }
+        };
+        const shouldSearch = (text) => { const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update']; return keywords.some(k => text.toLowerCase().includes(k)); };
+
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebarChats();
+            
+            let md = null;
+            window.getMd = () => {
+                if(md) return md;
+                if(!(window.markdownit && window.texmath && window.katex && window.hljs)) return null;
+                md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
+                md.use(texmath,{engine:katex,delimiters:'dollars'});
+                md.renderer.rules.fence=(t,i)=>{
+                    const lang = (t[i].info||'text').split(' ')[0];
+                    const content = t[i].content;
+                    
+                    // Hide Web App Code in Chat visually, show a sleek card instead
+                    if(lang === 'html' || lang === 'html:webapp') {
+                        // Encode to prevent single quotes from breaking HTML syntax
+                        const safeCode = encodeURIComponent(content).replace(/'/g, "%27");
+                        return `<div class="bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between my-4 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-brand/20 p-2 rounded-lg text-brand text-xl flex items-center justify-center w-10 h-10"><i class="fa-solid fa-code"></i></div>
+                                <div><h4 class="text-sm font-bold text-white">Web App Code Generated</h4><p class="text-xs text-gray-400">Rendering in the live preview panel.</p></div>
+                            </div>
+                            <button onclick="window.previewCode(decodeURIComponent('${safeCode}'))" class="bg-[#252525] hover:bg-[#333] text-white text-xs px-4 py-2 rounded-lg transition-colors border border-[#444] shadow-sm flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-bolt text-brand"></i> Open Editor</button>
+                        </div>`;
+                    }
+
+                    // Standard code block
+                    return `<div class="code-box"><div class="code-head"><span>${lang}</span><div><button onclick="navigator.clipboard.writeText(this.parentElement.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button></div></div><div class="code-body"><pre><code class="hljs language-${lang}">${md.utils.escapeHtml(content)}</code></pre></div></div>`;
+                };
+                return md;
+            };
+
+            window.Putter = {
+                generate: (input) => {
+                    const parts = input.split('|').map(s=>s.trim());
+                    const prompt = parts[0], ratio = parts[1] || "1:1", filename = parts[2] || `DAi_Image`, sourceImage = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no source image") ? parts[3] : "";
+                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
+                    const {w,h} = dims[ratio.toLowerCase()] || dims["1:1"];
+                    const seed = Math.abs(hashCode(prompt)) % 10000;
+                    
+                    const uniqueSuffix = Math.abs(hashCode(prompt + ratio)).toString(16);
+                    const btnId = `dl-${uniqueSuffix}`; const containerId = `cnt-${uniqueSuffix}`;
+                    const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27"); const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27"); const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
+
+                    // Using exactly the restored user-provided execution logic
+                    return `
+<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}">
+    <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="16" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
+    <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
+    <div class="gen-status">Generating Image...</div>
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image">
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+</div>`;
+                },
+                generateVideo: (input) => {
+                    const parts = input.split('|').map(s=>s.trim());
+                    const prompt = parts[0], aspectRatio = parts[1] || "16:9", duration = parts[2] || "3", filename = parts[3] || `DAi_Video`, sourceImage = (parts[4] && parts[4] !== "undefined" && parts[4] !== "no source image") ? parts[4] : "";
+                    const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
+                    const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
+                    
+                    const uniqueSuffix = Math.abs(hashCode(prompt + aspectRatio)).toString(16);
+                    const btnId = `dl-${uniqueSuffix}`; const containerId = `cnt-${uniqueSuffix}`;
+                    const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27"); const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27"); const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
+
+                    // Restored User execution logic
+                    setTimeout(() => {
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            const videoEl = container.querySelector('video');
+                            if (videoEl) window.fetchServerVideo(videoEl, safePrompt, w, h, duration, containerId, aspectRatio, safeSource);
+                        }
+                    }, 0);
+
+                    return `
+<div id="${containerId}" class="dai-video-container" style="aspect-ratio:${w}/${h}">
+    <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="16" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
+    <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
+    <div class="gen-status">Generating Video...</div>
+    <video class="dai-video" controls loop autoplay muted>Your browser does not support the video tag.</video>
+    <div class="dai-watermark">D'Ai</div>
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Video" onclick="window.dlVideo('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+</div>`;
+                },
+                generateMusic: (input) => {
+                    const parts = input.split('|').map(s=>s.trim());
+                    const prompt = parts[0], duration = parts[1] || "15", filename = parts[2] || `DAi_Music`, style = (parts[3] && parts[3] !== "undefined" && parts[3] !== "no style") ? parts[3] : "";
+                    
+                    const uniqueSuffix = Math.abs(hashCode(prompt + duration)).toString(16);
+                    const btnId = `dl-${uniqueSuffix}`; const containerId = `cnt-${uniqueSuffix}`;
+                    const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27"); const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27"); const safeStyle = style ? encodeURIComponent(style).replace(/'/g, "%27") : "";
+
+                    // Restored User execution logic
+                    setTimeout(() => {
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            const audioEl = container.querySelector('audio');
+                            if (audioEl) window.fetchServerMusic(audioEl, safePrompt, duration, containerId, safeStyle);
+                        }
+                    }, 0);
+
+                    return `
+<div id="${containerId}" class="dai-audio-container">
+    <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="16" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
+    <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
+    <div class="gen-status">Generating Music...</div>
+    <div class="dai-audio-shell">
+        <div class="text-[11px] opacity-70 uppercase tracking-[0.2em] flex items-center gap-2"><i class="fa-solid fa-music"></i> AI Music</div>
+        <audio class="dai-audio" controls preload="none">Your browser does not support the audio tag.</audio>
+    </div>
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Music" onclick="window.dlAudio('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+</div>`;
+                }
+            };
+
+            window.S={msg:[],gen:false}; window.E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            
+            // To track the current user message node for scrolling
+            let currentUserMsgNode = null;
+            
+            window.addMsg = (r,t) => { 
+                const d=document.createElement('div'); 
+                d.className=`flex w-full msg-appear mb-6`; 
+                d.innerHTML=r==='user'
+                    ?`<div class="max-w-4xl mx-auto w-full flex justify-end"><div class="bg-[#2A2A2A] px-5 py-3 rounded-3xl rounded-tr-sm max-w-[85%] border border-[#333] leading-relaxed text-[0.95rem] shadow-sm">${t}</div></div>`
+                    :`<div class="max-w-4xl mx-auto w-full flex justify-start"><div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div></div>`; 
+                window.E.c.insertBefore(d, document.getElementById('scroll-btn')); 
+                if (r === 'user') {
+                    currentUserMsgNode = d;
+                    setTimeout(() => {
+                        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 10);
+                }
+                return d; 
+            };
+
+            const generateChatTitle = async (firstMessage) => {
+                try {
+                    const res = await fetch("/api/chat", {
+                        method: "POST", headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            model: "llama3.1-8b",
+                            messages: [{role: "user", content: `Generate a concise 2-4 word title for this chat based on this first message. Output ONLY the title. Message: "${firstMessage}"`}],
+                            max_completion_tokens: 10, temperature: 0.5, stream: false
+                        })
+                    });
+                    if(res.ok) {
+                        const data = await res.json();
+                        let title = data.choices?.[0]?.message?.content?.replace(/["']/g, "").trim() || "New Chat";
+                        if(title.length > 25) title = title.substring(0, 22) + "...";
+                        saveCurrentChat(title);
+                    }
+                } catch(e) { console.error("Title gen failed", e); }
+            };
+
+            window.send = async function() {
+                const t=window.E.i.value.trim(); 
+                if((!t && !window.uploadedImageUrl) ||window.S.gen || window.isUploading) return;
+                
+                if(!window.getMd()){
+                    const btn = document.getElementById('btn');
+                    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+                    setTimeout(window.send, 100); 
+                    return;
+                }
+
+                window.S.gen=true; window.E.i.value=''; window.E.i.style.height='auto'; 
+                
+                if (!window.chatHasStarted) {
+                    if(window.E.h) window.E.h.classList.add('hidden'); 
+                    window.chatHasStarted = true;
+                }
+
+                document.getElementById('btn').disabled=true;
+                
+                if(!window.S.msg.length) {
+                    let systemPrompt = "You are D'Ai, a lightning-fast, highly intelligent AI assistant.\n\n";
+                    
+                    if(window.usePersonalization) {
+                        systemPrompt += "**PERSONALIZATION MEMORY (HIDDEN FROM USER):**\nUser prefers highly technical answers, likes synthwave music, and often codes in React. Use this context to personalize your responses when relevant.\n\n";
+                    }
+
+                    systemPrompt += "**THOUGHT PROCESS & REASONING (CRITICAL):**\nYou have the ability to reason. If the user asks a complex question, math problem, logic puzzle, OR requests ANY code/web app, you MUST output a `<think>...</think>` block BEFORE your final response to brainstorm and plan.\n- For Web Apps: Inside `<think>`, list all features, UI design, and architecture. THEN output the HTML code. NEVER start with the code block.\n\n";
+                    
+                    systemPrompt += "**WEB APP DEVELOPMENT:**\nWhen asked to build a web app, output a SINGLE `html` code block containing all HTML, Tailwind CSS, and JavaScript. Ensure the design is modern, responsive, and visually stunning.\n\n";
+
+                    systemPrompt += "**LATEX FORMATTING:**\nUse standard LaTeX formatting. Block: `$$equation$$`, Inline: `$equation$`. **CRITICAL:** Do NOT put spaces immediately inside the dollar signs (e.g., use `$\\mathbf{u}$`, NOT `$ \\mathbf{u} $`).\n\n";
+
+                    systemPrompt += "**MEDIA CAPABILITIES (ONLY OUTPUT THESE TAGS IF EXPLICITLY REQUESTED):**\n" +
+                                 "Image: <<GENERATE_IMAGE: prompt | aspect_ratio | filename | source_image_url>>\n" +
+                                 "Video: <<GENERATE_VIDEO: prompt | aspect_ratio | duration_sec(1 to 10) | filename | source_image_url>>\n" +
+                                 "Music: <<GENERATE_MUSIC: prompt | duration_sec(3 to 300) | filename | style_tags>>\n\n" +
+                                 "**CRITICAL RULE FOR MEDIA:** When generating media, YOU MUST ONLY OUTPUT THE TAG. No text, no conversational filler. Act as an expert prompt engineer INSIDE the tag. Intelligently autonomously select the best aspect ratio (1:1, 16:9, 9:16, 4:3, 3:4) for the subject.\n\n";
+
+                    systemPrompt += "**FORMATTING:**\nFormat your final answers beautifully using Markdown. Use headings (##), bullet points, bold text, and code blocks to structure your response exactly like ChatGPT.";
+                    
+                    window.S.msg.push({ role: "system", content: systemPrompt });
+                }
+                
+                let userContent = t;
+                let displayHtml = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                if (window.uploadedImageUrl) {
+                    userContent += ` [UPLOADED_IMAGE: ${window.uploadedImageUrl}]`;
+                    displayHtml += `<br><span class="text-xs text-brand mt-1 block"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
+                    window.removeImage();
+                }
+
+                window.S.msg.push({role:"user",content:userContent}); 
+                window.addMsg('user', displayHtml);
+                saveCurrentChat();
+                
+                if(window.S.msg.length === 2) { generateChatTitle(t || "Image Context"); }
+
+                const {firstElementChild:el} = window.addMsg('assistant','');
+                const mdContainer = el.querySelector('.markdown-body');
+
+                let searchContext = "";
+                if(shouldSearch(t)) {
+                    el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2 mt-4 ml-4"><i class="fa-solid fa-globe fa-spin"></i> SEARCHING WEB...</span>';
+                    const results = await searchTavily(t);
+                    if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
+                    el.innerHTML = `<div class="max-w-4xl mx-auto w-full flex justify-start"><div class="w-full max-w-full overflow-hidden"><div class="markdown-body streaming"></div></div></div>`; 
+                }
+                
+                try {
+                    const messagesToSend = [...window.S.msg];
+                    if(searchContext) {
+                        messagesToSend[messagesToSend.length - 1] = { 
+                            role: messagesToSend[messagesToSend.length - 1].role, 
+                            content: messagesToSend[messagesToSend.length - 1].content + searchContext 
+                        };
+                    }
+
+                    const res = await fetch("/api/chat", {
+                        method: "POST", headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({model:"llama3.1-8b", messages:messagesToSend, stream:true, max_completion_tokens:4096, temperature:0.7})
+                    });
+
+                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let fullText = "";
+                    let buffer = "";
+                    const mdRenderer = window.getMd();
+                    let hasOpenedPreviewForThisMsg = false;
+
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+
+                        buffer += dec.decode(value, {stream: true});
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const jsonStr = line.slice(6).trim();
+                                    if (jsonStr === "[DONE]") continue;
+                                    const json = JSON.parse(jsonStr);
+                                    const delta = json.choices[0]?.delta?.content || "";
+                                    
+                                    if (delta) {
+                                        fullText += delta;
+                                        
+                                        let processedContent = fullText.replace(/<think>([\s\S]*?)(?:<\/think>|$)/g, (match, inner) => {
+                                            const isClosed = match.endsWith('</think>');
+                                            const headerHtml = isClosed
+                                                ? `<i class="fa-solid fa-lightbulb text-yellow-500"></i> <span class="text-gray-300 font-semibold text-[0.7rem] tracking-[0.1em] uppercase">Thought Process</span>`
+                                                : `<i class="fa-solid fa-circle-notch fa-spin text-brand"></i> <span class="think-title-anim text-brand font-semibold text-[0.7rem] tracking-[0.1em] uppercase"></span>`;
+
+                                            return `\n\n<div class="think-block">
+                                                <div class="think-header" onclick="this.nextElementSibling.classList.toggle('hidden')">${headerHtml}</div>
+                                                <div class="think-content ${isClosed ? 'hidden' : ''}">\n\n${inner}\n\n</div>
+                                            </div>\n\n`;
+                                        });
+
+                                        processedContent = processedContent.replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (m, inp) => window.Putter.generate(inp));
+                                        processedContent = processedContent.replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (m, inp) => window.Putter.generateVideo(inp));
+                                        processedContent = processedContent.replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (m, inp) => window.Putter.generateMusic(inp));
+                                        
+                                        // Auto Live Preview Logic
+                                        const fence = '`' + '`' + '`';
+                                        const htmlRegex = new RegExp(fence + '(?:html|html:webapp)\\n([\\s\\S]*?)(?:' + fence + '|$)', 'g');
+                                        const htmlMatches = [...fullText.matchAll(htmlRegex)];
+                                        if(htmlMatches.length > 0) {
+                                            const lastHtml = htmlMatches[htmlMatches.length - 1][1];
+                                            if(!window.isPreviewOpen && !hasOpenedPreviewForThisMsg) {
+                                                window.openPreview();
+                                                hasOpenedPreviewForThisMsg = true;
+                                            }
+                                            document.getElementById('preview-iframe').srcdoc = lastHtml;
+                                            if(window.activePreviewTab === 'code') {
+                                                document.getElementById('code-editor').value = lastHtml;
+                                            }
+                                        }
+
+                                        let finalHtml = mdRenderer.render(processedContent
+                                            .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
+                                            .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
+                                        );
+
+                                        morphdom(mdContainer, `<div class="markdown-body streaming">${finalHtml}</div>`, { 
+                                            childrenOnly: true,
+                                            onBeforeElUpdated: function(fromEl, toEl) {
+                                                // Prevent morphdom from updating media containers
+                                                if (fromEl.classList && (fromEl.classList.contains('dai-img-container') || fromEl.classList.contains('dai-video-container') || fromEl.classList.contains('dai-audio-container'))) {
+                                                    return false;
+                                                }
+                                                // Prevent morphdom from resetting code replacement buttons UI
+                                                if (fromEl.classList && fromEl.classList.contains('bg-[#1a1a1a]') && fromEl.querySelector('.fa-code')) {
+                                                    return false;
+                                                }
+                                                if (fromEl.classList && fromEl.classList.contains('think-block')) {
+                                                    if(fromEl.querySelector('.think-content').classList.contains('hidden')) {
+                                                        toEl.querySelector('.think-content').classList.add('hidden');
+                                                    }
+                                                }
+                                                return true;
+                                            }
+                                        });
+                                        
+                                        // Dynamic anchored scroll
+                                        const isNearBottom = window.E.c.scrollHeight - window.E.c.scrollTop - window.E.c.clientHeight < 150;
+                                        if(isNearBottom && currentUserMsgNode) {
+                                           window.scrollToBottom();
+                                        }
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    window.S.msg.push({role:"assistant",content:fullText}); 
+                    saveCurrentChat();
+
+                } catch(e) {
+                    console.error("Chat API Error:", e);
+                    window.S.msg.pop();
+                    window.showErrorLoader(el, async () => {
+                        el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2 mt-4 ml-4"><i class="fa-solid fa-circle-notch fa-spin"></i> RETRYING...</span>';
+                        setTimeout(() => window.send(), 500); 
+                    });
+                } finally {
+                    window.S.gen=false; 
+                    if(mdContainer) mdContainer.classList.remove('streaming');
+                    document.getElementById('btn').disabled=false;
+                    document.getElementById('btn').innerHTML = '<i class="fa-solid fa-arrow-up text-md"></i>';
+                }
+            };
         });
-
-        if (fallbackRes.ok) {
-          return imageResponse(fallbackRes.body, fallbackRes.headers.get('Content-Type') || 'image/jpeg');
-        }
-
-        let fallbackDetail = fallbackRes.statusText;
-        try {
-          const fallbackText = await fallbackRes.text();
-          if (fallbackText.trim().startsWith('{')) {
-            fallbackDetail = JSON.stringify(JSON.parse(fallbackText));
-          }
-        } catch (e) { }
-
-        return jsonResponse({
-          error: `Image edit fallback failed (${fallbackRes.status}): ${fallbackDetail}`,
-          debug: extracted.debug
-        }, 502);
-      }
-
-      return jsonResponse({
-        error: 'Pollinations API returned JSON without image URL or b64 data.',
-        debug: extracted.debug
-      }, 502);
-    }
-
-    // If content type is missing or unknown, pass through as image to keep compatibility.
-    return imageResponse(imageRes.body, imageRes.headers.get('Content-Type') || 'image/jpeg');
-
-  } catch (error) {
-    return jsonResponse({ error: error.message }, 500);
-  }
-}
+    </script>
+</body>
+</html>
