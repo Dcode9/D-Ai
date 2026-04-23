@@ -115,12 +115,12 @@ function selectModel(requestedModel, hasSourceImage) {
   const normalized = (requestedModel || '').trim().toLowerCase();
 
   if (!hasSourceImage) {
-    return requestedModel || 'klein';
+    return requestedModel || 'qwen-image';
   }
 
   // Models like flux/zimage are text-to-image focused and may ignore edit references.
-  if (!normalized || normalized === 'flux' || normalized === 'zimage') {
-    return 'gptimage-large';
+  if (!normalized || normalized === 'qwen-image' || normalized === 'qwen-image') {
+    return 'qwen-image';
   }
 
   return requestedModel;
