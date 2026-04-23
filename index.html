@@ -225,7 +225,7 @@
             <!-- Chat Area -->
             <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
                 <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
-                    <img src="[https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico](https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico)" class="h-24 w-auto mb-6" alt="Logo">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
                     <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                     <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
                     
@@ -269,28 +269,18 @@
         </div>
 
         <!-- Live Preview Sidebar -->
-        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-white transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative shadow-2xl">
-            <div class="bg-[#111] p-3 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
-                <span class="text-xs font-bold uppercase tracking-wide text-gray-400 flex items-center gap-2"><i class="fa-solid fa-bolt text-brand"></i> Live App Preview</span>
-                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-2"><i class="fa-solid fa-times"></i></button>
+        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-dark-bg transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative shadow-2xl">
+            <div class="bg-[#111] p-2 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
+                <div class="flex bg-[#0a0a0a] rounded-lg p-1 border border-[#222]">
+                    <button id="tab-preview" onclick="window.switchPreviewTab('preview')" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-[#333] text-white transition-colors">Preview</button>
+                    <button id="tab-code" onclick="window.switchPreviewTab('code')" class="px-3 py-1.5 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition-colors">Code</button>
+                </div>
+                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#222] transition-colors"><i class="fa-solid fa-times"></i></button>
             </div>
-            <iframe id="preview-iframe" class="flex-1 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
-        </aside>
-
-    </div>
-
-    <!-- Scripts -->
-    <script src="[https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js](https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js)" defer></script>
+            <div class="relative w-full h-full flex-1 bg-white">
+                <iframe id="preview-iframe" class="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+                <textarea id="code-editor" class="absolute inset-0 w-full h-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-sm p-4 hidden resize-none outline-none focus:ring-2 focus:ring-brand" spellcheck="false"></textarea>
             </div>
-        </div>
-
-        <!-- Live Preview Sidebar -->
-        <aside id="preview-column" class="w-0 flex-shrink-0 flex flex-col bg-white transition-[width] duration-300 border-l border-[#333] z-30 overflow-hidden relative">
-            <div class="bg-[#111] p-3 flex justify-between items-center border-b border-[#333] text-white flex-shrink-0">
-                <span class="text-xs font-bold uppercase tracking-wide text-gray-400 flex items-center gap-2"><i class="fa-solid fa-bolt text-brand"></i> Live Preview</span>
-                <button onclick="window.closePreview()" class="text-gray-500 hover:text-white px-2"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <iframe id="preview-iframe" class="flex-1 w-full h-full border-none bg-white" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
         </aside>
 
     </div>
@@ -329,11 +319,12 @@
         // --- APP STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
-        window.usePersonalization = false; // Off by default
+        window.usePersonalization = false; 
         window.chatHasStarted = false;
         window.chats = safeStorageGet('dai_chats') || [];
         window.currentChatId = null;
         window.isPreviewOpen = false;
+        window.activePreviewTab = 'preview';
 
         // --- Layout & Logic ---
         window.toggleSidebar = () => {
@@ -363,7 +354,40 @@
         };
         window.previewCode = (code) => {
             window.openPreview();
-            document.getElementById('preview-iframe').srcdoc = code;
+            const editor = document.getElementById('code-editor');
+            const iframe = document.getElementById('preview-iframe');
+            editor.value = decodeURIComponent(code);
+            iframe.srcdoc = decodeURIComponent(code);
+            // reset to preview mode when opening a new code
+            window.switchPreviewTab('preview');
+        };
+
+        window.switchPreviewTab = (tab) => {
+            const iframe = document.getElementById('preview-iframe');
+            const editor = document.getElementById('code-editor');
+            const btnPreview = document.getElementById('tab-preview');
+            const btnCode = document.getElementById('tab-code');
+            
+            if (tab === 'code') {
+                iframe.classList.add('hidden');
+                editor.classList.remove('hidden');
+                btnCode.classList.add('text-white', 'bg-[#333]');
+                btnCode.classList.remove('text-gray-400');
+                btnPreview.classList.add('text-gray-400');
+                btnPreview.classList.remove('text-white', 'bg-[#333]');
+                window.activePreviewTab = 'code';
+            } else {
+                iframe.classList.remove('hidden');
+                editor.classList.add('hidden');
+                btnPreview.classList.add('text-white', 'bg-[#333]');
+                btnPreview.classList.remove('text-gray-400');
+                btnCode.classList.add('text-gray-400');
+                btnCode.classList.remove('text-white', 'bg-[#333]');
+                
+                // Sync iframe with editor content
+                iframe.srcdoc = editor.value;
+                window.activePreviewTab = 'preview';
+            }
         };
         
         window.useSuggestion = (text) => {
@@ -381,7 +405,7 @@
             document.getElementById('header-chat-title').innerText = "New Chat";
             document.getElementById('chat').innerHTML = `
             <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
-                <img src="[https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico](https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico)" class="h-24 w-auto mb-6">
+                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6">
                 <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
                 <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
                 <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
@@ -563,9 +587,11 @@
                 if(!window.pCache) window.pCache = new Map(); window.pCache.set(urlKey, watermarkedUrl);
                 finishAnimation(watermarkedUrl);
             } catch (e) {
-                console.error("Image Gen Failed:", e);
-                fluidCont.classList.remove('active'); progSvg.classList.remove('active'); genStatus.classList.remove('active'); imgEl.classList.add('error');
-                window.imgError(imgEl, "Glitch generating image.");
+                console.warn("Backend Image API failed, falling back to direct URL:", e);
+                // Safe Direct Fallback if API fails (404/500)
+                const fallbackUrl = `https://image.pollinations.ai/prompt/${encPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+                if(!window.pCache) window.pCache = new Map(); window.pCache.set(urlKey, fallbackUrl);
+                finishAnimation(fallbackUrl);
             }
 
             function finishAnimation(finalUrl) {
@@ -604,9 +630,9 @@
                 if(!window.vCache) window.vCache = new Map(); window.vCache.set(urlKey, videoUrl);
                 finishAnimation(videoUrl);
             } catch (e) {
-                console.error("Video Gen Failed:", e);
+                console.warn("Video Gen Failed, likely missing endpoint. Showing friendly fallback:", e);
                 fluidCont.classList.remove('active'); progSvg.classList.remove('active'); genStatus.classList.remove('active'); videoEl.classList.add('error');
-                window.videoError(videoEl, "Glitch generating video.");
+                window.videoError(videoEl, "Video API offline (404/Network). Setup backend to render.");
             }
 
             function finishAnimation(finalUrl) {
@@ -642,9 +668,9 @@
                 if (!window.mCache) window.mCache = new Map(); window.mCache.set(urlKey, audioUrl);
                 finishAnimation(audioUrl);
             } catch (e) {
-                console.error("Music Gen Failed:", e);
+                console.warn("Music Gen Failed, likely missing endpoint. Showing friendly fallback:", e);
                 fluidCont.classList.remove('active'); progSvg.classList.remove('active'); genStatus.classList.remove('active'); audioEl.classList.add('error');
-                window.audioError(audioEl, "Glitch generating music.");
+                window.audioError(audioEl, "Music API offline (404/Network). Setup backend to render.");
             }
 
             function finishAnimation(finalUrl) {
@@ -705,11 +731,20 @@
                 md.renderer.rules.fence=(t,i)=>{
                     const lang = (t[i].info||'text').split(' ')[0];
                     const content = t[i].content;
-                    let previewBtn = '';
-                    if(lang === 'html') {
-                        previewBtn = `<button onclick="window.previewCode(this.parentElement.parentElement.nextElementSibling.innerText)" class="hover:text-brand transition-colors ml-3" title="Live Preview"><i class="fa-solid fa-play"></i> Preview</button>`;
+                    
+                    // Hide Web App Code in Chat visually, show a sleek card instead
+                    if(lang === 'html' || lang === 'html:webapp') {
+                        return `<div class="bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between my-4 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-brand/20 p-2 rounded-lg text-brand text-xl flex items-center justify-center w-10 h-10"><i class="fa-solid fa-code"></i></div>
+                                <div><h4 class="text-sm font-bold text-white">Web App Code Generated</h4><p class="text-xs text-gray-400">Rendering in the live preview panel.</p></div>
+                            </div>
+                            <button onclick="window.previewCode(decodeURIComponent('${encodeURIComponent(content)}'))" class="bg-[#252525] hover:bg-[#333] text-white text-xs px-4 py-2 rounded-lg transition-colors border border-[#444] shadow-sm flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-bolt text-brand"></i> Open Editor</button>
+                        </div>`;
                     }
-                    return `<div class="code-box"><div class="code-head"><span>${lang}</span><div><button onclick="navigator.clipboard.writeText(this.parentElement.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button>${previewBtn}</div></div><div class="code-body"><pre><code class="hljs language-${lang}">${md.utils.escapeHtml(content)}</code></pre></div></div>`;
+
+                    // Standard code block
+                    return `<div class="code-box"><div class="code-head"><span>${lang}</span><div><button onclick="navigator.clipboard.writeText(this.parentElement.parentElement.nextElementSibling.innerText); this.innerHTML='<i class=\\'fa-solid fa-check\\'></i>'; setTimeout(()=>this.innerHTML='<i class=\\'fa-regular fa-copy\\'></i>',2000)" class="hover:text-white transition-colors" title="Copy Code"><i class="fa-regular fa-copy"></i></button></div></div><div class="code-body"><pre><code class="hljs language-${lang}">${md.utils.escapeHtml(content)}</code></pre></div></div>`;
                 };
                 return md;
             };
@@ -964,6 +999,9 @@
                                                 hasOpenedPreviewForThisMsg = true;
                                             }
                                             document.getElementById('preview-iframe').srcdoc = lastHtml;
+                                            if(window.activePreviewTab === 'code') {
+                                                document.getElementById('code-editor').value = lastHtml;
+                                            }
                                         }
 
                                         let finalHtml = mdRenderer.render(processedContent
@@ -974,7 +1012,12 @@
                                         morphdom(mdContainer, `<div class="markdown-body streaming">${finalHtml}</div>`, { 
                                             childrenOnly: true,
                                             onBeforeElUpdated: function(fromEl, toEl) {
+                                                // Prevent morphdom from updating media containers
                                                 if (fromEl.classList && (fromEl.classList.contains('dai-img-container') || fromEl.classList.contains('dai-video-container') || fromEl.classList.contains('dai-audio-container'))) {
+                                                    return false;
+                                                }
+                                                // Prevent morphdom from resetting code replacement buttons UI
+                                                if (fromEl.classList && fromEl.classList.contains('bg-[#1a1a1a]') && fromEl.querySelector('.fa-code')) {
                                                     return false;
                                                 }
                                                 if (fromEl.classList && fromEl.classList.contains('think-block')) {
@@ -986,10 +1029,9 @@
                                             }
                                         });
                                         
-                                        // Dynamic anchored scroll (Keep user message near top of view if possible, otherwise just keep chat scrolling naturally, but avoid aggressive bottom forcing if user scrolls up)
+                                        // Dynamic anchored scroll
                                         const isNearBottom = window.E.c.scrollHeight - window.E.c.scrollTop - window.E.c.clientHeight < 150;
                                         if(isNearBottom && currentUserMsgNode) {
-                                           // If we are still generating and the user hasn't scrolled up manually, ensure visibility
                                            window.scrollToBottom();
                                         }
                                     }
