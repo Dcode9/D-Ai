@@ -111,19 +111,8 @@ function extractImageData(payload) {
   };
 }
 
-function selectModel(requestedModel, hasSourceImage) {
-  const normalized = (requestedModel || '').trim().toLowerCase();
-
-  if (!hasSourceImage) {
-    return requestedModel || 'klein';
-  }
-
-  // Models like flux/zimage are text-to-image focused and may ignore edit references.
-  if (!normalized || normalized === 'flux' || normalized === 'zimage') {
-    return 'gptimage-large';
-  }
-
-  return requestedModel;
+function selectModel() {
+  return 'gpt-image-2';
 }
 
 export default async function handler(req) {
@@ -132,7 +121,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, seed, model, image } = await req.json();
+    const { prompt, width, height, seed, image } = await req.json();
 
     const finalWidth = toPositiveInt(width, 1024);
     const finalHeight = toPositiveInt(height, 1024);
@@ -143,7 +132,7 @@ export default async function handler(req) {
       width: finalWidth,
       height: finalHeight,
       seed: finalSeed,
-      model,
+      model: 'gpt-image-2',
       hasImage: !!image,
       imageUrl: image
     });
@@ -155,7 +144,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
-    const finalModel = selectModel(model, !!image);
+    const finalModel = selectModel();
 
     let url, fetchOptions;
 
