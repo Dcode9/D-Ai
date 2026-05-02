@@ -112,7 +112,7 @@ function extractImageData(payload) {
 }
 
 function selectModel() {
-  return 'gpt-image-2';
+  return 'qwen-image';
 }
 
 export default async function handler(req) {
@@ -132,7 +132,7 @@ export default async function handler(req) {
       width: finalWidth,
       height: finalHeight,
       seed: finalSeed,
-      model: 'gpt-image-2',
+      model: 'qwen-image',
       hasImage: !!image,
       imageUrl: image
     });
