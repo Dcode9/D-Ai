@@ -25,7 +25,7 @@
 
     <!-- Critical Assets -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     
     <!-- Deferred Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -45,7 +45,7 @@
     </script>
 
     <style>
-        body { background: #050505; color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
+        body { background: linear-gradient(135deg, #0a0a0a 0%, #050505 50%, #0f0f0f 100%); color: #F0F0F0; font-family: 'Inter', sans-serif; overflow: hidden; }
         *::-webkit-scrollbar { width: 6px; height: 6px; }
         *::-webkit-scrollbar-track { background: transparent; }
         *::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -157,6 +157,335 @@
         .error-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .error-countdown { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 50%; font-weight: 600; font-size: 0.8rem; color: #3b82f6; margin: 0 4px; }
+
+        /* ========== INDIQUE STYLE ========== */
+        .indique-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 50%, #1a1a1a 100%);
+            border-bottom: 2px solid #d4af37;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .indique-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+        }
+
+        .indique-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #f4e4c3;
+            letter-spacing: 0.05em;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .indique-button {
+            position: relative;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(212, 175, 55, 0.1) 100%);
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            padding: 0.7rem 1.4rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .indique-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.25), transparent);
+            transition: left 0.6s ease;
+            z-index: -1;
+        }
+
+        .indique-button:hover {
+            border-color: #f4e4c3;
+            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35), inset 0 0 15px rgba(212, 175, 55, 0.12);
+            transform: translateY(-2px);
+            color: #f4e4c3;
+        }
+
+        .indique-button:hover::before {
+            left: 100%;
+        }
+
+        /* Ornate Frame Styles */
+        .ornate-frame {
+            position: relative;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(15, 15, 15, 0.98) 100%);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 3px;
+            overflow: visible;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.08);
+        }
+
+        .ornate-frame::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                #a855f7 0%, 
+                #d4af37 25%, 
+                #a855f7 50%, 
+                #d4af37 75%, 
+                #a855f7 100%);
+            border-radius: 14px;
+            opacity: 0.5;
+            z-index: 0;
+            transition: all 0.4s ease;
+            pointer-events: none;
+        }
+
+        .ornate-frame::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.98) 0%, rgba(15, 15, 15, 0.99) 100%);
+            border-radius: 12px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .ornate-frame:hover {
+            transform: translateY(-4px);
+            box-shadow: inset 0 0 30px rgba(212, 175, 55, 0.15), 0 10px 40px rgba(168, 85, 247, 0.3);
+        }
+
+        .ornate-frame:hover::before {
+            opacity: 0.8;
+        }
+
+        /* Corner Ornaments */
+        .ornate-corner {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+
+        .ornate-frame:hover .ornate-corner {
+            opacity: 0.7;
+        }
+
+        .corner-tl { top: -10px; left: -10px; border-top: 3px solid #d4af37; border-left: 3px solid #d4af37; border-radius: 25px 0 0 0; }
+        .corner-tr { top: -10px; right: -10px; border-top: 3px solid #a855f7; border-right: 3px solid #a855f7; border-radius: 0 25px 0 0; }
+        .corner-bl { bottom: -10px; left: -10px; border-bottom: 3px solid #a855f7; border-left: 3px solid #a855f7; border-radius: 0 0 0 25px; }
+        .corner-br { bottom: -10px; right: -10px; border-bottom: 3px solid #d4af37; border-right: 3px solid #d4af37; border-radius: 0 0 25px 0; }
+
+        .feature-button {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: #d4af37;
+            text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-button:hover {
+            color: #f4e4c3;
+            text-shadow: 0 4px 15px rgba(168, 85, 247, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* Ornate Input Field */
+        .ornate-input-wrapper {
+            position: relative;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(15, 15, 15, 0.95) 100%);
+            border: 3px solid transparent;
+            border-radius: 25px;
+            padding: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .ornate-input-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                #a855f7 0%, 
+                #d4af37 50%, 
+                #a855f7 100%);
+            border-radius: 23px;
+            opacity: 0.4;
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+
+        .ornate-input-wrapper:hover::before,
+        .ornate-input-wrapper:focus-within::before {
+            opacity: 0.7;
+        }
+
+        .ornate-input-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(15, 15, 15, 0.98) 100%);
+            border-radius: 22px;
+            z-index: -1;
+        }
+
+        /* Ornate corners for input */
+        .input-corner-ornament {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            opacity: 0.3;
+        }
+
+        .ornate-input-wrapper:hover .input-corner-ornament {
+            opacity: 0.6;
+        }
+
+        .input-corner-tl { top: 8px; left: 8px; border-top: 2px solid #a855f7; border-left: 2px solid #a855f7; border-radius: 8px 0 0 0; }
+        .input-corner-tr { top: 8px; right: 8px; border-top: 2px solid #d4af37; border-right: 2px solid #d4af37; border-radius: 0 8px 0 0; }
+        .input-corner-bl { bottom: 8px; left: 8px; border-bottom: 2px solid #d4af37; border-left: 2px solid #d4af37; border-radius: 0 0 0 8px; }
+        .input-corner-br { bottom: 8px; right: 8px; border-bottom: 2px solid #a855f7; border-right: 2px solid #a855f7; border-radius: 0 0 8px 0; }
+
+        /* Decorative dividers */
+        .ornate-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            margin: 1rem 0;
+            opacity: 0.6;
+            position: relative;
+        }
+
+        .ornate-divider::before,
+        .ornate-divider::after {
+            content: '❦';
+            position: absolute;
+            top: -10px;
+            font-size: 1.2rem;
+            color: #d4af37;
+            opacity: 0.4;
+        }
+
+        .ornate-divider::before { left: 50%; transform: translateX(-50%); }
+        .ornate-divider::after { right: 50%; }
+
+        /* Gradient accents on corners */
+        .gradient-accent-tl {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at top-left, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 0 0 200px 0;
+        }
+
+        .gradient-accent-br {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at bottom-right, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 200px 0 0 0;
+        }
+
+        /* Botanical corner flourishes */
+        .botanical-flourish {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+
+        /* Navigation circle indicator */
+        .nav-indicator {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #d4af37;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Center circle frame for title */
+        .title-circle-frame {
+            position: relative;
+            display: inline-block;
+            padding: 2rem;
+        }
+
+        .title-circle-frame::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border: 2px solid #d4af37;
+            border-radius: 50%;
+            opacity: 0.4;
+            box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .title-circle-frame::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        /* Shimmer effect on hover */
+        @keyframes shimmer-gold {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+            background-size: 1000px 100%;
+            animation: shimmer-gold 2s infinite;
+        }
+
+        /* Glow effect */
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); }
+        }
+
+        .glow-pulse {
+            animation: glow-pulse 3s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="flex h-screen bg-dark-bg text-white overflow-hidden">
@@ -202,69 +531,145 @@
         <div id="chat-column" class="flex-1 flex flex-col h-full relative min-w-[40%] transition-all duration-300">
             
             <!-- Header -->
-            <header class="flex-shrink-0 w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500 shadow-sm relative">
-                <div class="max-w-4xl mx-auto flex items-center px-4 w-full">
-                    <div class="flex items-center gap-3 w-1/3">
-                        <button onclick="window.toggleSidebar()" class="text-gray-400 hover:text-white p-2 -ml-2" title="Toggle Sidebar">
-                            <i class="fa-solid fa-bars text-xl"></i>
+            <header class="flex-shrink-0 w-full z-20 indique-header py-6 transition-all duration-500 relative overflow-hidden">
+                <div class="gradient-accent-tl"></div>
+                <div class="gradient-accent-br"></div>
+                <div class="max-w-6xl mx-auto flex items-center justify-between px-6 w-full relative z-10">
+                    <button onclick="window.toggleSidebar()" class="text-indique-gold hover:text-indique-gold-light p-2 transition-colors" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    
+                    <div class="title-circle-frame">
+                        <h1 class="indique-title m-0">D'Ai</h1>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button class="indique-button text-sm" onclick="window.newChat()">
+                            <i class="fa-solid fa-history mr-2"></i>History
                         </button>
-                        <div class="flex items-center gap-2 hidden sm:flex">
-                            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto" alt="Logo">
-                            <h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1>
-                        </div>
+                        <button class="indique-button text-sm" onclick="window.newChat()">
+                            <i class="fa-solid fa-plus mr-2"></i>New Chat
+                        </button>
                     </div>
-                    
-                    <div class="w-1/3 text-center">
-                        <span id="header-chat-title" class="text-sm font-medium text-gray-300 truncate block w-full">New Chat</span>
-                    </div>
-                    
-                    <div class="w-1/3"></div>
                 </div>
             </header>
 
             <!-- Chat Area -->
-            <main class="flex-1 overflow-y-auto px-4 py-6 relative" id="chat">
-                <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none transition-opacity duration-300 max-w-4xl mx-auto w-full">
-                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-24 w-auto mb-6" alt="Logo">
-                    <h2 class="text-3xl font-bold text-white tracking-tight mb-2">D'Ai ✨</h2>
-                    <p class="text-gray-400 font-mono text-sm tracking-wide uppercase">Reasoning • Creative • Scary Fast</p>
+            <main class="flex-1 overflow-y-auto px-6 py-8 relative bg-gradient-to-b from-transparent via-transparent to-dark-bg/30" id="chat">
+                <div id="hero" class="h-full flex flex-col items-center justify-center opacity-95 select-none transition-opacity duration-300 max-w-6xl mx-auto w-full relative px-6">
+                    <div class="gradient-accent-tl"></div>
+                    <div class="gradient-accent-br"></div>
                     
-                    <!-- Dynamic Suggestions -->
-                    <div id="suggestions" class="mt-12 flex flex-wrap justify-center gap-3 w-full transition-all duration-300">
-                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">🖼️ Creative Image</button>
-                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">🎬 Random Video</button>
-                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">🎵 Compose Music</button>
-                        <button class="px-4 py-2 rounded-2xl bg-[#1a1a1a] border border-[#333] text-xs font-medium text-gray-300 hover:bg-[#252525] hover:border-gray-500 hover:text-white transition-all shadow-sm" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea! First, use the <think> block to list features and plan the architecture, then output the complete code.')">💻 Build a Web App</button>
+                    <div class="relative z-10 mb-16 text-center">
+                        <p class="text-indique-gold font-serif text-sm tracking-widest uppercase mb-4 opacity-70">Welcome to the Luxury AI</p>
+                        <h2 class="text-indique-gold-light font-serif text-3xl mb-2 opacity-80">Explore Your Creative Possibilities</h2>
                     </div>
+                    
+                    <!-- Feature Buttons in Ornate Frames -->
+                    <div class="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 w-full mb-8">
+                        <!-- Image Button -->
+                        <div class="ornate-frame group cursor-pointer" onclick="window.useSuggestion('Generate a highly creative and visually stunning image. Surprise me with the prompt and intelligently choose the best aspect ratio.')">
+                            <div class="ornate-corner corner-tl"></div>
+                            <div class="ornate-corner corner-tr"></div>
+                            <div class="ornate-corner corner-bl"></div>
+                            <div class="ornate-corner corner-br"></div>
+                            <div class="relative z-10 p-6 flex flex-col items-center justify-center h-full min-h-[180px]">
+                                <div class="feature-button mb-3 text-3xl">🖼️</div>
+                                <div class="feature-button text-center">Image</div>
+                            </div>
+                        </div>
+
+                        <!-- Video Button -->
+                        <div class="ornate-frame group cursor-pointer" onclick="window.useSuggestion('Create a captivating video. Surprise me with the prompt and settings.')">
+                            <div class="ornate-corner corner-tl"></div>
+                            <div class="ornate-corner corner-tr"></div>
+                            <div class="ornate-corner corner-bl"></div>
+                            <div class="ornate-corner corner-br"></div>
+                            <div class="relative z-10 p-6 flex flex-col items-center justify-center h-full min-h-[180px]">
+                                <div class="feature-button mb-3 text-3xl">🎬</div>
+                                <div class="feature-button text-center">Video</div>
+                            </div>
+                        </div>
+
+                        <!-- Code Button -->
+                        <div class="ornate-frame group cursor-pointer" onclick="window.useSuggestion('Design and code a beautiful, responsive Web App using HTML, Tailwind CSS, and JS in a single file. Surprise me with a cool app idea!')">
+                            <div class="ornate-corner corner-tl"></div>
+                            <div class="ornate-corner corner-tr"></div>
+                            <div class="ornate-corner corner-bl"></div>
+                            <div class="ornate-corner corner-br"></div>
+                            <div class="relative z-10 p-6 flex flex-col items-center justify-center h-full min-h-[180px]">
+                                <div class="feature-button mb-3 text-3xl">💻</div>
+                                <div class="feature-button text-center">Code</div>
+                            </div>
+                        </div>
+
+                        <!-- Text Button -->
+                        <div class="ornate-frame group cursor-pointer" onclick="window.useSuggestion('Create compelling written content with reasoning and creativity.')">
+                            <div class="ornate-corner corner-tl"></div>
+                            <div class="ornate-corner corner-tr"></div>
+                            <div class="ornate-corner corner-bl"></div>
+                            <div class="ornate-corner corner-br"></div>
+                            <div class="relative z-10 p-6 flex flex-col items-center justify-center h-full min-h-[180px]">
+                                <div class="feature-button mb-3 text-3xl">📝</div>
+                                <div class="feature-button text-center">Text</div>
+                            </div>
+                        </div>
+
+                        <!-- Music Button -->
+                        <div class="ornate-frame group cursor-pointer" onclick="window.useSuggestion('Compose a unique music track. You choose the style and prompt.')">
+                            <div class="ornate-corner corner-tl"></div>
+                            <div class="ornate-corner corner-tr"></div>
+                            <div class="ornate-corner corner-bl"></div>
+                            <div class="ornate-corner corner-br"></div>
+                            <div class="relative z-10 p-6 flex flex-col items-center justify-center h-full min-h-[180px]">
+                                <div class="feature-button mb-3 text-3xl">🎵</div>
+                                <div class="feature-button text-center">Music</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ornate-divider w-full max-w-md mx-auto my-8"></div>
                 </div>
                 
                 <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
             </main>
 
             <!-- Bottom Input Area -->
-            <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-6 pt-2 px-4 z-10 relative">
-                <div class="max-w-4xl mx-auto flex flex-col items-start gap-2 bg-[#0f0f0f] rounded-3xl border border-[#333] p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-500 relative w-full">
-                    
-                    <div id="img-preview" class="hidden w-full px-3 pt-2">
-                        <div class="relative inline-block group">
-                            <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
-                            <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
-                                <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+            <div class="flex-shrink-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-4 px-6 z-10 relative">
+                <div class="max-w-6xl mx-auto relative w-full">
+                    <!-- Ornate Input Container -->
+                    <div class="ornate-input-wrapper">
+                        <div class="input-corner-ornament input-corner-tl"></div>
+                        <div class="input-corner-ornament input-corner-tr"></div>
+                        <div class="input-corner-ornament input-corner-bl"></div>
+                        <div class="input-corner-ornament input-corner-br"></div>
+                        
+                        <div class="relative z-10 rounded-2xl p-4 flex flex-col items-start gap-3">
+                            <div id="img-preview" class="hidden w-full">
+                                <div class="relative inline-block group">
+                                    <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-indique-gold/30 opacity-60 transition-opacity duration-300">
+                                    <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fa-solid fa-circle-notch fa-spin text-indique-gold text-xl"></i>
+                                    </div>
+                                    <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-indique-purple text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-indique-purple-light transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                                </div>
                             </div>
-                            <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+
+                            <div class="w-full flex items-end gap-2">
+                                <button onclick="document.getElementById('file-input').click()" class="p-3 text-indique-gold/60 hover:text-indique-gold transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
+                                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+                                
+                                <textarea id="in" rows="1" class="w-full bg-transparent text-indique-gold-light py-3 px-3 max-h-40 resize-none outline-none placeholder-indique-gold/40 text-[15px] font-serif" placeholder="Message D'Ai..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                                
+                                <button id="btn" onclick="window.send()" class="p-3 text-indique-gold/60 hover:text-indique-gold transition-colors rounded-full disabled:opacity-50 hover:bg-indique-purple/20" title="Send Message"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="w-full flex items-end">
-                        <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-400 hover:text-white transition-colors rounded-full" title="Upload Image"><i class="fa-solid fa-paperclip text-lg"></i></button>
-                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
-                        
-                        <textarea id="in" rows="1" class="w-full bg-transparent text-white py-3.5 px-2 max-h-40 resize-none outline-none placeholder-gray-500 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
-                        
-                        <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-white bg-brand/10 hover:bg-brand/30 rounded-full disabled:opacity-50 transition-colors mr-1 mb-1" title="Send Message"><i class="fa-solid fa-arrow-up text-md"></i></button>
+                    
+                    <div class="text-center mt-3 w-full">
+                        <p class="text-[11px] text-indique-gold/40">D'Ai can make mistakes. Verify important information.</p>
                     </div>
                 </div>
-                <div class="text-center mt-2 w-full max-w-4xl mx-auto"><p class="text-[10px] text-gray-500">D'Ai can make mistakes. Verify important information.</p></div>
             </div>
         </div>
 
