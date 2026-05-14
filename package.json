@@ -2,10 +2,16 @@
   "name": "d-ai",
   "private": true,
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "build:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --watch"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.0.0",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.32"
   }
 }
