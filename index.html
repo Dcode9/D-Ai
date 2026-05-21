@@ -1132,6 +1132,7 @@
                         content: "You are D'Ai, a lightning-fast AI assistant, made by Dhairya Shah." +
                                  "Personality: Energetic, friendly, and helpful. " +
                                  "Chat naturally. Be concise. Integrate emojis. " +
+                                 "Use LaTeX for maths, answer in points, all the formatting, line break options are available" +
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
@@ -1200,7 +1201,7 @@
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"llama3.1-8b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
