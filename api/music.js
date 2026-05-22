@@ -24,7 +24,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, duration, style, model } = await req.json();
+    const { prompt, duration } = await req.json();
     const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
 
     if (!apiKey) {
@@ -33,19 +33,55 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
+    const finalModel = 'acestep';
     const finalDuration = toDuration(duration, 15);
 
     const baseUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(finalPrompt)}`;
     const params = new URLSearchParams();
     params.append('model', finalModel);
     params.append('duration', String(finalDuration));
-    if (style && String(style).trim()) {
-      params.append('style', String(style).trim());
+    const url = `${baseUrl}?${params.toString()}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
+    let pollRes;
+    try {
+      pollRes = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'audio/mpeg,audio/*'
+        },
+        signal: controller.signal
+      });
+    } catch (err) {
+      const aborted = err && err.name === 'AbortError';
+      return jsonResponse(
+        { error: aborted ? 'Pollinations timed out while generating audio.' : `Request failed: ${err.message || err}` },
+        aborted ? 504 : 502
+      );
+    } finally {
+      clearTimeout(timeout);
     }
 
-    const url = `${baseUrl}?${params.toString()}`;
-    return jsonResponse({ url, apiKey });
+    if (!pollRes.ok) {
+      let detail = pollRes.statusText;
+      try {
+        const text = await pollRes.text();
+        if (text) detail = text;
+      } catch (e) {}
+      return jsonResponse({ error: `Pollinations error (${pollRes.status}): ${detail}` }, pollRes.status);
+    }
+
+    const contentType = pollRes.headers.get('content-type') || 'audio/mpeg';
+    return new Response(pollRes.body, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }
