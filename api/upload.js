@@ -15,13 +15,19 @@ const IMAGE_MIME_BY_EXT = {
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.gif': 'image/gif',
+  '.jfif': 'image/jpeg',
   '.webp': 'image/webp',
   '.bmp': 'image/bmp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
   '.tif': 'image/tiff',
   '.tiff': 'image/tiff',
   '.svg': 'image/svg+xml',
   '.avif': 'image/avif'
 };
+const IMAGE_EXT_BY_MIME = Object.fromEntries(
+  Object.entries(IMAGE_MIME_BY_EXT).map(([ext, mime]) => [mime, ext])
+);
 
 const getFetchTools = async () => {
   let FormDataCtor = globalThis.FormData;
@@ -82,29 +88,37 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'No file provided' });
     }
 
-    const ext = path.extname(file.originalFilename || '').toLowerCase();
+    const originalName = file.originalFilename || file.newFilename || file.name || '';
+    const ext = path.extname(originalName).toLowerCase();
     const mimeFromExt = IMAGE_MIME_BY_EXT[ext];
-    const resolvedMimeType = file.mimetype && file.mimetype.startsWith('image/')
-      ? file.mimetype
+    const rawMimeType = file.mimetype || file.type || '';
+    const resolvedMimeType = rawMimeType && rawMimeType.startsWith('image/')
+      ? rawMimeType
       : mimeFromExt;
+    const filePath = file.filepath || file.path || file.tempFilePath;
+
+    if (!filePath) {
+      return sendJson(res, 400, { error: 'Upload failed: missing file data' });
+    }
 
     if (!resolvedMimeType || !resolvedMimeType.startsWith('image/')) {
-      if (file.filepath) await fs.unlink(file.filepath).catch(() => {});
+      await fs.unlink(filePath).catch(() => {});
       return sendJson(res, 400, { error: 'Only image uploads are allowed' });
     }
 
-    if (file.size > MAX_IMAGE_SIZE) {
-      if (file.filepath) await fs.unlink(file.filepath).catch(() => {});
+    const fileSize = Number(file.size) || 0;
+    if (fileSize > MAX_IMAGE_SIZE) {
+      await fs.unlink(filePath).catch(() => {});
       return sendJson(res, 413, { error: 'Image must be under 50MB' });
     }
 
     try {
       const { FormDataCtor, BlobCtor, fetchImpl } = await getFetchTools();
-      const buffer = await fs.readFile(file.filepath);
+      const buffer = await fs.readFile(filePath);
       const uploadData = new FormDataCtor();
       uploadData.append('reqtype', 'fileupload');
-      const fallbackExt = mimeFromExt || '.jpg';
-      const filename = file.originalFilename || `upload${fallbackExt}`;
+      const fallbackExt = mimeFromExt || IMAGE_EXT_BY_MIME[resolvedMimeType] || '.jpg';
+      const filename = originalName || `upload${fallbackExt}`;
       const blob = new BlobCtor([buffer], { type: resolvedMimeType });
       uploadData.append('fileToUpload', blob, filename);
 
@@ -126,9 +140,7 @@ export default async function handler(req, res) {
     } catch (error) {
       return sendJson(res, 500, { error: error.message });
     } finally {
-      if (file.filepath) {
-        await fs.unlink(file.filepath).catch(() => {});
-      }
+      await fs.unlink(filePath).catch(() => {});
     }
   });
 }

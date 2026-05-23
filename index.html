@@ -432,9 +432,33 @@
         };
 
         // --- Image Handling ---
+        const allowedImageExtensions = [
+            '.jpg',
+            '.jpeg',
+            '.png',
+            '.gif',
+            '.jfif',
+            '.webp',
+            '.bmp',
+            '.heic',
+            '.heif',
+            '.tif',
+            '.tiff',
+            '.svg',
+            '.avif'
+        ];
+        const hasAllowedImageExtension = (filename) => {
+            const name = (filename || '').toLowerCase();
+            return allowedImageExtensions.some((ext) => name.endsWith(ext));
+        };
+        const isImageFile = (file) => {
+            if (!file) return false;
+            if (file.type && file.type.startsWith('image/')) return true;
+            return hasAllowedImageExtension(file.name);
+        };
         window.handleFile = (file) => {
             if (!file || window.isUploading) return;
-            if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
+            if (!isImageFile(file)) { alert("Please upload an image."); return; }
             if (file.size > 50 * 1024 * 1024) { alert("Please upload an image under 50MB."); return; }
 
             // UI
