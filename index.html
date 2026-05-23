@@ -199,16 +199,93 @@
             color: #3b82f6;
             margin: 0 4px;
         }
+
+        .analysis-overlay {
+            position: fixed;
+            top: 78px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 45;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .analysis-overlay.active { opacity: 1; }
+        .analysis-pill {
+            position: relative;
+            min-width: 180px;
+            padding: 10px 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(59,130,246,0.35);
+            background: linear-gradient(110deg, rgba(30,58,138,0.38), rgba(59,130,246,0.22), rgba(15,23,42,0.62));
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 28px rgba(59,130,246,0.28);
+            overflow: hidden;
+        }
+        .analysis-pill::before {
+            content: '';
+            position: absolute;
+            inset: -120% -30%;
+            background: linear-gradient(120deg, transparent 15%, rgba(147,197,253,0.42) 50%, transparent 85%);
+            animation: analysisSweep 2.2s linear infinite;
+        }
+        @keyframes analysisSweep {
+            0% { transform: translateX(-40%); }
+            100% { transform: translateX(40%); }
+        }
+        .analysis-text {
+            position: relative;
+            z-index: 2;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: rgba(239,246,255,0.9);
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .analysis-blob {
+            position: absolute;
+            width: 130px;
+            height: 54px;
+            border-radius: 999px;
+            filter: blur(24px);
+            background: radial-gradient(circle at center, rgba(96,165,250,0.78), rgba(59,130,246,0.08));
+            left: 24px;
+            top: 2px;
+            animation: analysisBlobMove 2.6s ease-in-out infinite;
+            opacity: 0.85;
+        }
+        @keyframes analysisBlobMove {
+            0% { transform: translateX(0) scale(1); }
+            50% { transform: translateX(72px) scale(1.08); }
+            100% { transform: translateX(0) scale(1); }
+        }
+        .header-analysis-active {
+            background: linear-gradient(120deg, rgba(2,6,23,0.95), rgba(30,58,138,0.33), rgba(15,23,42,0.95));
+            border-bottom-color: rgba(96,165,250,0.45);
+            box-shadow: 0 0 45px rgba(59,130,246,0.25);
+            animation: headerGlow 2.4s ease-in-out infinite;
+        }
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 0 36px rgba(59,130,246,0.2); }
+            50% { box-shadow: 0 0 58px rgba(56,189,248,0.35); }
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen">
-    <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
+    <header id="top-header" class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
         </div>
         <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-600 hover:text-white transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
     </header>
+    <div id="analysis-overlay" class="analysis-overlay">
+        <div class="analysis-pill">
+            <div class="analysis-blob"></div>
+            <div id="analysis-text" class="analysis-text">Analyzing...</div>
+        </div>
+    </div>
 
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
@@ -317,6 +394,28 @@
         // --- UPLOAD STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
+        window.analyzingTimer = null;
+        window.analyzingDelayMs = 350;
+        window.setAnalyzing = (active, label = 'ANALYZING...') => {
+            const overlay = document.getElementById('analysis-overlay');
+            const text = document.getElementById('analysis-text');
+            const header = document.getElementById('top-header');
+            if (!overlay || !text || !header) return;
+            if (!active && window.analyzingTimer) {
+                clearTimeout(window.analyzingTimer);
+                window.analyzingTimer = null;
+            }
+            text.textContent = label;
+            overlay.classList.toggle('active', !!active);
+            header.classList.toggle('header-analysis-active', !!active);
+        };
+        window.scheduleAnalyzing = (label = 'ANALYZING...') => {
+            if (window.analyzingTimer) clearTimeout(window.analyzingTimer);
+            window.analyzingTimer = setTimeout(() => {
+                window.analyzingTimer = null;
+                window.setAnalyzing(true, label);
+            }, window.analyzingDelayMs);
+        };
 
         // --- Scroll Logic ---
         const chatContainer = document.getElementById('chat');
@@ -333,9 +432,34 @@
         };
 
         // --- Image Handling ---
+        const allowedImageExtensions = [
+            '.jpg',
+            '.jpeg',
+            '.png',
+            '.gif',
+            '.jfif',
+            '.webp',
+            '.bmp',
+            '.heic',
+            '.heif',
+            '.tif',
+            '.tiff',
+            '.svg',
+            '.avif'
+        ];
+        const hasAllowedImageExtension = (filename) => {
+            const name = (filename || '').toLowerCase();
+            return allowedImageExtensions.some((ext) => name.endsWith(ext));
+        };
+        const isImageFile = (file) => {
+            if (!file) return false;
+            if (file.type && file.type.startsWith('image/')) return true;
+            return hasAllowedImageExtension(file.name);
+        };
         window.handleFile = (file) => {
             if (!file || window.isUploading) return;
-            if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
+            if (!isImageFile(file)) { alert("Please upload an image."); return; }
+            if (file.size > 50 * 1024 * 1024) { alert("Please upload an image under 50MB."); return; }
 
             // UI
             const preview = document.getElementById('img-preview');
@@ -1125,6 +1249,7 @@
                 }
 
                 S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
+                window.scheduleAnalyzing(window.uploadedImageUrl ? 'ANALYZING IMAGE...' : 'ANALYZING...');
                 
                 if(!S.msg.length) {
                     S.msg.push({
@@ -1274,6 +1399,7 @@
                     S.gen=false; 
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+                    window.setAnalyzing(false);
 
                 } catch(e) {
                     console.error("Chat API Error:", e);
@@ -1359,6 +1485,7 @@
                                 S.gen=false;
                                 document.getElementById('btn').disabled=false;
                                 document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+                                window.setAnalyzing(false);
                             }
                         }, 500); // Small delay before retry
                     });
