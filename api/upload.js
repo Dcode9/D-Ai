@@ -14,6 +14,12 @@ export default async function handler(req) {
     if (!file) {
       return new Response(JSON.stringify({ error: "No file provided" }), { status: 400 });
     }
+    if (!file.type || !file.type.startsWith('image/')) {
+      return new Response(JSON.stringify({ error: "Only image uploads are allowed" }), { status: 400 });
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "Image must be under 50MB" }), { status: 400 });
+    }
 
     // Switch to Catbox.moe for reliable, direct hotlinking support
     const uploadData = new FormData();
