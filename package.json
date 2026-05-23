@@ -7,5 +7,8 @@
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "formidable": "^3.5.4"
   }
 }
