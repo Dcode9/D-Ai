@@ -394,14 +394,27 @@
         // --- UPLOAD STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
+        window.analyzingTimer = null;
+        window.analyzingDelayMs = 350;
         window.setAnalyzing = (active, label = 'ANALYZING...') => {
             const overlay = document.getElementById('analysis-overlay');
             const text = document.getElementById('analysis-text');
             const header = document.getElementById('top-header');
             if (!overlay || !text || !header) return;
+            if (!active && window.analyzingTimer) {
+                clearTimeout(window.analyzingTimer);
+                window.analyzingTimer = null;
+            }
             text.textContent = label;
             overlay.classList.toggle('active', !!active);
             header.classList.toggle('header-analysis-active', !!active);
+        };
+        window.scheduleAnalyzing = (label = 'ANALYZING...') => {
+            if (window.analyzingTimer) clearTimeout(window.analyzingTimer);
+            window.analyzingTimer = setTimeout(() => {
+                window.analyzingTimer = null;
+                window.setAnalyzing(true, label);
+            }, window.analyzingDelayMs);
         };
 
         // --- Scroll Logic ---
@@ -1212,7 +1225,7 @@
                 }
 
                 S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
-                window.setAnalyzing(true, window.uploadedImageUrl ? 'ANALYZING IMAGE...' : 'ANALYZING...');
+                window.scheduleAnalyzing(window.uploadedImageUrl ? 'ANALYZING IMAGE...' : 'ANALYZING...');
                 
                 if(!S.msg.length) {
                     S.msg.push({

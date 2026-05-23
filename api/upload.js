@@ -1,5 +1,6 @@
-import { Blob } from 'node:buffer';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import formidable from 'formidable';
 
 export const config = {
@@ -9,6 +10,37 @@ export const config = {
 };
 
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
+const IMAGE_MIME_BY_EXT = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif'
+};
+
+const getFetchTools = async () => {
+  let FormDataCtor = globalThis.FormData;
+  let BlobCtor = globalThis.Blob;
+  let fetchImpl = globalThis.fetch;
+
+  if (!FormDataCtor || !BlobCtor || !fetchImpl) {
+    try {
+      const undici = await import('undici');
+      FormDataCtor = FormDataCtor || undici.FormData;
+      BlobCtor = BlobCtor || undici.Blob;
+      fetchImpl = fetchImpl || undici.fetch;
+    } catch (error) {
+      throw new Error('Upload service misconfigured: FormData support is unavailable.');
+    }
+  }
+
+  return { FormDataCtor, BlobCtor, fetchImpl };
+};
 
 const sendJson = (res, status, payload) => {
   res.statusCode = status;
@@ -33,7 +65,8 @@ export default async function handler(req, res) {
   const form = formidable({
     maxFileSize: MAX_IMAGE_SIZE,
     multiples: false,
-    keepExtensions: true
+    keepExtensions: true,
+    uploadDir: os.tmpdir()
   });
 
   form.parse(req, async (err, fields, files) => {
@@ -42,14 +75,20 @@ export default async function handler(req, res) {
       return sendJson(res, status, { error: err.message || 'Failed to parse upload' });
     }
 
-    const fileCandidate = files.file || files.image || files.upload;
+    const fileCandidate = files.file || files.image || files.upload || Object.values(files || {})[0];
     const file = Array.isArray(fileCandidate) ? fileCandidate[0] : fileCandidate;
 
     if (!file) {
       return sendJson(res, 400, { error: 'No file provided' });
     }
 
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    const ext = path.extname(file.originalFilename || '').toLowerCase();
+    const mimeFromExt = IMAGE_MIME_BY_EXT[ext];
+    const resolvedMimeType = file.mimetype && file.mimetype.startsWith('image/')
+      ? file.mimetype
+      : mimeFromExt;
+
+    if (!resolvedMimeType || !resolvedMimeType.startsWith('image/')) {
       if (file.filepath) await fs.unlink(file.filepath).catch(() => {});
       return sendJson(res, 400, { error: 'Only image uploads are allowed' });
     }
@@ -60,13 +99,16 @@ export default async function handler(req, res) {
     }
 
     try {
+      const { FormDataCtor, BlobCtor, fetchImpl } = await getFetchTools();
       const buffer = await fs.readFile(file.filepath);
-      const uploadData = new FormData();
+      const uploadData = new FormDataCtor();
       uploadData.append('reqtype', 'fileupload');
-      const blob = new Blob([buffer], { type: file.mimetype });
-      uploadData.append('fileToUpload', blob, file.originalFilename || 'upload');
+      const fallbackExt = mimeFromExt || '.jpg';
+      const filename = file.originalFilename || `upload${fallbackExt}`;
+      const blob = new BlobCtor([buffer], { type: resolvedMimeType });
+      uploadData.append('fileToUpload', blob, filename);
 
-      const uploadRes = await fetch('https://catbox.moe/user/api.php', {
+      const uploadRes = await fetchImpl('https://catbox.moe/user/api.php', {
         method: 'POST',
         body: uploadData
       });
