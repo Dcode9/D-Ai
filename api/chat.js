@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       if (!process.env.CEREBRAS_API_KEY) {
         return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
       }
-      const pollinationsApiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+      const pollinationsApiKey = process.env.POLLINATIONS_API;
       const incomingMessages = Array.isArray(req.body?.messages) ? req.body.messages : [];
 
       const extractUploadedImageUrl = (messages) => {
