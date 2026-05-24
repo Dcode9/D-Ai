@@ -221,7 +221,7 @@
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <div class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+        <div class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-1.5 md:p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative w-[95%] sm:w-full">
             
             <!-- Image Preview Area -->
             <div id="img-preview" class="hidden w-full px-3 pt-2">
@@ -238,7 +238,7 @@
                 <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-500 hover:text-white transition-colors rounded-full"><i class="fa-solid fa-paperclip text-lg"></i></button>
                 <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
                 
-                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px] sm:text-base md:p-4" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
                 
                 <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
             </div>
@@ -1315,7 +1315,18 @@
 
                                         let processedContent = fullText.replace(
                                             /<<GENERATE_IMAGE:([^>]+)>>/g,
-                                            (match, input) => Putter.generate(input)
+                                            (match, input) => {
+                                                let imageToPass = null;
+                                                const lastUserMsg = S.msg.slice().reverse().find(m => m.role === 'user');
+                                                if (lastUserMsg) {
+                                                    const urlMatch = lastUserMsg.content.match(/\[UPLOADED_IMAGE:\s*([^\]]+)\]/);
+                                                    if (urlMatch) imageToPass = urlMatch[1];
+                                                }
+                                                if (imageToPass && input.split('|').length < 4) {
+                                                    input = input.trim() + " | " + imageToPass;
+                                                }
+                                                return Putter.generate(input);
+                                            }
                                         );
                                         processedContent = processedContent.replace(
                                             /<<GENERATE_VIDEO:([^>]+)>>/g,
@@ -1434,7 +1445,18 @@
 
                                                     let processedContent = fullText.replace(
                                                         /<<GENERATE_IMAGE:([^>]+)>>/g,
-                                                        (match, input) => Putter.generate(input)
+                                                        (match, input) => {
+                                                            let imageToPass = null;
+                                                            const lastUserMsg = S.msg.slice().reverse().find(m => m.role === 'user');
+                                                            if (lastUserMsg) {
+                                                                const urlMatch = lastUserMsg.content.match(/\[UPLOADED_IMAGE:\s*([^\]]+)\]/);
+                                                                if (urlMatch) imageToPass = urlMatch[1];
+                                                            }
+                                                            if (imageToPass && input.split('|').length < 4) {
+                                                                input = input.trim() + " | " + imageToPass;
+                                                            }
+                                                            return Putter.generate(input);
+                                                        }
                                                     );
                                                     processedContent = processedContent.replace(
                                                         /<<GENERATE_VIDEO:([^>]+)>>/g,
