@@ -37,7 +37,8 @@ export default async function handler(req) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+    console.error("Upload failed", error);
+    return new Response(JSON.stringify({ error: error.message || error.toString() }), {
       status: 500, 
       headers: { 'Content-Type': 'application/json' }
     });
