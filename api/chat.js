@@ -1,5 +1,5 @@
 // Standard Node.js Serverless Function (Bypasses some Edge WAF rules)
-const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*(https?:\/\/[^\]\s]+)\s*\]/gi;
+const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/gi;
 
 function getTextContent(content) {
   if (typeof content === 'string') return content;
@@ -36,7 +36,7 @@ function collectUploadedImages(messages) {
     UPLOADED_IMAGE_RE.lastIndex = 0;
     while ((match = UPLOADED_IMAGE_RE.exec(text))) {
       found.push({
-        url: match[1],
+        url: match[1].trim(),
         message
       });
     }
