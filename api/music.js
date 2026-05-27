@@ -33,7 +33,7 @@ export default async function handler(req) {
 
     const promptText = typeof prompt === 'string' ? prompt.trim() : '';
     const finalPrompt = promptText || 'ambient cinematic instrumental';
-    const finalModel = model && String(model).trim() ? String(model).trim() : 'acestep';
+    const finalModel = model && String(model).trim() ? String(model).trim() : 'universal-3-pro';
     const finalDuration = toDuration(duration, 15);
 
     const baseUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(finalPrompt)}`;
