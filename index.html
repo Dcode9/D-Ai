@@ -336,6 +336,24 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script type="module">
+        import { upload } from 'https://esm.sh/@vercel/blob@2.4.0/client';
+
+        window.uploadToPrivateBlob = (file, onProgress) => {
+            const safeName = file.name || `image-${Date.now()}`;
+            return upload(`vision/${Date.now()}-${safeName}`, file, {
+                access: 'private',
+                handleUploadUrl: '/api/upload',
+                contentType: file.type,
+                multipart: true,
+                clientPayload: JSON.stringify({
+                    contentType: file.type,
+                    size: file.size
+                }),
+                onUploadProgress: onProgress
+            });
+        };
+    </script>
 
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
@@ -435,24 +453,26 @@
             progress.classList.remove('hidden');
             window.isUploading = true;
 
-            const formData = new FormData();
-            formData.append('file', file);
+            if (!window.uploadToPrivateBlob) {
+                alert("Image upload is still loading. Please try again in a moment.");
+                window.removeImage();
+                return;
+            }
 
-            fetch('/api/upload', { method: 'POST', body: formData })
-                .then(res => {
-                    if(!res.ok) throw new Error(`Upload Error: ${res.status}`);
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        window.uploadedImageUrl = data.link;
-                        console.log('[Upload] Image uploaded successfully:', data.link);
-                        thumb.classList.remove('opacity-50');
-                        thumb.classList.add('opacity-100');
-                        progress.classList.add('hidden');
-                    } else {
-                        throw new Error(data.error || 'Upload failed');
+            window.uploadToPrivateBlob(file, ({ percentage }) => {
+                    if (percentage >= 100) {
+                        progress.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>';
                     }
+                })
+                .then(blob => {
+                    const visionUrl = blob.downloadUrl || blob.url;
+                    if (!visionUrl) throw new Error('Upload completed without a readable image URL.');
+
+                    window.uploadedImageUrl = visionUrl;
+                    console.log('[Upload] Image uploaded successfully:', blob.pathname || visionUrl);
+                    thumb.classList.remove('opacity-50');
+                    thumb.classList.add('opacity-100');
+                    progress.classList.add('hidden');
                 })
                 .catch(err => {
                     console.error(err);

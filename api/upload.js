@@ -2,10 +2,15 @@ export const config = {
   runtime: 'edge',
 };
 
+import { handleUpload } from '@vercel/blob/client';
+
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
-const POLLINATIONS_UPLOAD_ENDPOINTS = [
-  'https://media.pollinations.ai/upload',
-  'https://gen.pollinations.ai/upload'
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif'
 ];
 
 function jsonResponse(payload, status = 200) {
@@ -20,84 +25,51 @@ export default async function handler(req) {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  try {
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
-
-    if (!apiKey) {
-      return jsonResponse({ error: "Configuration Error: POLLINATIONS_API key is missing." }, 401);
-    }
-
-    const formData = await req.formData();
-    const file = formData.get('file');
-
-    if (!file) {
-      return jsonResponse({ error: "No file provided" }, 400);
-    }
-
-    if (!file.type || !file.type.startsWith('image/')) {
-      return jsonResponse({ error: "Only image uploads are supported for vision." }, 400);
-    }
-
-    if (file.size > MAX_IMAGE_SIZE) {
-      return jsonResponse({ error: "Image must be under 50 MB." }, 413);
-    }
-
-    let payload = null;
-    let lastError = null;
-
-    for (const endpoint of POLLINATIONS_UPLOAD_ENDPOINTS) {
-      const uploadData = new FormData();
-      uploadData.append('file', file, file.name || 'upload');
-
-      const uploadRes = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: uploadData,
-      });
-
-      if (uploadRes.ok) {
-        payload = await uploadRes.json();
-        break;
-      }
-
-      let detail = uploadRes.statusText;
-      try {
-        const errorPayload = await uploadRes.json();
-        detail = typeof errorPayload.error === 'string'
-          ? errorPayload.error
-          : errorPayload.error?.message || JSON.stringify(errorPayload);
-      } catch (e) {}
-
-      lastError = {
-        endpoint,
-        status: uploadRes.status,
-        detail
-      };
-    }
-
-    if (!payload) {
-      return jsonResponse({
-        error: `Upload Service Error (${lastError?.status || 502}): ${lastError?.detail || 'Unable to upload media.'}`,
-        endpoint: lastError?.endpoint
-      }, lastError?.status || 502);
-    }
-
-    if (!payload.url) {
-      return jsonResponse({ error: "Upload Service Error: Missing uploaded media URL." }, 502);
-    }
-
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return jsonResponse({
-      success: true,
-      link: payload.url,
-      id: payload.id,
-      size: payload.size,
-      contentType: payload.contentType,
-      duplicate: payload.duplicate
+      error: 'Configuration Error: connect a Vercel Blob store and set BLOB_READ_WRITE_TOKEN.'
+    }, 500);
+  }
+
+  try {
+    const body = await req.json();
+
+    const response = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const payload = clientPayload ? JSON.parse(clientPayload) : {};
+        const size = Number(payload.size || 0);
+        const contentType = String(payload.contentType || '');
+
+        if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+          throw new Error('Only JPEG, PNG, WebP, GIF, and AVIF images are supported.');
+        }
+
+        if (!Number.isFinite(size) || size <= 0 || size > MAX_IMAGE_SIZE) {
+          throw new Error('Image must be under 50 MB.');
+        }
+
+        return {
+          allowedContentTypes: ALLOWED_IMAGE_TYPES,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            contentType,
+            size
+          })
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log('[Upload] Private Vercel Blob upload completed:', {
+          pathname: blob.pathname,
+          contentType: blob.contentType,
+          size: blob.size
+        });
+      }
     });
 
+    return jsonResponse(response);
   } catch (error) {
-    return jsonResponse({ error: error.message }, 500);
+    return jsonResponse({ error: error.message }, 400);
   }
 }
