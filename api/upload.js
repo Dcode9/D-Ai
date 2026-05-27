@@ -1,7 +1,3 @@
-export const config = {
-  runtime: 'edge',
-};
-
 import { handleUpload } from '@vercel/blob/client';
 
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
@@ -13,30 +9,60 @@ const ALLOWED_IMAGE_TYPES = [
   'image/avif'
 ];
 
-function jsonResponse(payload, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
+function sendJson(res, payload, status = 200) {
+  res.status(status).json(payload);
+}
+
+function normalizeBody(body) {
+  if (!body) return {};
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch (e) {
+      return {};
+    }
+  }
+  return body;
+}
+
+function makeUploadRequest(req, body) {
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host || 'localhost';
+  const url = `${protocol}://${host}${req.url || '/api/upload'}`;
+  return new Request(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body)
   });
 }
 
-export default async function handler(req) {
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+    return sendJson(res, { error: 'Method Not Allowed' }, 405);
   }
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return jsonResponse({
+    return sendJson(res, {
       error: 'Configuration Error: connect a Vercel Blob store and set BLOB_READ_WRITE_TOKEN.'
     }, 500);
   }
 
   try {
-    const body = await req.json();
+    const body = normalizeBody(req.body);
 
     const response = await handleUpload({
       body,
-      request: req,
+      request: makeUploadRequest(req, body),
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const payload = clientPayload ? JSON.parse(clientPayload) : {};
         const size = Number(payload.size || 0);
@@ -68,8 +94,8 @@ export default async function handler(req) {
       }
     });
 
-    return jsonResponse(response);
+    return sendJson(res, response);
   } catch (error) {
-    return jsonResponse({ error: error.message }, 400);
+    return sendJson(res, { error: error.message }, 400);
   }
 }
