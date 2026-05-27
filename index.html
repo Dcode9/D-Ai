@@ -66,15 +66,41 @@
         /* Typography */
         .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #d1d5db; letter-spacing: 0.01em; }
         .markdown-body p { margin-bottom: 1rem; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; }
-        .markdown-body a { color: #3b82f6; text-decoration: none; border-bottom: 1px solid rgba(59,130,246,0.3); transition: border-color 0.2s; }
-        .markdown-body a:hover { border-bottom-color: #3b82f6; }
-        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(255,255,255,0.1); }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #FFF; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; letter-spacing: 0; }
+        .markdown-body a { color: #5eead4; text-decoration: none; border-bottom: 1px solid rgba(94,234,212,0.28); transition: border-color 0.2s, color 0.2s; }
+        .markdown-body a:hover { color: #99f6e4; border-bottom-color: rgba(153,246,228,0.55); }
+        .markdown-body strong { color: #f8fafc; font-weight: 650; }
+        .markdown-body ul, .markdown-body ol { margin: 0.7rem 0 1rem 1.25rem; padding-left: 0.75rem; }
+        .markdown-body li { margin: 0.35rem 0; padding-left: 0.15rem; }
+        .markdown-body ul li::marker { color: #2dd4bf; }
+        .markdown-body ol li::marker { color: #f59e0b; font-weight: 600; }
+        .markdown-body blockquote { margin: 1rem 0; padding: 0.85rem 1rem; border-left: 3px solid #2dd4bf; background: rgba(45,212,191,0.08); color: #e5e7eb; border-radius: 0 8px 8px 0; }
+        .markdown-body table { display: block; width: 100%; overflow-x: auto; margin: 1.25rem 0; border-collapse: collapse; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(255,255,255,0.02); }
+        .markdown-body th, .markdown-body td { padding: 0.7rem 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; vertical-align: top; white-space: nowrap; }
+        .markdown-body td { color: #cbd5e1; }
+        .markdown-body th { color: #f8fafc; background: rgba(255,255,255,0.06); font-weight: 650; }
+        .markdown-body tr:last-child td { border-bottom: none; }
+        .markdown-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.6rem 0; }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(45,212,191,0.08); color: #ccfbf1; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; border: 1px solid rgba(45,212,191,0.14); }
         .markdown-body pre { margin: 1.5em 0; padding: 0; background: transparent; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
         .markdown-body pre code { background: #0d0d0d; padding: 1rem; color: inherit; display: block; overflow-x: auto; border: none; }
         .code-box { margin: 1em 0; background: #0d0d0d; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .code-head { display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .code-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; background: #1A1A1A; padding: 0.5rem 0.75rem 0.5rem 1rem; border-bottom: 1px solid #333; font-size: 0.75rem; color: #888; font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .code-actions { display: inline-flex; align-items: center; gap: 0.35rem; }
+        .code-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; color: #9ca3af; border: 1px solid transparent; transition: color 0.2s, border-color 0.2s, background 0.2s; }
+        .code-action:hover { color: #f8fafc; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); }
+        .code-box.collapsed .code-body { max-height: 220px; overflow: hidden; position: relative; }
+        .code-box.collapsed .code-body::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: linear-gradient(to bottom, transparent, #0d0d0d); pointer-events: none; }
         .code-body { padding: 0; }
+
+        .attachment-card { display: inline-flex; align-items: center; gap: 0.75rem; max-width: 100%; min-height: 72px; padding: 0.55rem 0.7rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: rgba(255,255,255,0.04); }
+        .attachment-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.12); background: #080808; flex: 0 0 auto; }
+        .attachment-icon { width: 42px; height: 42px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #f8fafc; background: linear-gradient(135deg, rgba(45,212,191,0.18), rgba(244,63,94,0.12)); border: 1px solid rgba(255,255,255,0.1); flex: 0 0 auto; }
+        .attachment-meta { min-width: 0; display: flex; flex-direction: column; gap: 0.18rem; }
+        .attachment-name { max-width: min(360px, 58vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f8fafc; font-size: 0.85rem; font-weight: 600; letter-spacing: 0; }
+        .attachment-detail { color: #9ca3af; font-size: 0.72rem; }
+        .attachment-remove { width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: #fca5a5; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.18); flex: 0 0 auto; }
+        .attachment-remove:hover { color: #fff; background: rgba(239,68,68,0.9); }
 
         /* --- Message Animation --- */
         .msg-appear { animation: slideUpFade 0.2s cubic-bezier(0.2, 0.9, 0.4, 1) forwards; opacity: 0; transform: translateY(10px); }
@@ -197,6 +223,17 @@
             animation: analysingDots 1.2s steps(4, end) infinite;
         }
 
+        .thinking-shell { position: relative; min-height: 86px; display: flex; align-items: center; padding: 18px 4px; overflow: hidden; }
+        .thinking-shell::before { content: ''; position: absolute; inset: 10px 0; border-radius: 18px; background: linear-gradient(120deg, rgba(45,212,191,0.14), rgba(245,158,11,0.1), rgba(244,63,94,0.12)); background-size: 260% 260%; filter: blur(18px); opacity: 0.78; animation: analysingGradient 4s ease-in-out infinite; }
+        .thinking-orb { position: relative; width: 64px; height: 64px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(45,212,191,0.34) 22%, transparent 42%), conic-gradient(from 0deg, rgba(45,212,191,0.9), rgba(245,158,11,0.74), rgba(244,63,94,0.76), rgba(45,212,191,0.9)); box-shadow: 0 0 30px rgba(45,212,191,0.22); animation: spin 1.45s linear infinite; }
+        .thinking-orb::after { content: ''; position: absolute; inset: 8px; border-radius: inherit; background: #080808; box-shadow: inset 0 0 18px rgba(255,255,255,0.06); }
+        .thinking-lines { position: relative; display: flex; flex-direction: column; gap: 8px; width: min(280px, 58vw); margin-left: 18px; }
+        .thinking-line { height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(45,212,191,0.26), rgba(255,255,255,0.08)); background-size: 220% 100%; animation: shimmerLine 1.5s ease-in-out infinite; }
+        .thinking-line:nth-child(2) { width: 72%; animation-delay: 0.14s; }
+        .thinking-line:nth-child(3) { width: 44%; animation-delay: 0.28s; }
+        .thinking-fade { opacity: 0.34; filter: blur(0.4px); transition: opacity 0.3s ease, filter 0.3s ease; }
+        @keyframes shimmerLine { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
         @keyframes analysingGradient {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -223,7 +260,7 @@
         /* Error Loading Animation */
         .error-loader-container {
             background: linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(20,20,20,0.98) 100%);
-            border: 1px solid rgba(59,130,246,0.2);
+            border: 1px solid rgba(45,212,191,0.18);
             border-radius: 20px;
             padding: 2rem;
             margin: 1rem 0;
@@ -239,7 +276,7 @@
             left: -100%;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+            background: linear-gradient(90deg, transparent, #2dd4bf, #f43f5e, transparent);
             animation: shimmer 2s infinite;
         }
 
@@ -251,8 +288,9 @@
         .error-spinner {
             width: 60px;
             height: 60px;
-            border: 3px solid rgba(59,130,246,0.1);
-            border-top-color: #3b82f6;
+            border: 3px solid rgba(45,212,191,0.12);
+            border-top-color: #2dd4bf;
+            border-right-color: #f59e0b;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 1.5rem;
@@ -277,12 +315,12 @@
             justify-content: center;
             min-width: 28px;
             height: 28px;
-            background: rgba(59,130,246,0.1);
-            border: 1px solid rgba(59,130,246,0.3);
+            background: rgba(45,212,191,0.1);
+            border: 1px solid rgba(45,212,191,0.28);
             border-radius: 50%;
             font-weight: 600;
             font-size: 0.85rem;
-            color: #3b82f6;
+            color: #5eead4;
             margin: 0 4px;
         }
     </style>
@@ -307,22 +345,28 @@
     </main>
 
     <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
-        <div class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+        <div id="composer-shell" class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
             
-            <!-- Image Preview Area -->
-            <div id="img-preview" class="hidden w-full px-3 pt-2">
-                <div class="relative inline-block group">
-                    <img id="preview-thumb" class="h-16 w-16 object-cover rounded-xl border border-gray-700 opacity-50 transition-opacity duration-300">
-                    <div id="upload-progress" class="absolute inset-0 flex items-center justify-center">
-                        <i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>
+            <!-- Attachment Preview Area -->
+            <div id="attachment-preview" class="hidden w-full px-3 pt-2">
+                <div class="attachment-card">
+                    <div id="attachment-visual" class="relative">
+                        <div class="attachment-icon"><i class="fa-solid fa-file-lines"></i></div>
+                        <div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]">
+                            <i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i>
+                        </div>
                     </div>
-                    <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-red-600 transition-colors shadow-md"><i class="fa-solid fa-times"></i></button>
+                    <div class="attachment-meta">
+                        <div id="attachment-name" class="attachment-name">Attachment</div>
+                        <div id="attachment-detail" class="attachment-detail">Preparing...</div>
+                    </div>
+                    <button onclick="window.removeAttachment()" class="attachment-remove" title="Remove attachment"><i class="fa-solid fa-times text-[11px]"></i></button>
                 </div>
             </div>
 
             <div class="w-full flex items-end">
                 <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-500 hover:text-white transition-colors rounded-full"><i class="fa-solid fa-paperclip text-lg"></i></button>
-                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleFile(this.files[0])">
+                <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.markdown,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleFile(this.files[0])">
                 
                 <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
                 
@@ -336,6 +380,12 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script type="module">
+        import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+        window.pdfjsLib = pdfjsLib;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
     <script type="module">
         import { upload } from 'https://esm.sh/@vercel/blob@2.4.0/client';
 
@@ -358,23 +408,27 @@
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 
+        window.copyCodeBlock = (btn) => {
+            const box = btn.closest('.code-box');
+            const code = box?.querySelector('code')?.innerText || '';
+            navigator.clipboard.writeText(code);
+        };
+
+        window.toggleCodeBlock = (btn) => {
+            const box = btn.closest('.code-box');
+            box?.classList.toggle('collapsed');
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = box?.classList.contains('collapsed') ? 'fa-solid fa-up-right-and-down-left-from-center' : 'fa-solid fa-down-left-and-up-right-to-center';
+        };
+
         // --- ERROR MESSAGES ---
         const busyReasons = [
-            "Processing a million thoughts at once! 🧠",
-            "My neural networks are taking a coffee break ☕",
-            "Traffic jam in the AI highway! 🚗",
-            "Quantum computing taking longer than expected ⚛️",
-            "My GPUs are doing yoga stretches 🧘",
-            "Running a marathon through the data centers 🏃",
-            "The AI hamsters need a quick break 🐹",
-            "Calculating the meaning of life (it's 42!) 🤖",
-            "My circuits got a bit tangled up 🔌",
-            "Downloading more intelligence... 📥",
-            "Server elves are organizing my files 🧝",
-            "My RAM is having a memory moment 💭",
-            "The cloud is a bit foggy right now ☁️",
-            "Recharging my digital batteries 🔋",
-            "My processors are debating philosophy 🤔"
+            "The answer path is taking longer than usual.",
+            "The model queue is briefly backed up.",
+            "A retry is warming up in the background.",
+            "The response stream stalled for a moment.",
+            "The compute lane is temporarily busy.",
+            "The request is being re-routed cleanly."
         ];
 
         // --- ERROR LOADER FUNCTION ---
@@ -385,10 +439,12 @@
 
             const html = `
                 <div class="error-loader-container">
-                    <div class="error-spinner"></div>
+                    <div class="thinking-shell justify-center">
+                        <div class="thinking-orb"></div>
+                    </div>
                     <div class="text-center">
-                        <div class="text-white text-lg font-semibold mb-3 error-pulse">
-                            D'Ai is Busy! 🚀
+                        <div class="text-white text-lg font-semibold mb-3">
+                            D'Ai is busy
                         </div>
                         <div class="text-gray-400 text-sm mb-4">
                             ${randomReason}
@@ -418,10 +474,12 @@
             return () => clearInterval(intervalId);
         };
 
-        // --- UPLOAD STATE ---
+        // --- ATTACHMENT STATE ---
+        window.pendingAttachment = null;
         window.uploadedImageUrl = null;
         window.isUploading = false;
         window.privateBlobAvailable = false;
+        window.attachmentPreviewUrl = null;
 
         fetch('/api/upload')
             .then(res => res.ok ? res.json() : { available: false })
@@ -476,6 +534,103 @@
             }
         };
 
+        const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+
+        const formatBytes = (bytes) => {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+            return `${(bytes / Math.pow(1024, index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+        };
+
+        const getFileKind = (file) => {
+            const name = file.name.toLowerCase();
+            if (file.type.startsWith('image/')) return 'image';
+            if (file.type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+            if (name.endsWith('.docx') || file.type.includes('wordprocessingml')) return 'docx';
+            if (name.endsWith('.doc') || file.type === 'application/msword') return 'legacy-doc';
+            if (name.endsWith('.md') || name.endsWith('.markdown')) return 'markdown';
+            if (file.type.startsWith('text/') || name.endsWith('.txt')) return 'text';
+            return 'unknown';
+        };
+
+        const fileKindIcon = (kind) => ({
+            image: 'fa-image',
+            pdf: 'fa-file-pdf',
+            docx: 'fa-file-word',
+            'legacy-doc': 'fa-file-word',
+            markdown: 'fa-file-lines',
+            text: 'fa-file-lines'
+        }[kind] || 'fa-file');
+
+        const safeAttachmentName = (name) => String(name || 'Attachment').replace(/[\[\]\r\n]/g, ' ').trim() || 'Attachment';
+
+        const setAttachmentPreview = (file, kind, status = 'Preparing...') => {
+            const preview = document.getElementById('attachment-preview');
+            const visual = document.getElementById('attachment-visual');
+            const nameEl = document.getElementById('attachment-name');
+            const detailEl = document.getElementById('attachment-detail');
+            const progress = document.getElementById('upload-progress');
+
+            preview.classList.remove('hidden');
+            nameEl.textContent = file.name || 'Attachment';
+            detailEl.textContent = status;
+            progress.classList.remove('hidden');
+
+            if (kind === 'image') {
+                if (window.attachmentPreviewUrl) URL.revokeObjectURL(window.attachmentPreviewUrl);
+                window.attachmentPreviewUrl = URL.createObjectURL(file);
+                visual.innerHTML = `<img class="attachment-thumb opacity-50 transition-opacity duration-300" src="${window.attachmentPreviewUrl}" alt=""><div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]"><i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i></div>`;
+            } else {
+                visual.innerHTML = `<div class="attachment-icon"><i class="fa-solid ${fileKindIcon(kind)}"></i></div><div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]"><i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i></div>`;
+            }
+        };
+
+        const finishAttachmentPreview = (detail) => {
+            const progress = document.getElementById('upload-progress');
+            const detailEl = document.getElementById('attachment-detail');
+            const thumb = document.querySelector('#attachment-visual .attachment-thumb');
+            if (thumb) {
+                thumb.classList.remove('opacity-50');
+                thumb.classList.add('opacity-100');
+            }
+            if (detailEl) detailEl.textContent = detail;
+            if (progress) progress.classList.add('hidden');
+        };
+
+        const extractPdfText = async (file) => {
+            if (!window.pdfjsLib) throw new Error('PDF reader is still loading. Try again in a moment.');
+            const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+            const chunks = [];
+            const maxPages = Math.min(pdf.numPages, 40);
+            for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+                const page = await pdf.getPage(pageNo);
+                const content = await page.getTextContent();
+                chunks.push(content.items.map(item => item.str).join(' '));
+            }
+            return chunks.join('\n\n').trim();
+        };
+
+        const extractDocxText = async (file) => {
+            if (!window.mammoth) throw new Error('Word reader is still loading. Try again in a moment.');
+            const result = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+            return (result.value || '').trim();
+        };
+
+        const extractDocumentText = async (file, kind) => {
+            if (kind === 'pdf') return extractPdfText(file);
+            if (kind === 'docx') return extractDocxText(file);
+            if (kind === 'legacy-doc') throw new Error('Legacy .doc files are not supported yet. Please upload .docx, PDF, Markdown, or TXT.');
+            if (kind === 'text' || kind === 'markdown') return (await file.text()).trim();
+            throw new Error('Unsupported file type.');
+        };
+
         // --- Scroll Logic ---
         const chatContainer = document.getElementById('chat');
         const scrollBtn = document.getElementById('scroll-btn');
@@ -490,57 +645,83 @@
             chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
         };
 
-        // --- Image Handling ---
-        window.handleFile = (file) => {
+        // --- Attachment Handling ---
+        window.handleFile = async (file) => {
             if (!file || window.isUploading) return;
-            if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
-            if (file.size > 50 * 1024 * 1024) { alert("Please upload an image under 50 MB."); return; }
+            const kind = getFileKind(file);
+            const maxSize = kind === 'image' ? 50 * 1024 * 1024 : 25 * 1024 * 1024;
 
-            // UI
-            const preview = document.getElementById('img-preview');
-            const thumb = document.getElementById('preview-thumb');
-            const progress = document.getElementById('upload-progress');
-            preview.classList.remove('hidden');
-            thumb.src = URL.createObjectURL(file);
-            thumb.classList.remove('opacity-100');
-            thumb.classList.add('opacity-50');
-            progress.classList.remove('hidden');
+            if (kind === 'unknown') { alert("Please upload an image, PDF, DOCX, Markdown, or TXT file."); return; }
+            if (file.size > maxSize) { alert(`${kind === 'image' ? 'Images' : 'Documents'} must be under ${formatBytes(maxSize)}.`); return; }
+
+            setAttachmentPreview(file, kind, kind === 'image' ? 'Preparing image...' : 'Reading document...');
             window.isUploading = true;
 
             const useLocalVisionFallback = async (reason) => {
                 console.warn('[Upload] Private Blob unavailable; using local vision data URL fallback.', reason);
                 const dataUrl = await fileToVisionDataUrl(file);
+                    window.pendingAttachment = {
+                        type: 'image',
+                        name: safeAttachmentName(file.name || 'Image'),
+                        mime: 'image/jpeg',
+                        size: file.size,
+                        url: dataUrl
+                };
                 window.uploadedImageUrl = dataUrl;
-                thumb.classList.remove('opacity-50');
-                thumb.classList.add('opacity-100');
-                progress.classList.add('hidden');
+                finishAttachmentPreview(`Image • ${formatBytes(file.size)}`);
             };
 
-            if (!window.privateBlobAvailable || !window.uploadToPrivateBlob) {
-                useLocalVisionFallback(window.privateBlobAvailable ? 'Blob client module was not ready.' : 'Private Blob storage is not configured.').catch(err => {
+            if (kind !== 'image') {
+                try {
+                    const text = await extractDocumentText(file, kind);
+                    if (!text) throw new Error('I could not extract readable text from that file.');
+                    window.pendingAttachment = {
+                        type: 'document',
+                        kind,
+                        name: safeAttachmentName(file.name || 'Document'),
+                        mime: file.type || kind,
+                        size: file.size,
+                        text: text.slice(0, 90000)
+                    };
+                    finishAttachmentPreview(`${kind.toUpperCase()} • ${formatBytes(file.size)} • ${Math.round(text.length / 1000)}k chars`);
+                } catch (err) {
                     console.error(err);
-                    alert("Image upload failed. Please try again.");
-                    window.removeImage();
-                }).finally(() => {
+                    alert(err.message || "Document upload failed. Please try another file.");
+                    window.removeAttachment();
+                } finally {
                     window.isUploading = false;
-                });
+                }
                 return;
             }
 
-            window.uploadToPrivateBlob(file, ({ percentage }) => {
-                    if (percentage >= 100) {
-                        progress.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-brand text-xl"></i>';
-                    }
-                })
-                .then(blob => {
+            if (!window.privateBlobAvailable || !window.uploadToPrivateBlob) {
+                try {
+                    await useLocalVisionFallback(window.privateBlobAvailable ? 'Blob client module was not ready.' : 'Private Blob storage is not configured.');
+                } catch (err) {
+                    console.error(err);
+                    alert("Image upload failed. Please try again.");
+                    window.removeAttachment();
+                } finally {
+                    window.isUploading = false;
+                }
+                return;
+            }
+
+            window.uploadToPrivateBlob(file)
+                .then(async blob => {
                     const visionUrl = blob.downloadUrl || blob.url;
                     if (!visionUrl) throw new Error('Upload completed without a readable image URL.');
 
-                    window.uploadedImageUrl = visionUrl;
+                    window.pendingAttachment = {
+                        type: 'image',
+                        name: safeAttachmentName(file.name || 'Image'),
+                        mime: file.type || 'image',
+                        size: file.size,
+                        url: visionUrl
+                    };
                     console.log('[Upload] Image uploaded successfully:', blob.pathname || visionUrl);
-                    thumb.classList.remove('opacity-50');
-                    thumb.classList.add('opacity-100');
-                    progress.classList.add('hidden');
+                    window.uploadedImageUrl = visionUrl;
+                    finishAttachmentPreview(`Image • ${formatBytes(file.size)}`);
                 })
                 .catch(async err => {
                     try {
@@ -548,7 +729,7 @@
                     } catch (fallbackErr) {
                         console.error(fallbackErr);
                         alert("Image upload failed. Please try again.");
-                        window.removeImage();
+                        window.removeAttachment();
                     }
                 })
                 .finally(() => {
@@ -556,17 +737,25 @@
                 });
         };
 
-        window.removeImage = () => {
+        window.removeAttachment = () => {
             document.getElementById('file-input').value = "";
-            document.getElementById('img-preview').classList.add('hidden');
+            document.getElementById('attachment-preview').classList.add('hidden');
+            document.getElementById('attachment-visual').innerHTML = '<div class="attachment-icon"><i class="fa-solid fa-file-lines"></i></div><div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]"><i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i></div>';
+            document.getElementById('attachment-name').textContent = 'Attachment';
+            document.getElementById('attachment-detail').textContent = 'Preparing...';
+            if (window.attachmentPreviewUrl) URL.revokeObjectURL(window.attachmentPreviewUrl);
+            window.attachmentPreviewUrl = null;
+            window.pendingAttachment = null;
             window.uploadedImageUrl = null;
             window.isUploading = false;
         };
 
+        window.removeImage = window.removeAttachment;
+
         document.addEventListener('paste', (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let item of items) {
-                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                if (item.kind === 'file') {
                     window.handleFile(item.getAsFile());
                 }
             }
@@ -1125,7 +1314,10 @@
                 if(!checkDeps()) return null;
                 md = window.markdownit({html:true,breaks:true,linkify:true,highlight:(s,l)=>l&&hljs.getLanguage(l)?hljs.highlight(s,{language:l}).value:''});
                 md.disable('code').use(texmath,{engine:katex,delimiters:'dollars'});
-                md.renderer.rules.fence=(t,i)=>(`<div class="code-box"><div class="code-head"><span>${(t[i].info||'text').split(' ')[0]}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" class="hover:text-white transition-colors"><i class="fa-regular fa-copy"></i></button></div><div class="code-body"><pre><code class="hljs language-${(t[i].info||'text').split(' ')[0]}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`);
+                md.renderer.rules.fence=(t,i)=>{
+                    const lang=(t[i].info||'text').split(' ')[0] || 'text';
+                    return `<div class="code-box collapsed"><div class="code-head"><span>${md.utils.escapeHtml(lang)}</span><span class="code-actions"><button class="code-action" title="Toggle detail" onclick="window.toggleCodeBlock(this)"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button><button class="code-action" title="Copy code" onclick="window.copyCodeBlock(this)"><i class="fa-regular fa-copy"></i></button></span></div><div class="code-body"><pre><code class="hljs language-${md.utils.escapeHtml(lang)}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`;
+                };
                 return md;
             };
 
@@ -1276,13 +1468,18 @@
 
             const visualQueryRe = /\b(image|photo|picture|pic|screenshot|uploaded|attachment|visual|look|see|describe|what is this|what's this|in it|about it)\b/i;
 
+            const activityLoader = () => '<div class="thinking-shell" aria-label="Loading"><div class="thinking-orb"></div><div class="thinking-lines"><div class="thinking-line"></div><div class="thinking-line"></div><div class="thinking-line"></div></div></div>';
+
             const setAnalysing = (el, active) => {
                 const header = document.querySelector('header');
+                const composer = document.getElementById('composer-shell');
                 if (active) {
                     header?.classList.add('analysing-glow');
-                    el.innerHTML = '<div class="analysing-loader"><span class="analysing-text">Analysing<span class="analysing-dots"></span></span></div>';
+                    composer?.classList.add('thinking-fade');
+                    el.innerHTML = activityLoader();
                 } else {
                     header?.classList.remove('analysing-glow');
+                    composer?.classList.remove('thinking-fade');
                 }
             };
             
@@ -1299,6 +1496,19 @@
                 }
                 return d; 
             };
+
+            const renderAttachmentChip = (attachment) => {
+                if (!attachment) return '';
+                const detail = attachment.type === 'image'
+                    ? `Image • ${formatBytes(attachment.size)}`
+                    : `${(attachment.kind || 'DOC').toUpperCase()} • ${formatBytes(attachment.size)}`;
+
+                if (attachment.type === 'image') {
+                    return `<span class="attachment-card mt-2"><img class="attachment-thumb" src="${escapeHtml(attachment.url)}" alt=""><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name)}</span><span class="attachment-detail">${detail}</span></span></span>`;
+                }
+
+                return `<span class="attachment-card mt-2"><span class="attachment-icon"><i class="fa-solid ${fileKindIcon(attachment.kind)}"></i></span><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name)}</span><span class="attachment-detail">${detail}</span></span></span>`;
+            };
             
             const shouldSearch = (text) => {
                 const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
@@ -1307,9 +1517,9 @@
 
             window.send = async function() {
                 const t=E.i.value.trim(); 
-                if((!t && !window.uploadedImageUrl) ||S.gen || window.isUploading) return;
-                const attachedImageUrl = window.uploadedImageUrl;
-                const shouldShowAnalysing = !!attachedImageUrl || (window.hasVisionContext && visualQueryRe.test(t));
+                const attachment = window.pendingAttachment;
+                if((!t && !attachment) ||S.gen || window.isUploading) return;
+                const shouldShowAnalysing = !!attachment || (window.hasVisionContext && visualQueryRe.test(t));
                 
                 if(!getMd()){
                     const btn = document.getElementById('btn');
@@ -1323,18 +1533,23 @@
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system",
-                        content: "You are D'Ai, a lightning-fast AI assistant, made by Dhairya Shah." +
+                        content: "You are D'Ai, a lightning-fast AI assistant, made by Dhairya Shah.\n" +
                                  "## 1. Persona & Tone\n" +
                                  "* **Role:** Expert peer and adaptive AI collaborator.\n" +
                                  "* **Tone:** Clear, direct, and naturally warm. Avoid robotic filler and empty pleasantries.\n" +
                                  "* **Style:** Mirror the user's technical level. Balance empathy with absolute candor—correct mistakes gently but directly.\n" +
+                                 "* **Answer Shape:** Use answer-first communication. Start with the conclusion, recommendation, or exact answer; then provide supporting reasons, steps, or evidence.\n" +
+                                 "* **Cognitive Load:** Treat every answer as information architecture. Reduce friction with chunking, short paragraphs, descriptive headings, and progressive disclosure.\n" +
                                  "\n" +
                                  "## 2. Formatting & Layout Toolkit\n" +
-                                 "* **Headings (`##`, `###`):** Use for logical hierarchy (never use `#`).\n" +
-                                 "* **Lists (`*`):** Use bullet points to break down complex walls of text.\n" +
+                                 "* **Headings (`##`, `###`):** Use specific, task-oriented headings. Avoid vague one-word headings. Never use `#`.\n" +
+                                 "* **Paragraphs:** Keep each paragraph focused on one idea. Put the key point in the first sentence.\n" +
+                                 "* **Lists (`*`):** Use bullets for unordered groups and numbered lists for sequences. Keep list items parallel and scannable.\n" +
                                  "* **Bolding (`**...**`):** Use to emphasize key phrases so the response is scannable at a glance.\n" +
-                                 "* **Tables:** Use *only* to compare 3+ items across 2+ attributes. Do not repeat table data in text.\n" +
+                                 "* **Tables:** Use only for genuine comparison or dense structured data. Keep cells short so mobile tables remain readable. Do not repeat table data in text.\n" +
                                  "* **Blockquotes (`>`):** Use to highlight critical notes, warnings, or core definitions.\n" +
+                                 "* **Uploaded Documents:** If the user provides document text, ground your answer in it. Cite the uploaded file name in plain language when relevant, but do not expose hidden tags.\n" +
+                                 "* **Depth:** Use progressive disclosure: give the useful version first, then deeper technical details only when they clarify the answer.\n" +
                                  "\n" +
                                  "## 3. Math & Science Rules (LaTeX)\n" +
                                  "* **Complex Math:** Use LaTeX *only* for formal, complex formulas or variables.\n" +
@@ -1378,15 +1593,20 @@
                 let userContent = t;
                 let displayHtml = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-                if (window.uploadedImageUrl) {
-                    userContent += ` [UPLOADED_IMAGE: ${window.uploadedImageUrl}]`;
-                    displayHtml += `<br><span class="text-xs opacity-50"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
-                    console.log('[Send] Including uploaded image in message:', window.uploadedImageUrl);
+                if (attachment?.type === 'image') {
+                    userContent += ` [UPLOADED_IMAGE: ${attachment.url}]`;
+                    displayHtml += `<br>${renderAttachmentChip(attachment)}`;
+                    console.log('[Send] Including uploaded image in message:', attachment.name);
                     window.hasVisionContext = true;
-                    window.removeImage();
+                    window.removeAttachment();
+                } else if (attachment?.type === 'document') {
+                    userContent += `\n\n[UPLOADED_DOCUMENT: ${attachment.name}]\n${attachment.text}`;
+                    displayHtml += `<br>${renderAttachmentChip(attachment)}`;
+                    console.log('[Send] Including uploaded document in message:', attachment.name);
+                    window.removeAttachment();
                 }
 
-                console.log('[Send] User message content:', userContent);
+                console.log('[Send] User message content:', userContent.length > 500 ? `${userContent.slice(0, 500)}...` : userContent);
 
                 S.msg.push({role:"user",content:userContent}); 
                 add('user', displayHtml);
@@ -1398,7 +1618,7 @@
                 if(shouldSearch(t)) {
                     // Subtle indicator
                     if (!shouldShowAnalysing) {
-                        el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> WEB</span>';
+                        el.innerHTML = activityLoader();
                     }
                     const results = await searchTavily(t);
                     if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
@@ -1485,7 +1705,7 @@
                     // Show error loader with retry
                     window.showErrorLoader(el, async () => {
                         // Retry logic: re-send the same message
-                        el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> RETRYING...</span>';
+                        el.innerHTML = activityLoader();
 
                         setTimeout(async () => {
                             try {
