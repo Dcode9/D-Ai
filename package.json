@@ -10,5 +10,6 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.4.0"
-  }
+  },
+  "type": "module"
 }
