@@ -129,6 +129,92 @@
         .gen-status { position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; z-index: 35; text-shadow: 0 2px 4px rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.3s; }
         .gen-status.active { opacity: 0.7; }
 
+        /* Vision analysis handoff */
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(110deg, rgba(37,99,235,0.18), rgba(20,184,166,0.12), rgba(244,63,94,0.14), rgba(37,99,235,0.18));
+            background-size: 260% 260%;
+            filter: blur(10px);
+            transition: opacity 0.4s ease;
+            animation: analysingGradient 5s ease-in-out infinite;
+        }
+
+        header.analysing-glow::before { opacity: 1; }
+        header > * { position: relative; z-index: 1; }
+
+        .analysing-loader {
+            position: relative;
+            min-height: 76px;
+            display: inline-flex;
+            align-items: center;
+            padding: 18px 22px;
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .analysing-loader::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(37,99,235,0.18), rgba(16,185,129,0.12), rgba(244,63,94,0.16), rgba(37,99,235,0.18));
+            background-size: 280% 280%;
+            opacity: 0.9;
+            filter: blur(18px);
+            animation: analysingGradient 4.5s ease-in-out infinite;
+            z-index: -2;
+        }
+
+        .analysing-loader::after {
+            content: '';
+            position: absolute;
+            width: 86px;
+            height: 86px;
+            left: -18px;
+            top: -12px;
+            border-radius: 999px;
+            background: rgba(96,165,250,0.42);
+            filter: blur(24px);
+            animation: analysingBlob 3.2s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+
+        .analysing-text {
+            color: rgba(255,255,255,0.92);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(96,165,250,0.85);
+        }
+
+        .analysing-dots::after {
+            content: '';
+            animation: analysingDots 1.2s steps(4, end) infinite;
+        }
+
+        @keyframes analysingGradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes analysingBlob {
+            0% { transform: translate(0, 0) scale(0.95); background: rgba(96,165,250,0.42); }
+            50% { transform: translate(110px, 8px) scale(1.18); background: rgba(45,212,191,0.34); }
+            100% { transform: translate(220px, -4px) scale(1.02); background: rgba(251,113,133,0.32); }
+        }
+
+        @keyframes analysingDots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75%, 100% { content: '...'; }
+        }
+
         /* Scroll Button */
         #scroll-btn { position: fixed; bottom: 100px; right: 20px; z-index: 40; background: #1A1A1A; color: #3b82f6; border: 1px solid #333; padding: 10px 14px; border-radius: 50%; cursor: pointer; opacity: 0; transition: all 0.3s; transform: translateY(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         #scroll-btn.visible { opacity: 1; transform: translateY(0); }
@@ -336,6 +422,7 @@
         window.handleFile = (file) => {
             if (!file || window.isUploading) return;
             if (!file.type.startsWith('image/')) { alert("Please upload an image."); return; }
+            if (file.size > 50 * 1024 * 1024) { alert("Please upload an image under 50 MB."); return; }
 
             // UI
             const preview = document.getElementById('img-preview');
@@ -1093,6 +1180,19 @@
             };
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
+            window.hasVisionContext = false;
+
+            const visualQueryRe = /\b(image|photo|picture|pic|screenshot|uploaded|attachment|visual|look|see|describe|what is this|what's this|in it|about it)\b/i;
+
+            const setAnalysing = (el, active) => {
+                const header = document.querySelector('header');
+                if (active) {
+                    header?.classList.add('analysing-glow');
+                    el.innerHTML = '<div class="analysing-loader"><span class="analysing-text">Analysing<span class="analysing-dots"></span></span></div>';
+                } else {
+                    header?.classList.remove('analysing-glow');
+                }
+            };
             
             const add = (r,t) => { 
                 const d=document.createElement('div'); 
@@ -1116,6 +1216,8 @@
             window.send = async function() {
                 const t=E.i.value.trim(); 
                 if((!t && !window.uploadedImageUrl) ||S.gen || window.isUploading) return;
+                const attachedImageUrl = window.uploadedImageUrl;
+                const shouldShowAnalysing = !!attachedImageUrl || (window.hasVisionContext && visualQueryRe.test(t));
                 
                 if(!getMd()){
                     const btn = document.getElementById('btn');
@@ -1188,6 +1290,7 @@
                     userContent += ` [UPLOADED_IMAGE: ${window.uploadedImageUrl}]`;
                     displayHtml += `<br><span class="text-xs opacity-50"><i class="fa-solid fa-image mr-1"></i> Image Attached</span>`;
                     console.log('[Send] Including uploaded image in message:', window.uploadedImageUrl);
+                    window.hasVisionContext = true;
                     window.removeImage();
                 }
 
@@ -1197,14 +1300,17 @@
                 add('user', displayHtml);
                 
                 const {firstElementChild:el} = add('assistant','');
+                if (shouldShowAnalysing) setAnalysing(el, true);
 
                 let searchContext = "";
                 if(shouldSearch(t)) {
                     // Subtle indicator
-                    el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> WEB</span>';
+                    if (!shouldShowAnalysing) {
+                        el.innerHTML = '<span class="text-brand/80 text-[11px] font-mono tracking-wide animate-pulse flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> WEB</span>';
+                    }
                     const results = await searchTavily(t);
                     if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
-                    el.innerHTML = ""; 
+                    if (!shouldShowAnalysing) el.innerHTML = ""; 
                 }
                 
                 try {
@@ -1247,6 +1353,7 @@
                                     const delta = json.choices[0]?.delta?.content || "";
                                     
                                     if (delta) {
+                                        if (shouldShowAnalysing) setAnalysing(el, false);
                                         fullText += delta;
                                         let processedContent = fullText.replace(
                                             /<<GENERATE_IMAGE:([^>]+)>>/g,
@@ -1271,12 +1378,14 @@
                     }
 
                     S.msg.push({role:"assistant",content:fullText}); 
+                    if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen=false; 
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
 
                 } catch(e) {
                     console.error("Chat API Error:", e);
+                    if (shouldShowAnalysing) setAnalysing(el, false);
 
                     // Remove the last user message from history since the request failed
                     S.msg.pop();
