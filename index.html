@@ -421,6 +421,16 @@
         // --- UPLOAD STATE ---
         window.uploadedImageUrl = null;
         window.isUploading = false;
+        window.privateBlobAvailable = false;
+
+        fetch('/api/upload')
+            .then(res => res.ok ? res.json() : { available: false })
+            .then(data => {
+                window.privateBlobAvailable = !!data.available;
+            })
+            .catch(() => {
+                window.privateBlobAvailable = false;
+            });
 
         const fileToVisionDataUrl = async (file) => {
             const sourceUrl = URL.createObjectURL(file);
@@ -506,8 +516,8 @@
                 progress.classList.add('hidden');
             };
 
-            if (!window.uploadToPrivateBlob) {
-                useLocalVisionFallback('Blob client module was not ready.').catch(err => {
+            if (!window.privateBlobAvailable || !window.uploadToPrivateBlob) {
+                useLocalVisionFallback(window.privateBlobAvailable ? 'Blob client module was not ready.' : 'Private Blob storage is not configured.').catch(err => {
                     console.error(err);
                     alert("Image upload failed. Please try again.");
                     window.removeImage();
