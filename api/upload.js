@@ -3,6 +3,10 @@ export const config = {
 };
 
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
+const POLLINATIONS_UPLOAD_ENDPOINTS = [
+  'https://media.pollinations.ai/upload',
+  'https://gen.pollinations.ai/upload'
+];
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -38,29 +42,47 @@ export default async function handler(req) {
       return jsonResponse({ error: "Image must be under 50 MB." }, 413);
     }
 
-    const uploadData = new FormData();
-    uploadData.append('file', file, file.name || 'upload');
+    let payload = null;
+    let lastError = null;
 
-    const uploadRes = await fetch('https://gen.pollinations.ai/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: uploadData,
-    });
+    for (const endpoint of POLLINATIONS_UPLOAD_ENDPOINTS) {
+      const uploadData = new FormData();
+      uploadData.append('file', file, file.name || 'upload');
 
-    if (!uploadRes.ok) {
+      const uploadRes = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: uploadData,
+      });
+
+      if (uploadRes.ok) {
+        payload = await uploadRes.json();
+        break;
+      }
+
       let detail = uploadRes.statusText;
       try {
-        const payload = await uploadRes.json();
-        detail = typeof payload.error === 'string'
-          ? payload.error
-          : payload.error?.message || JSON.stringify(payload);
+        const errorPayload = await uploadRes.json();
+        detail = typeof errorPayload.error === 'string'
+          ? errorPayload.error
+          : errorPayload.error?.message || JSON.stringify(errorPayload);
       } catch (e) {}
-      return jsonResponse({ error: `Upload Service Error (${uploadRes.status}): ${detail}` }, uploadRes.status);
+
+      lastError = {
+        endpoint,
+        status: uploadRes.status,
+        detail
+      };
     }
 
-    const payload = await uploadRes.json();
+    if (!payload) {
+      return jsonResponse({
+        error: `Upload Service Error (${lastError?.status || 502}): ${lastError?.detail || 'Unable to upload media.'}`,
+        endpoint: lastError?.endpoint
+      }, lastError?.status || 502);
+    }
 
     if (!payload.url) {
       return jsonResponse({ error: "Upload Service Error: Missing uploaded media URL." }, 502);
