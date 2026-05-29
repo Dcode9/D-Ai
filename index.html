@@ -60,17 +60,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all'">
     
     <style>
-        body{background:#050505;color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
-        *::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:3px}*::-webkit-scrollbar-thumb:hover{background:#555}
+        :root {
+            --dai-bg: #050505;
+            --dai-surface: #0f0f0f;
+            --dai-surface-2: #151515;
+            --dai-border: rgba(255,255,255,0.12);
+            --dai-border-soft: rgba(255,255,255,0.08);
+            --dai-text: #f4f6f8;
+            --dai-muted: #a8b0bb;
+            --dai-soft: #d7dce3;
+            --dai-accent: #38bdf8;
+            --dai-accent-2: #f59e0b;
+            --dai-good: #34d399;
+            --dai-warn: #f43f5e;
+        }
+        body{background:var(--dai-bg);color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
+        *::-webkit-scrollbar{width:7px;height:7px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:4px}*::-webkit-scrollbar-thumb:hover{background:#555}
         
         /* Typography */
-        .markdown-body { max-width: 100%; min-width: 0; overflow-wrap: break-word; font-size: 0.965rem; line-height: 1.72; color: #d6d9df; letter-spacing: 0; }
+        .markdown-body { max-width: 100%; min-width: 0; overflow-wrap: break-word; font-size: 0.98rem; line-height: 1.74; color: var(--dai-soft); letter-spacing: 0; }
         .markdown-body > *:first-child { margin-top: 0; }
         .markdown-body > *:last-child { margin-bottom: 0; }
         .markdown-body p { margin: 0 0 1.05rem; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { color: #f8fafc; font-weight: 680; letter-spacing: 0; line-height: 1.22; }
-        .markdown-body h1 { font-size: 1.55rem; margin: 1.8rem 0 0.8rem; }
-        .markdown-body h2 { font-size: 1.25rem; margin: 1.55rem 0 0.7rem; padding-top: 0.1rem; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { color: var(--dai-text); font-weight: 720; letter-spacing: 0; line-height: 1.22; text-wrap: balance; }
+        .markdown-body h1 { font-size: 1.52rem; margin: 1.8rem 0 0.78rem; }
+        .markdown-body h2 { font-size: 1.23rem; margin: 1.55rem 0 0.68rem; padding-top: 0.1rem; }
+        .markdown-body h2::before { content: ''; display: inline-block; width: 0.55rem; height: 0.55rem; margin-right: 0.52rem; border-radius: 2px; background: linear-gradient(135deg, var(--dai-accent), var(--dai-accent-2)); vertical-align: 0.06rem; }
         .markdown-body h3 { font-size: 1.08rem; margin: 1.25rem 0 0.55rem; color: #eef2f7; }
         .markdown-body h4 { font-size: 0.96rem; margin: 1rem 0 0.45rem; color: #cbd5e1; }
         .markdown-body a { color: #7dd3fc; text-decoration: none; border-bottom: 1px solid rgba(125,211,252,0.28); transition: border-color 0.2s, color 0.2s; }
@@ -82,28 +97,54 @@
         .markdown-body ul li::marker { color: #f59e0b; }
         .markdown-body ol li::marker { color: #38bdf8; font-weight: 700; }
         .markdown-body hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.6rem 0; }
-        .markdown-body blockquote { margin: 1.1rem 0; padding: 0.8rem 1rem; border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.08); color: #e5e7eb; border-radius: 0 8px 8px 0; }
-        .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; margin: 1.15rem 0 1.35rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(255,255,255,0.025); }
-        .markdown-body table { width: 100%; min-width: max-content; border-collapse: separate; border-spacing: 0; }
-        .markdown-body th, .markdown-body td { padding: 0.72rem 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.09); text-align: left; vertical-align: top; }
+        .markdown-body blockquote { margin: 1.1rem 0; padding: 0.85rem 1rem; border-left: 3px solid var(--dai-accent-2); background: rgba(245,158,11,0.08); color: #e5e7eb; border-radius: 0 8px 8px 0; }
+        .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; margin: 1.15rem 0 1.35rem; border: 1px solid var(--dai-border); border-radius: 8px; background: rgba(255,255,255,0.025); position: relative; }
+        .table-tools { position: sticky; left: 0; top: 0; z-index: 3; display: flex; justify-content: flex-end; padding: 0.45rem 0.5rem 0; pointer-events: none; }
+        .table-tools .code-action { pointer-events: auto; background: rgba(15,15,15,0.82); }
+        .markdown-body table { width: 100%; min-width: max-content; border-collapse: separate; border-spacing: 0; font-size: 0.91rem; }
+        .markdown-body th, .markdown-body td { padding: 0.68rem 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.09); text-align: left; vertical-align: top; }
         .markdown-body td { color: #d1d5db; }
         .markdown-body th { color: #f8fafc; background: rgba(255,255,255,0.055); font-weight: 700; position: sticky; top: 0; z-index: 1; }
+        .markdown-body td[data-numeric="true"], .markdown-body th[data-numeric="true"] { text-align: right; font-variant-numeric: tabular-nums; }
+        .markdown-body tbody tr:hover td { background: rgba(255,255,255,0.025); }
         .markdown-body tr:last-child td { border-bottom: none; }
-        .markdown-body .math-block { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; margin: 1rem 0 1.25rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); }
+        .markdown-body .math-block { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; margin: 1rem 0 1.25rem; padding: 0.72rem 0.85rem; border-radius: 8px; background: rgba(56,189,248,0.045); border: 1px solid rgba(56,189,248,0.14); }
         .markdown-body .math-block .katex-display { margin: 0; min-width: max-content; }
         .markdown-body .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 0.45rem 0; }
         .markdown-body :not(pre) > code { font-family: 'JetBrains Mono', monospace; background: rgba(125,211,252,0.08); color: #bae6fd; padding: 0.16em 0.38em; border-radius: 4px; font-size: 0.86em; border: 1px solid rgba(125,211,252,0.14); }
         .markdown-body pre { margin: 0; padding: 0; background: transparent; border-radius: 0; border: 0; overflow: visible; }
         .markdown-body pre code { background: #0b0b0b; padding: 1rem; color: inherit; display: block; width: max-content; min-width: 100%; overflow: visible; border: none; }
-        .code-box { position: relative; max-width: 100%; max-height: 620px; margin: 1.25rem 0; background: #0b0b0b; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; overflow: auto; }
-        .code-head { position: sticky; top: 0; left: 0; z-index: 4; display: flex; justify-content: space-between; align-items: center; width: 100%; min-width: 100%; background: linear-gradient(to bottom, rgba(18,18,18,0.98) 0%, rgba(18,18,18,0.92) 68%, rgba(18,18,18,0)); padding: 0.55rem 0.75rem 0.9rem 1rem; font-size: 0.72rem; color: #a1a1aa; font-family: 'Inter', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; backdrop-filter: blur(10px); }
+        .code-box { position: relative; max-width: 100%; max-height: 640px; margin: 1.25rem 0; background: #0b0b0b; border: 1px solid var(--dai-border); border-radius: 8px; overflow: hidden; }
+        .code-head { position: sticky; top: 0; left: 0; z-index: 4; display: flex; justify-content: space-between; align-items: center; width: 100%; min-width: 100%; background: linear-gradient(to bottom, rgba(18,18,18,0.98) 0%, rgba(18,18,18,0.94) 100%); padding: 0.55rem 0.65rem 0.55rem 0.9rem; font-size: 0.72rem; color: #a1a1aa; font-family: 'Inter', sans-serif; font-weight: 740; text-transform: uppercase; letter-spacing: 0.04em; backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); }
         .code-actions { display: inline-flex; align-items: center; gap: 0.35rem; }
         .code-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; color: #9ca3af; border: 1px solid transparent; transition: color 0.2s, border-color 0.2s, background 0.2s; }
         .code-action:hover { color: #f8fafc; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); }
         .code-box.collapsed { max-height: 290px; }
         .code-box.collapsed .code-body { max-height: 220px; overflow: hidden; position: relative; }
         .code-box.collapsed .code-body::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: linear-gradient(to bottom, transparent, #0d0d0d); pointer-events: none; }
-        .code-body { padding: 0; }
+        .code-body { padding: 0; overflow: auto; }
+        .code-box.code-wrap pre code { width: auto; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .code-preview-panel { border-top: 1px solid rgba(255,255,255,0.1); background: #0f0f0f; padding: 0.75rem; }
+        .sandbox-frame { width: 100%; min-height: 280px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: white; }
+        .dai-widget { margin: 1.2rem 0 1.35rem; border: 1px solid var(--dai-border); border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)); overflow: hidden; }
+        .dai-widget-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.72rem 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--dai-text); font-weight: 720; font-size: 0.82rem; }
+        .dai-widget-kicker { color: var(--dai-accent); font-size: 0.68rem; font-weight: 760; text-transform: uppercase; letter-spacing: 0.08em; }
+        .dai-widget-body { padding: 0.9rem; }
+        .dai-widget-note { color: var(--dai-muted); font-size: 0.84rem; line-height: 1.55; }
+        .dai-chart-shell { position: relative; width: 100%; min-height: 320px; }
+        .dai-chart-shell canvas { width: 100% !important; height: 320px !important; }
+        .dai-sandbox-title { color: var(--dai-muted); font-size: 0.78rem; margin-bottom: 0.65rem; }
+        .pythagoras-grid { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 1rem; align-items: center; }
+        .pythagoras-viz { width: 100%; min-height: 230px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; background: rgba(0,0,0,0.22); }
+        .pythagoras-controls { display: flex; flex-direction: column; gap: 0.85rem; }
+        .dai-range-row { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) 3.5rem; gap: 0.55rem; align-items: center; color: var(--dai-muted); font-size: 0.82rem; }
+        .dai-range-row input { accent-color: var(--dai-accent); width: 100%; }
+        .pythagoras-result { border: 1px solid rgba(56,189,248,0.16); border-radius: 8px; padding: 0.75rem; background: rgba(56,189,248,0.06); font-variant-numeric: tabular-nums; }
+        .pythagoras-result strong { display: block; color: var(--dai-text); font-size: 1.35rem; line-height: 1.1; }
+        @media (max-width: 720px) {
+            .pythagoras-grid { grid-template-columns: 1fr; }
+            .dai-widget-body { padding: 0.75rem; }
+        }
 
         .attachment-card { display: inline-flex; align-items: center; gap: 0.75rem; max-width: 100%; min-height: 72px; padding: 0.55rem 0.7rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: rgba(255,255,255,0.04); }
         .attachment-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.12); background: #080808; flex: 0 0 auto; }
@@ -328,6 +369,8 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
     <script type="module">
         import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -355,6 +398,52 @@
 
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+        const stableId = (prefix, value) => `${prefix}-${Math.abs(hashCode(String(value || prefix))).toString(36)}`;
+        window.daiWidgetPayloads = new Map();
+
+        const buildSandboxSrcdoc = ({ html = '', css = '', js = '', title = 'Preview' }) => {
+            const safeHtml = String(html || '').slice(0, 18000);
+            const safeCss = String(css || '').slice(0, 10000);
+            const safeJs = String(js || '').slice(0, 10000);
+            return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src data:; form-action 'none'; base-uri 'none';">
+<title>${String(title || 'Preview').replace(/[<>&"]/g, '')}</title>
+<style>
+html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111827}
+body{padding:18px;box-sizing:border-box}
+*{box-sizing:border-box}
+${safeCss}
+</style>
+</head>
+<body>
+${safeHtml}
+<script>
+try {
+${safeJs}
+} catch (error) {
+  document.body.insertAdjacentHTML('beforeend', '<pre style="margin-top:16px;padding:12px;border-radius:8px;background:#fee2e2;color:#991b1b;white-space:pre-wrap;font:12px ui-monospace,monospace;"></pre>');
+  document.body.lastElementChild.textContent = error && error.message ? error.message : String(error);
+}
+<\/script>
+</body>
+</html>`;
+        };
+
+        const createSandboxFrame = (payload) => {
+            const iframe = document.createElement('iframe');
+            iframe.className = 'sandbox-frame';
+            iframe.setAttribute('sandbox', 'allow-scripts');
+            iframe.setAttribute('loading', 'lazy');
+            iframe.setAttribute('referrerpolicy', 'no-referrer');
+            iframe.title = payload.title || 'Dai preview';
+            iframe.style.minHeight = `${Math.min(Math.max(Number(payload.height) || 300, 180), 720)}px`;
+            iframe.srcdoc = buildSandboxSrcdoc(payload);
+            return iframe;
+        };
 
         window.copyCodeBlock = (btn) => {
             const box = btn.closest('.code-box');
@@ -368,6 +457,64 @@
             const icon = btn.querySelector('i');
             if (icon) icon.className = box?.classList.contains('collapsed') ? 'fa-solid fa-up-right-and-down-left-from-center' : 'fa-solid fa-down-left-and-up-right-to-center';
         };
+
+        window.toggleCodeWrap = (btn) => {
+            const box = btn.closest('.code-box');
+            box?.classList.toggle('code-wrap');
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = box?.classList.contains('code-wrap') ? 'fa-solid fa-align-left' : 'fa-solid fa-arrow-right-arrow-left';
+        };
+
+        window.toggleCodePreview = (btn) => {
+            const box = btn.closest('.code-box');
+            if (!box) return;
+            const existing = box.querySelector('.code-preview-panel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+            const code = box.querySelector('code')?.innerText || '';
+            const panel = document.createElement('div');
+            panel.className = 'code-preview-panel';
+            panel.appendChild(createSandboxFrame({ html: code, title: 'HTML preview', height: 340 }));
+            box.appendChild(panel);
+            box.classList.remove('collapsed');
+        };
+
+        const copyTable = (btn) => {
+            const table = btn.closest('.table-scroll')?.querySelector('table');
+            if (!table) return;
+            const text = [...table.querySelectorAll('tr')].map(row =>
+                [...row.children].map(cell => cell.innerText.trim()).join('\t')
+            ).join('\n');
+            navigator.clipboard.writeText(text);
+        };
+
+        document.addEventListener('click', (event) => {
+            const codeBtn = event.target.closest('[data-code-action]');
+            if (codeBtn) {
+                const action = codeBtn.getAttribute('data-code-action');
+                if (action === 'copy') window.copyCodeBlock(codeBtn);
+                if (action === 'toggle') window.toggleCodeBlock(codeBtn);
+                if (action === 'wrap') window.toggleCodeWrap(codeBtn);
+                if (action === 'preview') window.toggleCodePreview(codeBtn);
+                return;
+            }
+
+            const tableBtn = event.target.closest('[data-table-action="copy"]');
+            if (tableBtn) {
+                copyTable(tableBtn);
+                return;
+            }
+
+            const mediaBtn = event.target.closest('[data-dai-action]');
+            if (mediaBtn) {
+                const action = mediaBtn.getAttribute('data-dai-action');
+                if (action === 'download-image') window.dlImg(mediaBtn.id, mediaBtn.getAttribute('data-filename') || '');
+                if (action === 'download-video') window.dlVideo(mediaBtn.id, mediaBtn.getAttribute('data-filename') || '');
+                if (action === 'download-audio') window.dlAudio(mediaBtn.id, mediaBtn.getAttribute('data-filename') || '');
+            }
+        });
 
         // --- ERROR MESSAGES ---
         const busyReasons = [
@@ -1255,7 +1402,34 @@
         };
 
         document.addEventListener("DOMContentLoaded", () => {
-            const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs;
+            const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs && window.DOMPurify;
+            const normalizeMathDelimiters = (text) => String(text || '')
+                .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
+                .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$');
+
+            const sanitizeRenderedHtml = (html) => window.DOMPurify.sanitize(html, {
+                ADD_TAGS: ['svg', 'defs', 'filter', 'feGaussianBlur', 'rect'],
+                ADD_ATTR: [
+                    'target', 'rel', 'style', 'controls', 'loop', 'autoplay', 'muted', 'playsinline',
+                    'data-dai-media', 'data-dai-widget', 'data-widget-type', 'data-code-action',
+                    'data-table-action', 'data-dai-action', 'data-prompt', 'data-width', 'data-height',
+                    'data-seed', 'data-container-id', 'data-source', 'data-ratio', 'data-duration',
+                    'data-style', 'data-filename', 'pathLength', 'stroke-dasharray', 'stroke-dashoffset',
+                    'stroke-linecap', 'stroke-width', 'stroke-opacity', 'stdDeviation', 'result',
+                    'x', 'y', 'rx', 'fill', 'stroke', 'filter'
+                ],
+                FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
+                FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus']
+            });
+
+            const renderWidgetShell = (id, type, title) => `
+<div class="dai-widget" data-dai-widget="${escapeHtml(id)}" data-widget-type="${escapeHtml(type)}">
+    <div class="dai-widget-head">
+        <span>${escapeHtml(title || 'Interactive answer')}</span>
+        <span class="dai-widget-kicker">${escapeHtml(type)}</span>
+    </div>
+    <div class="dai-widget-body"><div class="dai-widget-note">Preparing interactive view...</div></div>
+</div>`;
             
             let md = null;
             const getMd = () => {
@@ -1273,14 +1447,38 @@
                     }
                 };
                 md.renderer.rules.fence=(t,i)=>{
-                    const lang=(t[i].info||'text').split(' ')[0] || 'text';
-                    return `<div class="code-box collapsed"><div class="code-head"><span>${md.utils.escapeHtml(lang)}</span><span class="code-actions"><button class="code-action" title="Toggle detail" onclick="window.toggleCodeBlock(this)"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button><button class="code-action" title="Copy code" onclick="window.copyCodeBlock(this)"><i class="fa-regular fa-copy"></i></button></span></div><div class="code-body"><pre><code class="hljs language-${md.utils.escapeHtml(lang)}">${md.utils.escapeHtml(t[i].content)}</code></pre></div></div>`;
+                    const info = (t[i].info || 'text').trim();
+                    const parts = info.split(/\s+/).filter(Boolean);
+                    const lang = (parts[0] || 'text').toLowerCase();
+                    const raw = t[i].content || '';
+
+                    if (lang === 'dai-ui') {
+                        const type = (parts[1] || 'demo').toLowerCase();
+                        let title = type === 'chart' ? 'Live chart' : type === 'pythagoras' ? 'Interactive theorem' : 'Interactive demo';
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && parsed.title) title = parsed.title;
+                        } catch (e) {}
+                        const widgetId = stableId('dai-ui', `${i}:${type}:${raw}`);
+                        window.daiWidgetPayloads.set(widgetId, { type, raw });
+                        return renderWidgetShell(widgetId, type, title);
+                    }
+
+                    const displayLang = lang || 'text';
+                    const escapedLang = md.utils.escapeHtml(displayLang);
+                    const highlighted = displayLang && window.hljs.getLanguage(displayLang)
+                        ? window.hljs.highlight(raw, { language: displayLang }).value
+                        : md.utils.escapeHtml(raw);
+                    const previewButton = ['html', 'htm'].includes(displayLang)
+                        ? '<button class="code-action" title="Preview HTML" data-code-action="preview"><i class="fa-regular fa-window-maximize"></i></button>'
+                        : '';
+                    return `<div class="code-box collapsed" data-code-lang="${escapedLang}"><div class="code-head"><span>${escapedLang}</span><span class="code-actions">${previewButton}<button class="code-action" title="Wrap lines" data-code-action="wrap"><i class="fa-solid fa-arrow-right-arrow-left"></i></button><button class="code-action" title="Toggle detail" data-code-action="toggle"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button><button class="code-action" title="Copy code" data-code-action="copy"><i class="fa-regular fa-copy"></i></button></span></div><div class="code-body"><pre><code class="hljs language-${escapedLang}">${highlighted}</code></pre></div></div>`;
                 };
                 return md;
             };
 
             const Putter = {
-                generate: (input) => {
+                generate: (input, key = '') => {
                     console.log('[Putter.generate] Input:', input);
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
@@ -1295,8 +1493,7 @@
 
                     const seed = Math.abs(hashCode(prompt)) % 10000;
 
-                    // Generate Unique DOM IDs to prevent animation collisions on same-prompt
-                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+                    const uniqueSuffix = key || stableId('img', input);
                     const btnId = `dl-${uniqueSuffix}`;
                     const containerId = `cnt-${uniqueSuffix}`;
 
@@ -1305,18 +1502,20 @@
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
                     const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
+                    const safeAspectRatio = escapeHtml(aspectRatio);
+                    const safeDuration = escapeHtml(duration);
 
                     // New Fluid Animation Structure inside container
                     return `
-<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}">
+<div id="${containerId}" class="dai-img-container" style="aspect-ratio:${w}/${h}" data-dai-media="image" data-prompt="${safePrompt}" data-width="${w}" data-height="${h}" data-seed="${seed}" data-container-id="${containerId}" data-source="${safeSource}">
     <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">Generating...</div>
-    <img src="${placeholder}" onload="window.fetchServerImage(this, '${safePrompt}', ${w}, ${h}, ${seed}, '${containerId}', '${safeSource}')" class="dai-img" alt="Generated Image">
-    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download High-Res" onclick="window.dlImg('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+    <img src="${placeholder}" class="dai-img" alt="Generated Image">
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download High-Res" data-dai-action="download-image" data-filename="${safeFilename}"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
                 },
-                generateVideo: (input) => {
+                generateVideo: (input, key = '') => {
                     console.log('[Putter.generateVideo] Input:', input);
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
@@ -1330,8 +1529,7 @@
                     const dims = { "1:1":{w:1024,h:1024}, "16:9":{w:1280,h:720}, "9:16":{w:720,h:1280}, "4:3":{w:1024,h:768}, "3:4":{w:768,h:1024}, "landscape":{w:1280,h:720}, "portrait":{w:720,h:1280} };
                     const {w,h} = dims[aspectRatio.toLowerCase()] || dims["16:9"];
 
-                    // Generate Unique DOM IDs to prevent animation collisions
-                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+                    const uniqueSuffix = key || stableId('video', input);
                     const btnId = `dl-${uniqueSuffix}`;
                     const containerId = `cnt-${uniqueSuffix}`;
 
@@ -1341,29 +1539,17 @@
 
                     // New Fluid Animation Structure inside container
                     const html = `
-<div id="${containerId}" class="dai-video-container" style="aspect-ratio:${w}/${h}">
+<div id="${containerId}" class="dai-video-container" style="aspect-ratio:${w}/${h}" data-dai-media="video" data-prompt="${safePrompt}" data-width="${w}" data-height="${h}" data-duration="${safeDuration}" data-ratio="${safeAspectRatio}" data-container-id="${containerId}" data-source="${safeSource}">
     <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">Generating Video...</div>
     <video class="dai-video" controls loop autoplay muted>Your browser does not support the video tag.</video>
     <div class="dai-watermark">D'Ai</div>
-    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Video" onclick="window.dlVideo('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Video" data-dai-action="download-video" data-filename="${safeFilename}"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
-
-                    // Trigger video fetch after DOM insertion
-                    setTimeout(() => {
-                        const container = document.getElementById(containerId);
-                        if (container) {
-                            const videoEl = container.querySelector('video');
-                            if (videoEl) {
-                                window.fetchServerVideo(videoEl, safePrompt, w, h, duration, containerId, aspectRatio, safeSource);
-                            }
-                        }
-                    }, 0);
-
                     return html;
                 },
-                generateMusic: (input) => {
+                generateMusic: (input, key = '') => {
                     console.log('[Putter.generateMusic] Input:', input);
                     const parts = input.split('|').map(s=>s.trim());
                     const prompt = parts[0];
@@ -1373,16 +1559,17 @@
 
                     console.log('[Putter.generateMusic] Parsed:', { prompt, duration, filename, style });
 
-                    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+                    const uniqueSuffix = key || stableId('music', input);
                     const btnId = `dl-${uniqueSuffix}`;
                     const containerId = `cnt-${uniqueSuffix}`;
 
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
                     const safeStyle = style ? encodeURIComponent(style).replace(/'/g, "%27") : "";
+                    const safeDuration = escapeHtml(duration);
 
                     const html = `
-<div id="${containerId}" class="dai-audio-container">
+<div id="${containerId}" class="dai-audio-container" data-dai-media="audio" data-prompt="${safePrompt}" data-duration="${safeDuration}" data-style="${safeStyle}" data-container-id="${containerId}">
     <svg class="progress-svg"><defs><filter id="glow-${uniqueSuffix}"><feGaussianBlur stdDeviation="6" result="coloredBlur"/></filter></defs><rect class="progress-rect" x="0" y="0" width="100%" height="100%" rx="20" fill="none" stroke="#3b82f6" stroke-width="20" pathLength="100" stroke-dasharray="100 200" stroke-dashoffset="100" stroke-linecap="round" filter="url(#glow-${uniqueSuffix})" style="stroke-opacity:0;"></rect></svg>
     <div class="fluid-container"><div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div><div class="blobs-wrapper absolute inset-0 overflow-hidden"></div></div>
     <div class="gen-status">Generating Music...</div>
@@ -1390,21 +1577,266 @@
         <div class="text-[11px] opacity-70 uppercase tracking-[0.2em] flex items-center gap-2"><i class="fa-solid fa-music"></i> AI Music</div>
         <audio class="dai-audio" controls preload="none">Your browser does not support the audio tag.</audio>
     </div>
-    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Music" onclick="window.dlAudio('${btnId}', '${safeFilename}')"><i class="fa-solid fa-download"></i></button></div>
+    <div class="dai-overlay"><button id="${btnId}" class="dai-btn" title="Download Music" data-dai-action="download-audio" data-filename="${safeFilename}"><i class="fa-solid fa-download"></i></button></div>
 </div>`;
-
-                    setTimeout(() => {
-                        const container = document.getElementById(containerId);
-                        if (container) {
-                            const audioEl = container.querySelector('audio');
-                            if (audioEl) {
-                                window.fetchServerMusic(audioEl, safePrompt, duration, containerId, safeStyle);
-                            }
-                        }
-                    }, 0);
 
                     return html;
                 }
+            };
+
+            window.daiMediaStarted = window.daiMediaStarted || new Set();
+            window.daiCharts = window.daiCharts || new Map();
+
+            const processMediaDirectives = (text) => String(text || '')
+                .replace(/<<GENERATE_IMAGE:([^>]+)>>/g, (match, input, offset) => Putter.generate(input, stableId('img', `${offset}:${input}`)))
+                .replace(/<<GENERATE_VIDEO:([^>]+)>>/g, (match, input, offset) => Putter.generateVideo(input, stableId('video', `${offset}:${input}`)))
+                .replace(/<<GENERATE_MUSIC:([^>]+)>>/g, (match, input, offset) => Putter.generateMusic(input, stableId('music', `${offset}:${input}`)));
+
+            const enhanceTables = (root) => {
+                root.querySelectorAll('.table-scroll').forEach((wrap) => {
+                    if (!wrap.querySelector('.table-tools')) {
+                        const tools = document.createElement('div');
+                        tools.className = 'table-tools';
+                        tools.innerHTML = '<button class="code-action" title="Copy table" data-table-action="copy"><i class="fa-regular fa-copy"></i></button>';
+                        wrap.prepend(tools);
+                    }
+                    wrap.querySelectorAll('tbody tr').forEach((row) => {
+                        [...row.children].forEach((cell, index) => {
+                            const text = cell.innerText.trim().replace(/[$,%\s]/g, '');
+                            const numeric = text !== '' && Number.isFinite(Number(text));
+                            if (numeric) {
+                                cell.setAttribute('data-numeric', 'true');
+                                const head = wrap.querySelector(`thead th:nth-child(${index + 1})`);
+                                if (head) head.setAttribute('data-numeric', 'true');
+                            }
+                        });
+                    });
+                });
+            };
+
+            const hydrateGeneratedMedia = (root) => {
+                root.querySelectorAll('[data-dai-media]').forEach((container) => {
+                    const id = container.id || container.getAttribute('data-container-id');
+                    if (!id || window.daiMediaStarted.has(id)) return;
+                    window.daiMediaStarted.add(id);
+
+                    const type = container.getAttribute('data-dai-media');
+                    if (type === 'image') {
+                        const img = container.querySelector('img');
+                        if (img) {
+                            window.fetchServerImage(
+                                img,
+                                container.getAttribute('data-prompt') || '',
+                                Number(container.getAttribute('data-width')) || 1024,
+                                Number(container.getAttribute('data-height')) || 1024,
+                                Number(container.getAttribute('data-seed')) || 0,
+                                id,
+                                container.getAttribute('data-source') || ''
+                            );
+                        }
+                    }
+                    if (type === 'video') {
+                        const video = container.querySelector('video');
+                        if (video) {
+                            window.fetchServerVideo(
+                                video,
+                                container.getAttribute('data-prompt') || '',
+                                Number(container.getAttribute('data-width')) || 1280,
+                                Number(container.getAttribute('data-height')) || 720,
+                                container.getAttribute('data-duration') || '4',
+                                id,
+                                container.getAttribute('data-ratio') || '16:9',
+                                container.getAttribute('data-source') || ''
+                            );
+                        }
+                    }
+                    if (type === 'audio') {
+                        const audio = container.querySelector('audio');
+                        if (audio) {
+                            window.fetchServerMusic(
+                                audio,
+                                container.getAttribute('data-prompt') || '',
+                                container.getAttribute('data-duration') || '15',
+                                id,
+                                container.getAttribute('data-style') || ''
+                            );
+                        }
+                    }
+                });
+            };
+
+            const parseWidgetPayload = (widget) => {
+                const id = widget.getAttribute('data-dai-widget');
+                const payload = window.daiWidgetPayloads.get(id);
+                if (!payload) throw new Error('Missing widget payload.');
+                return { ...payload, json: JSON.parse(payload.raw || '{}') };
+            };
+
+            const widgetError = (widget, message) => {
+                const body = widget.querySelector('.dai-widget-body');
+                if (body) body.innerHTML = `<div class="dai-widget-note">${escapeHtml(message)}</div>`;
+            };
+
+            const renderChartWidget = (widget, payload) => {
+                const body = widget.querySelector('.dai-widget-body');
+                if (!body || !window.Chart) return widgetError(widget, 'Chart renderer is still loading.');
+                const type = ['line', 'bar', 'pie', 'doughnut', 'scatter'].includes(payload.type) ? payload.type : 'line';
+                const labels = Array.isArray(payload.labels) ? payload.labels.slice(0, 80).map(String) : [];
+                const palette = ['#38bdf8', '#f59e0b', '#34d399', '#f43f5e', '#a78bfa', '#f472b6'];
+                const sourceSets = Array.isArray(payload.datasets) ? payload.datasets : [{ label: payload.label || payload.title || 'Value', data: payload.data || payload.values || [] }];
+                const datasets = sourceSets.slice(0, 6).map((set, index) => {
+                    const rawData = Array.isArray(set.data) ? set.data : [];
+                    const data = rawData.slice(0, 80).map((value) => type === 'scatter'
+                        ? { x: Number(value.x), y: Number(value.y) }
+                        : Number(value)
+                    ).filter((value) => type === 'scatter'
+                        ? Number.isFinite(value.x) && Number.isFinite(value.y)
+                        : Number.isFinite(value)
+                    );
+                    return {
+                        label: String(set.label || `Series ${index + 1}`),
+                        data,
+                        borderColor: palette[index % palette.length],
+                        backgroundColor: type === 'line' || type === 'scatter' ? `${palette[index % palette.length]}33` : palette.map(color => `${color}cc`),
+                        tension: 0.32,
+                        fill: type === 'line'
+                    };
+                }).filter(set => set.data.length);
+
+                if (!datasets.length) return widgetError(widget, 'Chart data was empty or invalid.');
+                const chartId = stableId('chart', JSON.stringify(payload));
+                body.innerHTML = `<div class="dai-chart-shell"><canvas id="${chartId}"></canvas></div>`;
+                const canvas = body.querySelector('canvas');
+                if (!canvas) return;
+                if (window.daiCharts.has(chartId)) window.daiCharts.get(chartId).destroy();
+                const hasScales = !['pie', 'doughnut'].includes(type);
+                window.daiCharts.set(chartId, new window.Chart(canvas, {
+                    type,
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#d7dce3', boxWidth: 12, boxHeight: 12 } },
+                            title: { display: !!payload.title, text: payload.title || '', color: '#f4f6f8', font: { size: 14, weight: '700' } }
+                        },
+                        scales: hasScales ? {
+                            x: { ticks: { color: '#a8b0bb' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                            y: { ticks: { color: '#a8b0bb' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                        } : {}
+                    }
+                }));
+            };
+
+            const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+            const updatePythagoras = (widget) => {
+                if (!widget) return;
+                const aInput = widget.querySelector('[data-pythagoras-input="a"]');
+                const bInput = widget.querySelector('[data-pythagoras-input="b"]');
+                const svg = widget.querySelector('.pythagoras-viz');
+                const result = widget.querySelector('.pythagoras-result');
+                if (!aInput || !bInput || !svg || !result) return;
+                const a = Number(aInput.value);
+                const b = Number(bInput.value);
+                const c = Math.sqrt(a * a + b * b);
+                const width = 360;
+                const height = 240;
+                const pad = 42;
+                const scale = Math.min((width - pad * 2) / Math.max(a, 1), (height - pad * 2) / Math.max(b, 1));
+                const x0 = pad;
+                const y0 = height - pad;
+                const x1 = x0 + a * scale;
+                const y1 = y0;
+                const x2 = x0;
+                const y2 = y0 - b * scale;
+                svg.innerHTML = `
+<svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" role="img" aria-label="Right triangle diagram">
+    <polygon points="${x0},${y0} ${x1},${y1} ${x2},${y2}" fill="rgba(56,189,248,0.14)" stroke="#38bdf8" stroke-width="3"></polygon>
+    <path d="M ${x0 + 16} ${y0} L ${x0 + 16} ${y0 - 16} L ${x0} ${y0 - 16}" fill="none" stroke="#f59e0b" stroke-width="2"></path>
+    <text x="${(x0 + x1) / 2}" y="${y0 + 24}" fill="#d7dce3" text-anchor="middle" font-size="13">a = ${a.toFixed(1)}</text>
+    <text x="${x0 - 16}" y="${(y0 + y2) / 2}" fill="#d7dce3" text-anchor="middle" font-size="13" transform="rotate(-90 ${x0 - 16} ${(y0 + y2) / 2})">b = ${b.toFixed(1)}</text>
+    <text x="${(x1 + x2) / 2 + 16}" y="${(y1 + y2) / 2 - 8}" fill="#f8fafc" text-anchor="middle" font-size="13">c = ${c.toFixed(2)}</text>
+</svg>`;
+                result.innerHTML = `<span class="dai-widget-note">Hypotenuse</span><strong>${c.toFixed(3)}</strong><span class="dai-widget-note">${a.toFixed(1)}^2 + ${b.toFixed(1)}^2 = ${c.toFixed(3)}^2</span>`;
+            };
+
+            const renderPythagorasWidget = (widget, payload) => {
+                const body = widget.querySelector('.dai-widget-body');
+                if (!body) return;
+                const min = Number.isFinite(Number(payload.min)) ? Number(payload.min) : 1;
+                const max = Number.isFinite(Number(payload.max)) ? Number(payload.max) : 12;
+                const step = Number.isFinite(Number(payload.step)) ? Number(payload.step) : 0.5;
+                const a = clamp(Number(payload.a) || 3, min, max);
+                const b = clamp(Number(payload.b) || 4, min, max);
+                body.innerHTML = `
+<div class="pythagoras-grid">
+    <div class="pythagoras-viz"></div>
+    <div class="pythagoras-controls">
+        <label class="dai-range-row"><span>a</span><input type="range" min="${min}" max="${max}" step="${step}" value="${a}" data-pythagoras-input="a"><span data-pythagoras-value="a">${a}</span></label>
+        <label class="dai-range-row"><span>b</span><input type="range" min="${min}" max="${max}" step="${step}" value="${b}" data-pythagoras-input="b"><span data-pythagoras-value="b">${b}</span></label>
+        <div class="pythagoras-result"></div>
+    </div>
+</div>`;
+                updatePythagoras(widget);
+            };
+
+            document.addEventListener('input', (event) => {
+                const input = event.target.closest('[data-pythagoras-input]');
+                if (!input) return;
+                const widget = input.closest('.dai-widget');
+                const valueEl = widget?.querySelector(`[data-pythagoras-value="${input.getAttribute('data-pythagoras-input')}"]`);
+                if (valueEl) valueEl.textContent = input.value;
+                updatePythagoras(widget);
+            });
+
+            const renderDemoWidget = (widget, payload) => {
+                const body = widget.querySelector('.dai-widget-body');
+                if (!body) return;
+                body.innerHTML = '';
+                if (payload.caption) {
+                    const caption = document.createElement('div');
+                    caption.className = 'dai-sandbox-title';
+                    caption.textContent = payload.caption;
+                    body.appendChild(caption);
+                }
+                body.appendChild(createSandboxFrame({
+                    html: payload.html || '',
+                    css: payload.css || '',
+                    js: payload.js || '',
+                    title: payload.title || 'Interactive demo',
+                    height: payload.height || 340
+                }));
+            };
+
+            const hydrateDaiWidgets = (root) => {
+                root.querySelectorAll('.dai-widget[data-dai-widget]').forEach((widget) => {
+                    if (widget.getAttribute('data-hydrated') === 'true') return;
+                    widget.setAttribute('data-hydrated', 'true');
+                    try {
+                        const { type, json } = parseWidgetPayload(widget);
+                        if (type === 'chart' || type === 'graph') renderChartWidget(widget, json);
+                        else if (type === 'pythagoras') renderPythagorasWidget(widget, json);
+                        else if (type === 'demo' || type === 'sandbox') renderDemoWidget(widget, json);
+                        else widgetError(widget, `Unsupported interactive block: ${type}`);
+                    } catch (error) {
+                        widgetError(widget, error?.message || 'Interactive block could not be rendered.');
+                    }
+                });
+            };
+
+            const hydrateAnswerSurface = (root) => {
+                hydrateGeneratedMedia(root);
+                hydrateDaiWidgets(root);
+            };
+
+            const renderAssistantContent = (rawText, target, options = {}) => {
+                const mdRenderer = getMd();
+                if (!mdRenderer || !target) return;
+                const processedContent = normalizeMathDelimiters(processMediaDirectives(rawText));
+                target.innerHTML = sanitizeRenderedHtml(mdRenderer.render(processedContent));
+                enhanceTables(target);
+                if (options.final) hydrateAnswerSurface(target);
             };
 
             // SEARCH TAVILY - NOW USES SERVER ROUTE
@@ -1510,12 +1942,28 @@
                                  "* **Uploaded Documents:** If the user provides document text, ground your answer in it. Cite the uploaded file name in plain language when relevant, but do not expose hidden tags.\n" +
                                  "* **Depth:** Use progressive disclosure: give the useful version first, then deeper technical details only when they clarify the answer or the user asks for them.\n" +
                                  "\n" +
-                                 "## 3. Math & Science Rules (LaTeX)\n" +
+                                 "## 3. Generative Interfaces\n" +
+                                 "* Use interactive `dai-ui` fences only when they materially improve understanding. Keep the surrounding prose concise and integrate the widget into the answer flow.\n" +
+                                 "* For charts, use this exact fenced format with valid JSON:\n" +
+                                 "```dai-ui chart\n" +
+                                 "{\"type\":\"line\",\"title\":\"Short title\",\"labels\":[\"A\",\"B\"],\"datasets\":[{\"label\":\"Series\",\"data\":[1,2]}]}\n" +
+                                 "```\n" +
+                                 "* For HTML/CSS/JS demos, use this exact fenced format. Keep code small and self-contained:\n" +
+                                 "```dai-ui demo\n" +
+                                 "{\"title\":\"Demo title\",\"html\":\"<button id=\\\"btn\\\">Click</button>\",\"css\":\"button{padding:8px}\",\"js\":\"document.getElementById('btn').onclick=()=>alert('Hi')\",\"height\":260}\n" +
+                                 "```\n" +
+                                 "* For the Pythagorean theorem, include the theorem explanation plus this widget:\n" +
+                                 "```dai-ui pythagoras\n" +
+                                 "{\"title\":\"Pythagorean theorem\",\"a\":3,\"b\":4,\"min\":1,\"max\":12,\"step\":0.5}\n" +
+                                 "```\n" +
+                                 "* Never expose implementation details, widget parsing, or internal tags unless the user asks how the interface works.\n" +
+                                 "\n" +
+                                 "## 4. Math & Science Rules (LaTeX)\n" +
                                  "* **Complex Math:** Use LaTeX *only* for formal, complex formulas or variables.\n" +
                                  "* **Delimiters:** Use `$inline$` for text integration and `$$display$$` on a new line for standalone equations. Never put LaTeX inside a code block.\n" +
                                  "* **Simple Math:** Do **not** use LaTeX for simple formatting, basic arithmetic, or numbers (e.g., write **180°C**, **10%**, or **2x + 5 = 11** in plain text).\n" +
                                  "\n" +
-                                 "## 4. Problem Solving\n" +
+                                 "## 5. Problem Solving\n" +
                                  "* **Be Specific:** Use concrete data and parameters instead of vague generalities.\n" +
                                  "* **Linear Steps:** Present multi-step setups, code, or math proofs chronologically.\n" +
                                  "* **User Priority:** The user's current inputs and explicit context always override any default assumptions.\n" +
@@ -1606,7 +2054,7 @@
                     const dec = new TextDecoder();
                     let fullText = "";
                     let buffer = "";
-                    const mdRenderer = getMd();
+                    getMd();
 
                     while (true) {
                         const {done, value} = await reader.read();
@@ -1627,28 +2075,14 @@
                                     if (delta) {
                                         if (shouldShowAnalysing) setAnalysing(el, false);
                                         fullText += delta;
-                                        let processedContent = fullText.replace(
-                                            /<<GENERATE_IMAGE:([^>]+)>>/g,
-                                            (match, input) => Putter.generate(input)
-                                        );
-                                        processedContent = processedContent.replace(
-                                            /<<GENERATE_VIDEO:([^>]+)>>/g,
-                                            (match, input) => Putter.generateVideo(input)
-                                        );
-                                        processedContent = processedContent.replace(
-                                            /<<GENERATE_MUSIC:([^>]+)>>/g,
-                                            (match, input) => Putter.generateMusic(input)
-                                        );
-                                        el.innerHTML = mdRenderer.render(processedContent
-                                            .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
-                                            .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
-                                        );
+                                        renderAssistantContent(fullText, el);
                                     }
                                 } catch (e) {}
                             }
                         }
                     }
 
+                    renderAssistantContent(fullText, el, { final: true });
                     S.msg.push({role:"assistant",content:fullText}); 
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen=false; 
@@ -1689,7 +2123,7 @@
                                 const dec = new TextDecoder();
                                 let fullText = "";
                                 let buffer = "";
-                                const mdRenderer = getMd();
+                                getMd();
 
                                 while (true) {
                                     const {done, value} = await reader.read();
@@ -1709,28 +2143,14 @@
 
                                                 if (delta) {
                                                     fullText += delta;
-                                                    let processedContent = fullText.replace(
-                                                        /<<GENERATE_IMAGE:([^>]+)>>/g,
-                                                        (match, input) => Putter.generate(input)
-                                                    );
-                                                    processedContent = processedContent.replace(
-                                                        /<<GENERATE_VIDEO:([^>]+)>>/g,
-                                                        (match, input) => Putter.generateVideo(input)
-                                                    );
-                                                    processedContent = processedContent.replace(
-                                                        /<<GENERATE_MUSIC:([^>]+)>>/g,
-                                                        (match, input) => Putter.generateMusic(input)
-                                                    );
-                                                    el.innerHTML = mdRenderer.render(processedContent
-                                                        .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
-                                                        .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$')
-                                                    );
+                                                    renderAssistantContent(fullText, el);
                                                 }
                                             } catch (e) {}
                                         }
                                     }
                                 }
 
+                                renderAssistantContent(fullText, el, { final: true });
                                 S.msg.push({role:"assistant",content:fullText});
 
                             } catch(retryError) {
