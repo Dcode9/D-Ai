@@ -1,0 +1,16 @@
+npm warn exec The following package was not found and will be installed: serve@14.2.6
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  5/30/2026 11:33:13 AM ::1 GET /
+ HTTP  5/30/2026 11:33:13 AM ::1 Returned 200 in 409 ms
+ HTTP  5/30/2026 11:33:14 AM ::1 GET /styles/tailwind.css
+ HTTP  5/30/2026 11:33:14 AM ::1 Returned 200 in 4 ms
+ HTTP  5/30/2026 11:33:15 AM ::1 GET /api/upload
+ HTTP  5/30/2026 11:33:15 AM ::1 Returned 404 in 3 ms
+ HTTP  5/30/2026 11:33:19 AM ::1 POST /api/chat
+ HTTP  5/30/2026 11:33:19 AM ::1 Returned 404 in 1 ms
+ HTTP  5/30/2026 3:38:37 PM ::1 GET /
+ HTTP  5/30/2026 3:38:37 PM ::1 Returned 200 in 187 ms
+ HTTP  5/30/2026 3:38:37 PM ::1 GET /styles/tailwind.css
+ HTTP  5/30/2026 3:38:37 PM ::1 Returned 200 in 8 ms
+ HTTP  5/30/2026 3:38:37 PM ::1 GET /api/upload
+ HTTP  5/30/2026 3:38:37 PM ::1 Returned 404 in 6 ms
