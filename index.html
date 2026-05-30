@@ -61,6 +61,15 @@
     
     <style>
         :root {
+        --dai-brand: #b79a8c;
+        --dai-brand-dim: rgba(183, 154, 140, 0.2);
+        --dai-bg: #fbfaf8;
+        --dai-surface: #f5f4f0;
+        --dai-border: rgba(127, 107, 98, 0.2);
+        --dai-text: #7f6b62;
+        --dai-muted: rgba(127, 107, 98, 0.6);
+        --dai-soft: #a18a7f;
+        --dai-accent: #b48c51;
             --dai-bg: #1a181e;
             --dai-surface: #242129;
             --dai-surface-2: #2b2831;
@@ -624,8 +633,8 @@ ${safeJs}
                 <div class="error-loader-container">
                     ${window.statusFlow ? window.statusFlow("D'Ai is busy", randomReason) : ''}
                     <div class="text-center mt-4">
-                        <div class="text-gray-500 text-xs font-mono">
-                            Retrying in <span class="error-countdown" id="error-countdown">10</span> seconds...
+                        <div class="text-dai-muted text-xs font-serif" style="margin-top: 10px;">
+                            The connection wavers. Re-establishing the arcane link in <span class="error-countdown" id="error-countdown" style="font-weight:bold; color:var(--dai-text);">10</span> seconds...
                         </div>
                     </div>
                 </div>
@@ -1129,15 +1138,25 @@ ${safeJs}
 
             } catch (e) {
                 console.error("Image Gen Failed:", e);
+                // Simple retry mechanism (up to 2 retries)
+                window.imgRetries = (window.imgRetries || 0);
+                if (window.imgRetries < 2 && !e.message.includes("unsafe")) {
+                     window.imgRetries++;
+                     console.log("Retrying image gen, attempt " + window.imgRetries);
+                     setTimeout(() => window.fetchServerImage(imgEl, encPrompt, width, height, seed, containerId, encSourceImage), 1500);
+                     return;
+                }
+                window.imgRetries = 0; // reset
+
                 // Stop animation visuals
                 fluidCont.classList.remove('active');
                 progSvg.classList.remove('active');
                 genStatus.classList.remove('active');
                 imgEl.classList.add('error');
 
-                // Show Error UI
-                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that image.";
-                window.imgError(imgEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+                // Show Error UI themed for parchment
+                const friendlyMsg = "The conjuring failed. The mystical forces are unstable. Please try again.";
+                window.imgError(imgEl, e.message.includes("High Traffic") ? "The aether is crowded (High Traffic). Wait a moment." : friendlyMsg);
             }
 
             function finishAnimation(finalUrl) {
@@ -2266,7 +2285,7 @@ ${safeJs}
 
                             } catch(retryError) {
                                 // If retry also fails, show a simpler error message
-                                el.innerHTML = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Connection Error:</strong> D'Ai is having trouble connecting. Please check your connection and try again.</div>`;
+                                el.innerHTML = `<div class="dai-widget"><div class="dai-widget-head" style="border-bottom-color: rgba(239, 68, 68, 0.4);"><span class="dai-widget-kicker" style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Link Severed</span></div><div class="dai-widget-body"><div class="dai-widget-note" style="color: #ef4444;">The mystical connection to the aether is severed. Please try again later.</div></div></div>`;
                             } finally {
                                 S.gen=false;
                                 setBgState('idle');
