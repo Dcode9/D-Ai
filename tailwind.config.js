@@ -5,16 +5,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: '#2563eb',
+        brand: '#b48c51', /* gold */
         dark: {
-          bg: '#050505',
-          surface: '#0F0F0F',
-          border: '#1F1F1F'
+          bg: '#1a181e',
+          surface: '#242129',
+          border: '#3b3345'
         }
       },
       fontFamily: {
-        sans: ['Inter'],
-        mono: ['JetBrains Mono']
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Playfair Display', 'serif'],
+        mono: ['JetBrains Mono', 'monospace']
       }
     }
   },
