@@ -361,6 +361,14 @@
                 
                 <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors"><i class="fa-solid fa-paper-plane text-lg"></i></button>
             </div>
+
+            <div class="w-full flex items-center justify-between px-3 pb-2 pt-1 border-t border-dark-border mt-2">
+                <div class="flex items-center gap-2">
+                    <button id="model-flash" onclick="window.selectModel('flash')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-brand text-white transition-all">Flash</button>
+                    <button id="model-thinking" onclick="window.selectModel('thinking')" class="px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white transition-all">Thinking</button>
+                </div>
+                <div id="model-indicator" class="text-[10px] text-gray-500 uppercase tracking-wider font-mono">gpt-oss-120b</div>
+            </div>
         </div>
     </div>
 
@@ -397,6 +405,25 @@
     </script>
 
     <script>
+
+        window.selectedModel = 'flash';
+        window.selectModel = (model) => {
+            window.selectedModel = model;
+            const flashBtn = document.getElementById('model-flash');
+            const thinkingBtn = document.getElementById('model-thinking');
+            const indicator = document.getElementById('model-indicator');
+
+            if (model === 'flash') {
+                flashBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium bg-brand text-white transition-all';
+                thinkingBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white transition-all';
+                indicator.textContent = 'gpt-oss-120b';
+            } else {
+                thinkingBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium bg-brand text-white transition-all';
+                flashBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white transition-all';
+                indicator.textContent = 'glm';
+            }
+        };
+
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
         const stableId = (prefix, value) => `${prefix}-${Math.abs(hashCode(String(value || prefix))).toString(36)}`;
         window.daiWidgetPayloads = new Map();
@@ -2045,7 +2072,7 @@ ${safeJs}
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:window.selectedModel === "thinking" ? "glm" : "gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -2114,7 +2141,7 @@ ${safeJs}
                                 const res = await fetch("/api/chat", {
                                     method:"POST",
                                     headers:{"Content-Type":"application/json"},
-                                    body:JSON.stringify({model:"llama3.1-8b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                                    body:JSON.stringify({model:window.selectedModel === "thinking" ? "glm" : "llama3.1-8b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                                 });
 
                                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
