@@ -163,21 +163,50 @@ export default async function handler(req, res) {
   // 4. Main Logic
   if (req.method === 'POST') {
     try {
-      if (!process.env.CEREBRAS_API_KEY) {
-        return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
+      const incomingBody = req.body || {};
+      const requestedModel = incomingBody.model || 'gpt-oss-120b';
+
+      let response;
+
+      if (requestedModel === 'glm') {
+        // Route to Pollinations API
+        // For pollinations text API, we send it to text.pollinations.ai/openai
+
+        const pollinationsKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+        if (!pollinationsKey) {
+          return res.status(500).json({ error: 'Missing POLLINATIONS_API env var' });
+        }
+
+        response = await fetch('https://text.pollinations.ai/openai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${pollinationsKey}`,
+          },
+          body: JSON.stringify({
+            model: 'glm',
+            messages: incomingBody.messages || [],
+            stream: incomingBody.stream,
+          }),
+        });
+
+      } else {
+        // Route to Cerebras API
+        if (!process.env.CEREBRAS_API_KEY) {
+          return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
+        }
+
+        const cerebrasBody = await prepareCerebrasBody(incomingBody);
+
+        response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+          },
+          body: JSON.stringify(cerebrasBody),
+        });
       }
-
-      const cerebrasBody = await prepareCerebrasBody(req.body || {});
-
-      // Call Cerebras
-      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
-        },
-        body: JSON.stringify(cerebrasBody),
-      });
 
       if (!response.ok) {
         const errorText = await response.text();
