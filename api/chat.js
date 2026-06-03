@@ -172,10 +172,16 @@ export default async function handler(req, res) {
         // Route to Pollinations API
         // For pollinations text API, we send it to text.pollinations.ai/openai
 
+        const pollinationsKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+        if (!pollinationsKey) {
+          return res.status(500).json({ error: 'Missing POLLINATIONS_API env var' });
+        }
+
         response = await fetch('https://text.pollinations.ai/openai', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${pollinationsKey}`,
           },
           body: JSON.stringify({
             model: 'glm',
