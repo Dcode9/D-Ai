@@ -516,25 +516,20 @@ ${safeJs}
             }
         });
 
-        // --- ERROR MESSAGES ---
-        const busyReasons = [
-            "The answer path is taking longer than usual.",
-            "The model queue is briefly backed up.",
-            "A retry is warming up in the background.",
-            "The response stream stalled for a moment.",
-            "The compute lane is temporarily busy.",
-            "The request is being re-routed cleanly."
-        ];
-
         // --- ERROR LOADER FUNCTION ---
-        window.showErrorLoader = (container, retryCallback) => {
-            const randomReason = busyReasons[Math.floor(Math.random() * busyReasons.length)];
+        window.showErrorLoader = (container, retryCallback, error) => {
+            const exactCause = error?.message || String(error || 'The request failed before the server returned a detailed message.');
+            const safeCause = escapeHtml(exactCause);
             let countdown = 10;
             let intervalId;
 
             const html = `
                 <div class="error-loader-container">
-                    ${window.statusFlow ? window.statusFlow("D'Ai is busy", randomReason) : ''}
+                    ${window.statusFlow ? window.statusFlow("Request failed", "Exact cause shown below") : ''}
+                    <div class="mt-4 p-3 rounded-xl border border-red-500/20 bg-red-500/10 text-left">
+                        <div class="text-red-300 text-[11px] font-bold uppercase tracking-[0.16em] mb-2">Exact cause</div>
+                        <div class="text-red-100 text-xs leading-relaxed font-mono whitespace-pre-wrap break-words">${safeCause}</div>
+                    </div>
                     <div class="text-center mt-4">
                         <div class="text-gray-500 text-xs font-mono">
                             Retrying in <span class="error-countdown" id="error-countdown">10</span> seconds...
@@ -628,6 +623,27 @@ ${safeJs}
             '"': '&quot;',
             "'": '&#39;'
         }[ch]));
+
+
+        const readResponseError = async (res, fallbackLabel = 'Request') => {
+            let detail = res.statusText || 'Unknown error';
+            try {
+                const text = await res.text();
+                if (text) {
+                    try {
+                        const json = JSON.parse(text);
+                        const rawError = json?.error || json?.message || json?.detail || json;
+                        detail = typeof rawError === 'string' ? rawError : JSON.stringify(rawError);
+                    } catch (e) {
+                        detail = text;
+                    }
+                }
+            } catch (e) {}
+
+            return `${fallbackLabel} failed (${res.status}${res.statusText ? ` ${res.statusText}` : ''}): ${detail}`;
+        };
+
+        const exactErrorMessage = (error, fallback) => error?.message || String(error || fallback);
 
         window.statusFlow = (label, detail = '') => `
             <div class="status-flow" aria-label="${escapeHtml(label)}">
@@ -1016,16 +1032,9 @@ ${safeJs}
                 console.log('[fetchServerImage] Response headers:', Object.fromEntries(res.headers.entries()));
 
                 if (!res.ok) {
-                    let detail = res.statusText;
-                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    const detail = await readResponseError(res, 'Image generation');
                     console.error('[fetchServerImage] API Error:', { status: res.status, detail });
-                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Image API is overloaded. Please wait a moment.");
-                    }
-                    if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
-                        throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
-                    }
-                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                    throw new Error(detail);
                 }
 
                 const rawBlob = await res.blob();
@@ -1047,9 +1056,8 @@ ${safeJs}
                 genStatus.classList.remove('active');
                 imgEl.classList.add('error');
 
-                // Show Error UI
-                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that image.";
-                window.imgError(imgEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+                // Show Error UI with the exact failure cause.
+                window.imgError(imgEl, exactErrorMessage(e, 'Image generation failed.'));
             }
 
             function finishAnimation(finalUrl) {
@@ -1140,15 +1148,7 @@ ${safeJs}
                 });
 
                 if (!res.ok) {
-                    let detail = res.statusText;
-                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
-                    if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Video API is overloaded. Please wait a moment.");
-                    }
-                    if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
-                        throw new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
-                    }
-                    throw new Error(`Server Error (${res.status}): ${detail}`);
+                    throw new Error(await readResponseError(res, 'Video generation'));
                 }
 
                 const videoBlob = await res.blob();
@@ -1167,9 +1167,8 @@ ${safeJs}
                 genStatus.classList.remove('active');
                 videoEl.classList.add('error');
 
-                // Show Error UI
-                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that video.";
-                window.videoError(videoEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+                // Show Error UI with the exact failure cause.
+                window.videoError(videoEl, exactErrorMessage(e, 'Video generation failed.'));
             }
 
             function finishAnimation(finalUrl) {
@@ -1242,12 +1241,7 @@ ${safeJs}
                 });
 
                     if (!res.ok) {
-                        let detail = res.statusText;
-                        try { const j = await res.json(); if (j.error) detail = j.error; } catch (e) {}
-                        if (detail.includes("429") || detail.includes("Resource exhausted")) {
-                        throw new Error("High Traffic: Music API is overloaded. Please try again in a few minutes.");
-                        }
-                        throw new Error(`Server Error (${res.status}): ${detail}`);
+                        throw new Error(await readResponseError(res, 'Music generation'));
                     }
 
                 const audioBlob = await res.blob();
@@ -1263,8 +1257,7 @@ ${safeJs}
                 progSvg.classList.remove('active');
                 genStatus.classList.remove('active');
                 audioEl.classList.add('error');
-                const friendlyMsg = "It's not you, it's me. I encountered a glitch generating that music. Please try again.";
-                window.audioError(audioEl, e.message.includes("High Traffic") ? e.message : friendlyMsg);
+                window.audioError(audioEl, exactErrorMessage(e, 'Music generation failed.'));
             }
 
             function finishAnimation(finalUrl) {
@@ -1300,7 +1293,7 @@ ${safeJs}
         };
 
         window.audioError = (el, msg) => {
-            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`;
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">Generation Failed</span><span class="opacity-80 text-[10px] max-w-[260px] leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg)}</span></div>`;
         };
 
         window.dlVideo = async (id, encFilename) => {
@@ -1324,7 +1317,7 @@ ${safeJs}
         };
 
         window.videoError = (el, msg) => {
-            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`;
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">Generation Failed</span><span class="opacity-80 text-[10px] max-w-[260px] leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg)}</span></div>`;
         };
 
         window.dlImg = async (id, encFilename) => {
@@ -1348,7 +1341,7 @@ ${safeJs}
         };
 
         window.imgError = (el, msg) => {
-            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">System Glitch</span><span class="opacity-70 text-[10px] max-w-[220px] leading-relaxed">${msg}</span></div>`;
+            el.parentElement.innerHTML = `<div class="text-red-500 p-6 text-xs flex flex-col items-center justify-center h-full border border-red-900/30 rounded-lg bg-red-900/10 font-mono text-center gap-3"><i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><span class="font-bold">Generation Failed</span><span class="opacity-80 text-[10px] max-w-[260px] leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg)}</span></div>`;
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -1999,7 +1992,7 @@ ${safeJs}
                         body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                     });
 
-                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                    if (!res.ok) throw new Error(await readResponseError(res, 'Chat response'));
 
                     const reader = res.body.getReader();
                     const dec = new TextDecoder();
@@ -2044,17 +2037,17 @@ ${safeJs}
                     console.error("Chat API Error:", e);
                     if (shouldShowAnalysing) setAnalysing(el, false);
 
-                    // Remove the last user message from history since the request failed
-                    S.msg.pop();
+                    // Remove the failed user message from history, but keep it for the retry.
+                    const failedUserMessage = S.msg.pop();
 
-                    // Show error loader with retry
+                    // Show error loader with retry and the exact root cause.
                     window.showErrorLoader(el, async () => {
                         // Retry logic: re-send the same message
                         el.innerHTML = activityLoader('Retrying', 'Reconnecting to the model');
 
                         setTimeout(async () => {
                             try {
-                                const messagesToSend = [...S.msg];
+                                const messagesToSend = failedUserMessage ? [...S.msg, failedUserMessage] : [...S.msg];
                                 if(searchContext) {
                                     messagesToSend[messagesToSend.length - 1] = {
                                         role: messagesToSend[messagesToSend.length - 1].role,
@@ -2068,7 +2061,7 @@ ${safeJs}
                                     body:JSON.stringify({model:"llama3.1-8b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
                                 });
 
-                                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                                if (!res.ok) throw new Error(await readResponseError(res, 'Retry chat response'));
 
                                 const reader = res.body.getReader();
                                 const dec = new TextDecoder();
@@ -2102,18 +2095,19 @@ ${safeJs}
                                 }
 
                                 renderAssistantContent(fullText, el, { final: true });
+                                if (failedUserMessage) S.msg.push(failedUserMessage);
                                 S.msg.push({role:"assistant",content:fullText});
 
                             } catch(retryError) {
-                                // If retry also fails, show a simpler error message
-                                el.innerHTML = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Connection Error:</strong> D'Ai is having trouble connecting. Please check your connection and try again.</div>`;
+                                // If retry also fails, show the exact retry error instead of a generic busy message.
+                                el.innerHTML = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Retry failed:</strong><div class="mt-2 font-mono whitespace-pre-wrap break-words">${escapeHtml(exactErrorMessage(retryError, 'Retry failed.'))}</div></div>`;
                             } finally {
                                 S.gen=false;
                                 document.getElementById('btn').disabled=false;
                                 document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
                             }
                         }, 500); // Small delay before retry
-                    });
+                    }, e);
 
                     // Keep button disabled during error/retry phase
                     // Will be re-enabled after retry completes
