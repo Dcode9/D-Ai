@@ -73,6 +73,7 @@
             --dai-accent-2: #f59e0b;
             --dai-good: #34d399;
             --dai-warn: #f43f5e;
+            --keyboard-inset: 0px;
         }
         body{background:var(--dai-bg);color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden}
         *::-webkit-scrollbar{width:7px;height:7px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:4px}*::-webkit-scrollbar-thumb:hover{background:#555}
@@ -234,10 +235,10 @@
         header.analysing-glow::before { opacity: 1; }
         header > * { position: relative; z-index: 1; }
 
-        .status-flow { position: relative; display: inline-flex; align-items: center; max-width: 100%; min-height: 58px; padding: 0.75rem 0.9rem; overflow: hidden; isolation: isolate; border-radius: 12px; }
-        .status-flow::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(125,211,252,0.05), rgba(245,158,11,0.12), rgba(125,211,252,0.05)); background-size: 220% 100%; animation: gradientSlide 2.8s ease-in-out infinite; z-index: -2; }
-        .status-flow::after { content: ''; position: absolute; top: 50%; left: -42px; width: 46px; height: 46px; border-radius: 999px; transform: translateY(-50%); background: rgba(255,255,255,0.2); filter: blur(10px); backdrop-filter: blur(8px); animation: hoverSpot 2.6s ease-in-out infinite; z-index: 2; pointer-events: none; }
-        .status-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.12rem; color: rgba(255,255,255,0.92); text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+        .status-flow { position: relative; display: inline-flex; align-items: center; max-width: 100%; min-height: 58px; padding: 0.75rem 0.9rem; overflow: visible; isolation: isolate; border-radius: 999px; background: transparent; }
+        .status-flow::before { content: ''; position: absolute; inset: -28px -36px; border-radius: 999px; background: radial-gradient(circle at 22% 45%, rgba(125,211,252,0.46), transparent 33%), radial-gradient(circle at 62% 38%, rgba(167,139,250,0.35), transparent 32%), radial-gradient(circle at 84% 65%, rgba(245,158,11,0.28), transparent 30%); filter: blur(24px); animation: loadingBlob 2.9s ease-in-out infinite; z-index: -1; pointer-events: none; }
+        .status-flow::after { content: ''; position: absolute; top: 50%; left: -42px; width: 46px; height: 46px; border-radius: 999px; transform: translateY(-50%); background: rgba(255,255,255,0.18); filter: blur(16px); animation: hoverSpot 2.6s ease-in-out infinite; z-index: 2; pointer-events: none; }
+        .status-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.12rem; color: rgba(255,255,255,0.94); text-shadow: 0 1px 18px rgba(125,211,252,0.24); }
         .status-label { font-size: 0.74rem; font-weight: 760; letter-spacing: 0.12em; text-transform: uppercase; }
         .status-detail { font-size: 0.78rem; color: rgba(209,213,219,0.78); letter-spacing: 0; }
         .thinking-fade { opacity: 0.34; filter: blur(0.4px); transition: opacity 0.3s ease, filter 0.3s ease; }
@@ -251,15 +252,17 @@
 
 
         /* Aura answer surfaces */
-        @keyframes auroraDrift { 0%, 100% { transform: translateX(-6%) rotate(0deg); opacity: 0.72; } 50% { transform: translateX(8%) rotate(1deg); opacity: 1; } }
-        @keyframes auraBloom { 0% { opacity: 0; transform: translateY(8px) scale(0.985); filter: blur(12px); } 45% { opacity: 1; filter: blur(2px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
-        @keyframes textUnveil { 0% { opacity: 0.22; filter: blur(7px); transform: translateY(3px); } 100% { opacity: 1; filter: blur(0); transform: translateY(0); } }
-        @keyframes auraFade { to { opacity: 0; transform: scale(1.02); } }
-        .assistant-shell { position: relative; width: 100%; min-width: 0; padding: clamp(1rem, 2.4vw, 1.35rem); border: 1px solid rgba(255,255,255,0.075); border-radius: 28px; background: linear-gradient(180deg, rgba(10,12,18,0.76), rgba(7,8,12,0.48)); box-shadow: 0 20px 60px rgba(0,0,0,0.24); overflow: hidden; isolation: isolate; animation: auraBloom 0.72s cubic-bezier(.2,.8,.2,1) both; }
-        .assistant-shell::before { content: ''; position: absolute; inset: -70px -90px auto -70px; height: 190px; background: radial-gradient(circle at 18% 55%, rgba(56,189,248,0.34), transparent 34%), radial-gradient(circle at 50% 30%, rgba(167,139,250,0.24), transparent 28%), radial-gradient(circle at 82% 60%, rgba(245,158,11,0.24), transparent 30%); filter: blur(18px); opacity: 0.82; transform-origin: 50% 50%; animation: auroraDrift 5.5s ease-in-out infinite; z-index: -2; }
-        .assistant-shell::after { content: ''; position: absolute; inset: 1px; border-radius: 27px; background: linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.01)); opacity: 0.86; pointer-events: none; z-index: -1; }
-        .assistant-shell.is-loading .markdown-body, .assistant-shell.is-streaming .markdown-body { animation: textUnveil 0.5s ease both; }
-        .assistant-shell.is-settled::before { animation: auraFade 1.2s ease forwards; }
+        @keyframes auroraDrift { 0%, 100% { transform: translate3d(-4%, -3%, 0) scale(1) rotate(0deg); opacity: 0.86; } 50% { transform: translate3d(5%, 4%, 0) scale(1.08) rotate(1deg); opacity: 1; } }
+        @keyframes auraBloom { 0% { opacity: 0; transform: translateY(8px) scale(0.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes textUnveil { 0% { opacity: 0; filter: blur(18px); transform: translateY(3px); } 100% { opacity: 1; filter: blur(0); transform: translateY(0); } }
+        @keyframes auraFade { to { opacity: 0; transform: scale(1.04); } }
+        @keyframes loadingBlob { 0%, 100% { transform: translate3d(-3%, 0, 0) scale(0.92, 1.04) rotate(0deg); } 50% { transform: translate3d(4%, -2%, 0) scale(1.08, 0.94) rotate(4deg); } }
+        .assistant-shell { position: relative; width: 100%; min-width: 0; padding: clamp(1rem, 2.4vw, 1.35rem); border: 0; border-radius: 28px; background: transparent; box-shadow: none; overflow: visible; isolation: isolate; animation: auraBloom 0.5s cubic-bezier(.2,.8,.2,1) both; }
+        .assistant-shell::before { content: ''; position: absolute; inset: -34px -46px; border-radius: 34px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 34%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 31%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 32%); filter: blur(26px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; }
+        .assistant-shell.is-streaming::before { inset: -30px -42px; border-radius: 30px; animation: auroraDrift 5.5s ease-in-out infinite; }
+        .assistant-shell.is-settled::before { animation: auraFade 1.25s ease forwards; }
+        .assistant-shell .markdown-body { animation: textUnveil 0.9s cubic-bezier(.2,.8,.2,1) both; }
+        .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 80; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; }
         .user-bubble { position: relative; max-width: min(85%, 680px); border: 1px solid rgba(255,255,255,0.10); border-radius: 22px 22px 6px 22px; padding: 0.78rem 1rem; background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)); color: #f8fafc; line-height: 1.6; font-size: 0.94rem; box-shadow: 0 14px 40px rgba(0,0,0,0.20); overflow-wrap: anywhere; }
         .user-bubble::before { content: ''; position: absolute; right: 10px; bottom: -10px; width: 46px; height: 24px; border-radius: 999px; background: radial-gradient(circle, rgba(125,211,252,0.32), transparent 65%); filter: blur(10px); opacity: 0.7; pointer-events: none; }
 
@@ -335,6 +338,9 @@
             margin: 0 4px;
         }
 
+        #composer-dock { bottom: var(--keyboard-inset, 0px); transition: bottom 180ms ease; will-change: bottom; }
+        #chat { padding-bottom: calc(13rem + var(--keyboard-inset, 0px)); }
+
         @media (max-width: 640px) {
             body { height: 100dvh; overflow: hidden; }
             header { padding-block: 0.75rem !important; }
@@ -342,7 +348,7 @@
             header img { height: 1.8rem; }
             header button { right: 1rem !important; top: 0.9rem !important; }
             main { max-width: 100%; padding-top: 4.35rem; }
-            #chat { padding: 0.75rem 0.72rem 12.5rem; gap: 1rem; }
+            #chat { padding: 0.75rem 0.72rem calc(12.5rem + var(--keyboard-inset, 0px)); gap: 1rem; }
             .msg-appear { margin-block: 0.2rem; }
             .assistant-shell { border-radius: 22px; padding: 0.92rem; }
             .user-bubble { max-width: 92%; border-radius: 20px 20px 5px 20px; font-size: 0.92rem; }
@@ -353,11 +359,11 @@
             .dai-chart-summary { grid-template-columns: 1fr; }
             .dai-chart-shell { min-height: 320px; padding: 0.55rem; }
             .dai-chart-shell canvas { height: 300px !important; }
-            .fixed.bottom-0 { padding: 2.6rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom)); }
+            #composer-dock { padding: 2.6rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom)); }
             #composer-shell { border-radius: 24px; }
             #composer-shell .p-3\.5 { padding: 0.82rem; }
             #in { font-size: 16px; max-height: 32dvh; }
-            #scroll-btn { right: 0.9rem; bottom: 8.7rem; }
+            #scroll-btn { right: 0.9rem; bottom: calc(8.7rem + var(--keyboard-inset, 0px)); }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -385,7 +391,7 @@
         <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to bottom" aria-label="Scroll to bottom">↓</button>
     </main>
 
-    <div class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
+    <div id="composer-dock" class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
         <div id="composer-shell" class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
 
             <!-- Attachment Preview Area -->
@@ -409,7 +415,7 @@
                 <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-500 hover:text-white transition-colors rounded-full text-lg" title="Attach file" aria-label="Attach file">＋</button>
                 <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.markdown,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleFile(this.files[0])">
 
-                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.send()}"></textarea>
+                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
 
                 <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors text-xl" title="Send" aria-label="Send">➜</button>
             </div>
@@ -791,6 +797,56 @@ ${safeJs}
 
         window.scrollToBottom = () => {
             chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        };
+
+        const updateKeyboardInset = () => {
+            const viewport = window.visualViewport;
+            const inset = viewport
+                ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+                : 0;
+            document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
+        };
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateKeyboardInset);
+            window.visualViewport.addEventListener('scroll', updateKeyboardInset);
+        }
+        window.addEventListener('orientationchange', () => setTimeout(updateKeyboardInset, 250));
+        updateKeyboardInset();
+
+        const inputEl = document.getElementById('in');
+        const isMobileTypingSurface = () => window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth <= 720;
+        inputEl.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            if (isMobileTypingSurface()) return;
+            event.preventDefault();
+            window.send();
+        });
+
+        const sendButton = document.getElementById('btn');
+        window.lastSendPoint = null;
+        sendButton.addEventListener('pointerdown', () => {
+            const rect = sendButton.getBoundingClientRect();
+            window.lastSendPoint = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        });
+
+        const launchSendAura = (messageNode) => {
+            const shell = messageNode?.querySelector?.('.assistant-shell');
+            if (!shell || !document.body.animate) return;
+            const startRect = sendButton.getBoundingClientRect();
+            const start = window.lastSendPoint || { x: startRect.left + startRect.width / 2, y: startRect.top + startRect.height / 2 };
+            const targetRect = shell.getBoundingClientRect();
+            const end = { x: targetRect.left + targetRect.width / 2, y: targetRect.top + Math.min(targetRect.height * 0.45, 120) };
+            const aura = document.createElement('div');
+            aura.className = 'send-aura-flight';
+            document.body.appendChild(aura);
+            const half = 85;
+            aura.animate([
+                { opacity: 0, borderRadius: '999px', transform: `translate3d(${start.x - half}px, ${start.y - half}px, 0) scale(0.12)` },
+                { opacity: 0.95, borderRadius: '999px', transform: `translate3d(${start.x - half - 8}px, ${start.y - half - 18}px, 0) scale(0.34)`, offset: 0.22 },
+                { opacity: 0.82, borderRadius: '44px', transform: `translate3d(${end.x - half}px, ${end.y - half}px, 0) scale(${Math.max(1, Math.min(targetRect.width / 170, 3.2))})`, offset: 0.82 },
+                { opacity: 0, borderRadius: '34px', transform: `translate3d(${end.x - half}px, ${end.y - half}px, 0) scale(${Math.max(1.05, Math.min(targetRect.width / 160, 3.4))})` }
+            ], { duration: 760, easing: 'cubic-bezier(.18,.84,.24,1)', fill: 'forwards' }).onfinish = () => aura.remove();
         };
 
         // --- Attachment Handling ---
@@ -2137,6 +2193,7 @@ ${safeJs}
                 add('user', displayHtml);
 
                 const assistantMessage = add('assistant','');
+                launchSendAura(assistantMessage);
                 const el = assistantMessage.querySelector('.markdown-body');
                 if (shouldShowAnalysing) setAnalysing(el, true, attachment ? 'Analysing' : 'Checking image context', attachment ? 'Preparing the uploaded file' : 'Reviewing the previous visual context');
 
