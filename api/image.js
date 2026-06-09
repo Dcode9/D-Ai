@@ -111,8 +111,9 @@ function extractImageData(payload) {
   };
 }
 
-function selectModel() {
-  return 'kontext';
+function selectModel({ hasImage, requestedModel } = {}) {
+  if (hasImage) return requestedModel || 'kontext';
+  return requestedModel || 'flux';
 }
 
 export default async function handler(req) {
@@ -121,7 +122,7 @@ export default async function handler(req) {
   }
 
   try {
-    const { prompt, width, height, seed, image } = await req.json();
+    const { prompt, width, height, seed, image, model } = await req.json();
 
     const finalWidth = toPositiveInt(width, 1024);
     const finalHeight = toPositiveInt(height, 1024);
@@ -132,7 +133,7 @@ export default async function handler(req) {
       width: finalWidth,
       height: finalHeight,
       seed: finalSeed,
-      model: 'kontext',
+      model: model || (image ? 'kontext' : 'flux'),
       hasImage: !!image,
       imageUrl: image
     });
@@ -144,7 +145,7 @@ export default async function handler(req) {
     }
 
     const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
-    const finalModel = selectModel();
+    const finalModel = selectModel({ hasImage: !!image, requestedModel: model });
 
     let url, fetchOptions;
 

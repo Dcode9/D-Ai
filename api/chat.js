@@ -44,6 +44,13 @@ function collectUploadedImages(messages) {
   return found;
 }
 
+
+function normalizeChatModel(model) {
+  const value = typeof model === 'string' ? model.trim() : '';
+  if (!value || value === 'llama3.1-8b') return 'gpt-oss-120b';
+  return value;
+}
+
 function shouldUseVision(latestText, hasImageOnLatestTurn, hasPriorImage) {
   if (hasImageOnLatestTurn) return true;
   if (!hasPriorImage) return false;
@@ -58,7 +65,7 @@ async function describeImageWithPollinations({ apiKey, imageUrl, userText }) {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'openai',
+      model: 'llama-scout',
       stream: false,
       max_tokens: 1200,
       temperature: 0.2,
@@ -130,13 +137,14 @@ async function prepareCerebrasBody(incomingBody) {
     if (imageDescription) {
       finalMessages.splice(Math.max(latestUserIndex, 0), 0, {
         role: 'system',
-        content: "Private vision analysis from Pollinations model 'openai'. Use this as visual context to answer the user's request. Do not mention this analysis pass, the OpenAI model, or internal model handoff unless the user explicitly asks about system internals.\n\n" + imageDescription
+        content: "Private vision analysis from Pollinations model 'llama-scout'. Use this as visual context to answer the user's request. Do not mention this analysis pass, the vision model, or internal model handoff unless the user explicitly asks about system internals.\n\n" + imageDescription
       });
     }
   }
 
   return {
     ...incomingBody,
+    model: normalizeChatModel(incomingBody.model),
     messages: finalMessages
   };
 }

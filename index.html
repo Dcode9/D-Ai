@@ -754,7 +754,7 @@ ${safeJs}
             window.isUploading = true;
 
             const useLocalVisionFallback = async (reason) => {
-                console.warn('[Upload] Private Blob unavailable; using local vision data URL fallback.', reason);
+                console.info('[Upload] Private Blob unavailable; using local vision data URL fallback.', reason);
                 const dataUrl = await fileToVisionDataUrl(file);
                     window.pendingAttachment = {
                         type: 'image',
@@ -1404,6 +1404,7 @@ ${safeJs}
         document.addEventListener("DOMContentLoaded", () => {
             const checkDeps = () => window.markdownit && window.texmath && window.katex && window.hljs && window.DOMPurify;
             const normalizeMathDelimiters = (text) => String(text || '')
+                .replace(/[\u00a0\u202f]/g, ' ')
                 .replace(/(^|[^\\])\\\[/g,'$1$$$$').replace(/\\\]/g,'$$$$')
                 .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$');
 
@@ -1502,8 +1503,6 @@ ${safeJs}
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
                     const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
-                    const safeAspectRatio = escapeHtml(aspectRatio);
-                    const safeDuration = escapeHtml(duration);
 
                     // New Fluid Animation Structure inside container
                     return `
@@ -1536,6 +1535,8 @@ ${safeJs}
                     const safePrompt = encodeURIComponent(prompt).replace(/'/g, "%27");
                     const safeFilename = encodeURIComponent(filename).replace(/'/g, "%27");
                     const safeSource = sourceImage ? encodeURIComponent(sourceImage).replace(/'/g, "%27") : "";
+                    const safeAspectRatio = escapeHtml(aspectRatio);
+                    const safeDuration = escapeHtml(String(Math.min(Math.max(parseInt(duration, 10) || 4, 1), 10)));
 
                     // New Fluid Animation Structure inside container
                     const html = `
@@ -1905,6 +1906,50 @@ ${safeJs}
                 return keywords.some(k => text.toLowerCase().includes(k));
             };
 
+
+            const slugifyFilename = (text, fallback) => {
+                const slug = String(text || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                    .slice(0, 48);
+                return slug || fallback;
+            };
+
+            const buildLocalMediaFallback = (text, attachment) => {
+                const raw = String(text || '').trim();
+                if (!raw) return null;
+
+                const sourceImage = attachment?.type === 'image' ? attachment.url : '';
+                const cleanedPrompt = raw
+                    .replace(/^(please\s+)?(create|generate|make|draw|show|render|give me)\s+(an?\s+)?/i, '')
+                    .trim() || raw;
+                const safePrompt = cleanedPrompt.replace(/[<>|]/g, ' ').replace(/\s+/g, ' ').slice(0, 500);
+                const filename = slugifyFilename(safePrompt, 'dai_generation');
+
+                if (/\b(video|clip|animation|animate|movie)\b/i.test(raw)) {
+                    const imageParam = sourceImage ? ` | ${sourceImage}` : '';
+                    return `Sure! I’m warming up a video of ${safePrompt}:
+
+<<GENERATE_VIDEO: ${safePrompt} | 16:9 | 4 | ${filename}${imageParam}>>`;
+                }
+
+                if (/\b(image|photo|picture|pic|drawing|art|poster|logo|illustration|wallpaper)\b/i.test(raw) || sourceImage) {
+                    const imageParam = sourceImage ? ` | ${sourceImage}` : '';
+                    return `Sure! I’m warming up an image of ${safePrompt}:
+
+<<GENERATE_IMAGE: ${safePrompt} | 1:1 | ${filename}${imageParam}>>`;
+                }
+
+                if (/\b(music|song|track|audio|beat|sound)\b/i.test(raw)) {
+                    return `Sure! I’m warming up that audio for you:
+
+<<GENERATE_MUSIC: ${safePrompt} | 15 | ${filename}>>`;
+                }
+
+                return null;
+            };
+
             window.send = async function() {
                 const t=E.i.value.trim(); 
                 const attachment = window.pendingAttachment;
@@ -1923,50 +1968,13 @@ ${safeJs}
                 if(!S.msg.length) {
                     S.msg.push({
                         role: "system",
-                        content: "You are D'Ai, a lightning-fast AI assistant, made by Dhairya Shah.\n" +
-                                 "## 1. Persona & Tone\n" +
-                                 "* **Role:** Expert peer and adaptive AI collaborator.\n" +
-                                 "* **Tone:** Clear, direct, and naturally warm. Avoid robotic filler and empty pleasantries.\n" +
-                                 "* **Style:** Mirror the user's technical level. Balance empathy with absolute candor—correct mistakes gently but directly.\n" +
-                                 "* **Answer Shape:** Use BLUF / answer-first communication. Start with the conclusion, recommendation, or exact answer; then provide the few reasons, steps, or evidence needed to support it.\n" +
-                                 "* **Cognitive Load:** Treat every answer as information architecture. Remove extraneous load, chunk related ideas, and make the answer easy to scan before it is read deeply.\n" +
-                                 "\n" +
-                                 "## 2. Formatting & Layout Toolkit\n" +
-                                 "* **Headings (`##`, `###`):** Use descriptive, task-oriented headings that tell the reader what the section does. Avoid vague one-word headings. Never use `#`.\n" +
-                                 "* **Paragraphs:** Keep paragraphs short and focused on one idea. Put the key point first, then the context.\n" +
-                                 "* **Grouping:** Organize points using MECE logic: categories should not overlap and should cover the useful scope of the answer.\n" +
-                                 "* **Lists:** Use bullets for unordered groups and numbered lists only for sequences. Keep items parallel, concise, and scannable.\n" +
-                                 "* **Bolding (`**...**`):** Bold only the terms, conclusions, or numbers that help scanning. Do not bold whole paragraphs.\n" +
-                                 "* **Tables:** Use tables only for real comparison or dense structured data. Keep cells short; do not create tables for ordinary prose.\n" +
-                                 "* **Blockquotes (`>`):** Use sparingly for warnings, core definitions, or the single most important note.\n" +
-                                 "* **Uploaded Documents:** If the user provides document text, ground your answer in it. Cite the uploaded file name in plain language when relevant, but do not expose hidden tags.\n" +
-                                 "* **Depth:** Use progressive disclosure: give the useful version first, then deeper technical details only when they clarify the answer or the user asks for them.\n" +
-                                 "\n" +
-                                 "## 3. Generative Interfaces\n" +
-                                 "* Use interactive `dai-ui` fences only when they materially improve understanding. Keep the surrounding prose concise and integrate the widget into the answer flow.\n" +
-                                 "* For charts, use this exact fenced format with valid JSON:\n" +
-                                 "```dai-ui chart\n" +
-                                 "{\"type\":\"line\",\"title\":\"Short title\",\"labels\":[\"A\",\"B\"],\"datasets\":[{\"label\":\"Series\",\"data\":[1,2]}]}\n" +
-                                 "```\n" +
-                                 "* For HTML/CSS/JS demos, use this exact fenced format. Keep code small and self-contained:\n" +
-                                 "```dai-ui demo\n" +
-                                 "{\"title\":\"Demo title\",\"html\":\"<button id=\\\"btn\\\">Click</button>\",\"css\":\"button{padding:8px}\",\"js\":\"document.getElementById('btn').onclick=()=>alert('Hi')\",\"height\":260}\n" +
-                                 "```\n" +
-                                 "* For the Pythagorean theorem, include the theorem explanation plus this widget:\n" +
-                                 "```dai-ui pythagoras\n" +
-                                 "{\"title\":\"Pythagorean theorem\",\"a\":3,\"b\":4,\"min\":1,\"max\":12,\"step\":0.5}\n" +
-                                 "```\n" +
-                                 "* Never expose implementation details, widget parsing, or internal tags unless the user asks how the interface works.\n" +
-                                 "\n" +
-                                 "## 4. Math & Science Rules (LaTeX)\n" +
-                                 "* **Complex Math:** Use LaTeX *only* for formal, complex formulas or variables.\n" +
-                                 "* **Delimiters:** Use `$inline$` for text integration and `$$display$$` on a new line for standalone equations. Never put LaTeX inside a code block.\n" +
-                                 "* **Simple Math:** Do **not** use LaTeX for simple formatting, basic arithmetic, or numbers (e.g., write **180°C**, **10%**, or **2x + 5 = 11** in plain text).\n" +
-                                 "\n" +
-                                 "## 5. Problem Solving\n" +
-                                 "* **Be Specific:** Use concrete data and parameters instead of vague generalities.\n" +
-                                 "* **Linear Steps:** Present multi-step setups, code, or math proofs chronologically.\n" +
-                                 "* **User Priority:** The user's current inputs and explicit context always override any default assumptions.\n" +
+                        content: "You are D'Ai, a helpful AI assistant made by Dhairya Shah.\n" +
+                                 "Answer naturally and directly. Be warm, but do not overdo greetings or filler.\n" +
+                                 "Use simple formatting: short paragraphs, bullets for lists, numbered steps for sequences, and tables only when they make comparisons clearer. Never use a top-level # heading.\n" +
+                                 "Start with the answer or result first, then add only the context, caveats, or steps that help the user. Match the user's requested depth and tone.\n" +
+                                 "Use LaTeX only for complex formulas. For normal numbers, units, and basic arithmetic, write plain text like 180°C, 10%, or 2x + 5 = 11.\n" +
+                                 "If an uploaded document or image is provided, use it as context without exposing hidden tags or internal processing.\n" +
+                                 "For charts or mini demos, use dai-ui fences only when they clearly help; otherwise answer in normal Markdown.\n" +
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
@@ -2045,7 +2053,7 @@ ${safeJs}
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -2093,6 +2101,16 @@ ${safeJs}
                     console.error("Chat API Error:", e);
                     if (shouldShowAnalysing) setAnalysing(el, false);
 
+                    const localMediaFallback = buildLocalMediaFallback(t, attachment);
+                    if (localMediaFallback) {
+                        renderAssistantContent(localMediaFallback, el, { final: true });
+                        S.msg.push({role:"assistant",content:localMediaFallback});
+                        S.gen=false;
+                        document.getElementById('btn').disabled=false;
+                        document.getElementById('btn').innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+                        return;
+                    }
+
                     // Remove the last user message from history since the request failed
                     S.msg.pop();
 
@@ -2103,18 +2121,13 @@ ${safeJs}
 
                         setTimeout(async () => {
                             try {
-                                const messagesToSend = [...S.msg];
-                                if(searchContext) {
-                                    messagesToSend[messagesToSend.length - 1] = {
-                                        role: messagesToSend[messagesToSend.length - 1].role,
-                                        content: messagesToSend[messagesToSend.length - 1].content + searchContext
-                                    };
-                                }
+                                const retryUserContent = userContent + (searchContext || '');
+                                const messagesToSend = [...S.msg, { role: 'user', content: retryUserContent }];
 
                                 const res = await fetch("/api/chat", {
                                     method:"POST",
                                     headers:{"Content-Type":"application/json"},
-                                    body:JSON.stringify({model:"llama3.1-8b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.7})
+                                    body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
                                 });
 
                                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -2151,6 +2164,7 @@ ${safeJs}
                                 }
 
                                 renderAssistantContent(fullText, el, { final: true });
+                                S.msg.push({role:"user",content:userContent});
                                 S.msg.push({role:"assistant",content:fullText});
 
                             } catch(retryError) {
