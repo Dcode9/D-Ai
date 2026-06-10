@@ -1,5 +1,6 @@
 // Standard Node.js Serverless Function (Bypasses some Edge WAF rules)
 const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/gi;
+const UPLOADED_IMAGE_ASPECT_RE = /\[UPLOADED_IMAGE_ASPECT_RATIO:\s*([^\]]+)\]/gi;
 
 function getTextContent(content) {
   if (typeof content === 'string') return content;
@@ -15,12 +16,12 @@ function getTextContent(content) {
 
 function cleanUploadedImageMarkers(content) {
   if (typeof content === 'string') {
-    return content.replace(UPLOADED_IMAGE_RE, '[image attached]');
+    return content.replace(UPLOADED_IMAGE_RE, '[image attached]').replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]');
   }
   if (Array.isArray(content)) {
     return content.map((part) => {
       if (part?.type === 'text') {
-        return { ...part, text: (part.text || '').replace(UPLOADED_IMAGE_RE, '[image attached]') };
+        return { ...part, text: (part.text || '').replace(UPLOADED_IMAGE_RE, '[image attached]').replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]') };
       }
       return part;
     });
@@ -44,6 +45,27 @@ function collectUploadedImages(messages) {
   return found;
 }
 
+
+
+function collectUploadedImageAspects(messages) {
+  const found = [];
+  for (const message of messages || []) {
+    const text = getTextContent(message.content);
+    let match;
+    UPLOADED_IMAGE_ASPECT_RE.lastIndex = 0;
+    while ((match = UPLOADED_IMAGE_ASPECT_RE.exec(text))) {
+      found.push(match[1].trim());
+    }
+  }
+  return found;
+}
+
+function normalizeChatModel(model) {
+  const value = typeof model === 'string' ? model.trim() : '';
+  if (!value || value === 'llama3.1-8b') return 'gpt-oss-120b';
+  return value;
+}
+
 function shouldUseVision(latestText, hasImageOnLatestTurn, hasPriorImage) {
   if (hasImageOnLatestTurn) return true;
   if (!hasPriorImage) return false;
@@ -58,7 +80,7 @@ async function describeImageWithPollinations({ apiKey, imageUrl, userText }) {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'openai',
+      model: 'llama-scout',
       stream: false,
       max_tokens: 1200,
       temperature: 0.2,
@@ -106,7 +128,9 @@ async function prepareCerebrasBody(incomingBody) {
   const latestUser = latestUserIndex >= 0 ? messages[latestUserIndex] : null;
   const latestText = getTextContent(latestUser?.content || '');
   const uploadedImages = collectUploadedImages(messages);
+  const uploadedAspects = collectUploadedImageAspects(messages);
   const latestImages = latestUser ? collectUploadedImages([latestUser]) : [];
+  const latestAspects = latestUser ? collectUploadedImageAspects([latestUser]) : [];
   const shouldDescribe = shouldUseVision(latestText, latestImages.length > 0, uploadedImages.length > 0);
 
   let finalMessages = messages.map((message) => ({
@@ -128,15 +152,17 @@ async function prepareCerebrasBody(incomingBody) {
     });
 
     if (imageDescription) {
+      const aspectRatio = (latestAspects[latestAspects.length - 1] || uploadedAspects[uploadedAspects.length - 1] || 'unknown');
       finalMessages.splice(Math.max(latestUserIndex, 0), 0, {
         role: 'system',
-        content: "Private vision analysis from Pollinations model 'openai'. Use this as visual context to answer the user's request. Do not mention this analysis pass, the OpenAI model, or internal model handoff unless the user explicitly asks about system internals.\n\n" + imageDescription
+        content: "Private vision analysis from Pollinations model 'llama-scout'. Use this as visual context to answer the user's request. The uploaded image aspect ratio is " + aspectRatio + ". Do not mention this analysis pass, the vision model, or internal model handoff unless the user explicitly asks about system internals.\n\n" + imageDescription
       });
     }
   }
 
   return {
     ...incomingBody,
+    model: normalizeChatModel(incomingBody.model),
     messages: finalMessages
   };
 }
