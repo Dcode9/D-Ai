@@ -11,6 +11,12 @@
     return data.session;
   }
 
+  function onAuthStateChange(callback) {
+    if (!client || typeof callback !== 'function') return { unsubscribe() {} };
+    const { data } = client.auth.onAuthStateChange((event, session) => callback(event, session));
+    return data.subscription;
+  }
+
   async function signInWithGoogle() {
     if (!client) throw new Error('D\'Verse Supabase client is not configured.');
     const { error } = await client.auth.signInWithOAuth({
@@ -32,6 +38,20 @@
     const { data, error } = await client
       .from('ai_chats')
       .insert({ user_id: session.user.id, title, metadata })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function updateChat(chatId, patch = {}) {
+    const session = await getSession();
+    if (!client || !session || !chatId) return null;
+    const { data, error } = await client
+      .from('ai_chats')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', chatId)
+      .eq('user_id', session.user.id)
       .select()
       .single();
     if (error) throw error;
@@ -62,13 +82,29 @@
     return data || [];
   }
 
+  async function listMessages(chatId) {
+    const session = await getSession();
+    if (!client || !session || !chatId) return [];
+    const { data, error } = await client
+      .from('ai_messages')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
   window.dverse = {
     ...(window.dverse || {}),
     supabase: client,
     isConfigured: ready,
     getSession,
+    onAuthStateChange,
     signInWithGoogle,
     signOut,
-    dai: { createChat, saveMessage, listChats }
+    dai: { createChat, updateChat, saveMessage, listChats, listMessages }
   };
+
+  window.dispatchEvent(new CustomEvent('dverse:ready', { detail: { configured: ready } }));
 })();
