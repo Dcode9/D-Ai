@@ -340,12 +340,38 @@
 
         #composer-dock { transform: translate3d(0, calc(var(--keyboard-inset, 0px) * -1), 0); transition: transform 180ms ease; will-change: transform; }
 
+        .dverse-auth-btn { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2rem; padding: 0.42rem 0.72rem; border: 1px solid var(--dai-border); border-radius: 999px; background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.01em; transition: border-color 0.2s, background 0.2s, color 0.2s; }
+        .dverse-auth-btn:hover, .dverse-auth-btn.is-signed-in { border-color: rgba(56,189,248,0.42); background: rgba(56,189,248,0.1); color: #f8fafc; }
+        .dverse-auth-btn.is-error { border-color: rgba(244,63,94,0.4); background: rgba(244,63,94,0.08); color: #fecdd3; }
+        .history-backdrop { position: fixed; inset: 0; z-index: 28; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .history-panel { position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(360px, calc(100vw - 32px)); transform: translateX(-105%); transition: transform 220ms ease; background: rgba(10,10,10,0.96); border-right: 1px solid var(--dai-border); box-shadow: 20px 0 60px rgba(0,0,0,0.45); padding: 1rem; display: flex; flex-direction: column; gap: 0.9rem; }
+        .history-panel.open { transform: translateX(0); }
+        .history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 0.25rem 0 0.5rem; }
+        .history-head h2 { margin: 0.08rem 0 0; color: #fff; font-size: 1.1rem; font-weight: 800; }
+        .history-eyebrow, .history-section-title { color: #7dd3fc; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 800; }
+        .history-close { width: 2rem; height: 2rem; border-radius: 999px; color: #94a3b8; border: 1px solid var(--dai-border-soft); background: rgba(255,255,255,0.04); }
+        .history-close:hover { color: #fff; border-color: var(--dai-border); }
+        .auth-card { display: grid; grid-template-columns: 2.35rem 1fr; gap: 0.75rem; align-items: center; padding: 0.85rem; border: 1px solid var(--dai-border-soft); border-radius: 18px; background: linear-gradient(135deg, rgba(56,189,248,0.09), rgba(245,158,11,0.06)); }
+        .auth-card strong { color: #f8fafc; font-size: 0.86rem; }
+        .auth-card p { margin: 0.18rem 0 0; color: #94a3b8; font-size: 0.76rem; line-height: 1.35; }
+        .auth-icon { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: 14px; color: #38bdf8; background: rgba(56,189,248,0.11); border: 1px solid rgba(56,189,248,0.22); }
+        .history-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; border: 1px solid rgba(56,189,248,0.28); border-radius: 16px; padding: 0.78rem 0.85rem; background: rgba(56,189,248,0.1); color: #e0f2fe; font-weight: 800; font-size: 0.84rem; }
+        .history-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+        .history-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.45rem; padding-right: 0.15rem; }
+        .history-item { text-align: left; border: 1px solid transparent; border-radius: 15px; padding: 0.72rem 0.78rem; background: rgba(255,255,255,0.035); color: #e5e7eb; transition: background 0.2s, border-color 0.2s; }
+        .history-item:hover, .history-item.active { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.28); }
+        .history-item-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; font-weight: 750; }
+        .history-item-meta { display: block; margin-top: 0.18rem; color: #94a3b8; font-size: 0.7rem; }
+        .history-empty { padding: 1rem; border: 1px dashed var(--dai-border); border-radius: 16px; color: #94a3b8; font-size: 0.8rem; text-align: center; line-height: 1.45; }
+
         @media (max-width: 640px) {
             body { height: 100dvh; overflow: hidden; }
             header { padding-block: 0.75rem !important; }
             header .max-w-3xl { padding-inline: 1rem; justify-content: flex-start; }
             header img { height: 1.8rem; }
-            header button { right: 1rem !important; top: 0.9rem !important; }
+            #history-toggle { left: 1rem !important; top: 0.9rem !important; }
+            header .absolute.right-6 { right: 1rem !important; top: 0.75rem !important; }
+            .dverse-auth-btn span { display: none; }
             main { max-width: 100%; padding-top: 4.35rem; }
             #chat { padding: 0.75rem 0.72rem 12.5rem; gap: 1rem; }
             .msg-appear { margin-block: 0.2rem; }
@@ -373,12 +399,38 @@
 </head>
 <body class="flex flex-col h-screen">
     <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
+        <button id="history-toggle" class="absolute left-6 top-5 text-gray-500 hover:text-white transition-colors text-lg" title="Open saved chats" aria-label="Open saved chats"><i class="fa-solid fa-bars-staggered"></i></button>
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
         </div>
-        <button onclick="location.reload()" class="absolute right-6 top-5 text-gray-500 hover:text-white transition-colors text-lg" title="Refresh chat" aria-label="Refresh chat">↻</button>
+        <div class="absolute right-6 top-4 flex items-center gap-2">
+            <button id="auth-button" class="dverse-auth-btn" title="Sign in to sync chats" aria-label="Sign in to sync chats"><i class="fa-solid fa-user-astronaut"></i><span>Sign in</span></button>
+            <button id="new-chat-button" class="text-gray-500 hover:text-white transition-colors text-lg" title="New chat" aria-label="New chat"><i class="fa-solid fa-plus"></i></button>
+            <button onclick="location.reload()" class="text-gray-500 hover:text-white transition-colors text-lg" title="Refresh chat" aria-label="Refresh chat">↻</button>
+        </div>
     </header>
+
+    <div id="history-backdrop" class="history-backdrop hidden"></div>
+    <aside id="history-panel" class="history-panel" aria-label="Saved chat history" aria-hidden="true">
+        <div class="history-head">
+            <div>
+                <div class="history-eyebrow">D'Verse Cloud</div>
+                <h2>Saved chats</h2>
+            </div>
+            <button id="history-close" class="history-close" title="Close saved chats" aria-label="Close saved chats"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="auth-card" class="auth-card">
+            <div class="auth-icon"><i class="fa-brands fa-google"></i></div>
+            <div>
+                <strong>Sync with Supabase</strong>
+                <p id="auth-status">Sign in to save and reopen conversations.</p>
+            </div>
+        </div>
+        <button id="history-new" class="history-primary"><i class="fa-solid fa-pen-to-square"></i> New synced chat</button>
+        <div class="history-section-title">Recent conversations</div>
+        <div id="history-list" class="history-list"><div class="history-empty">Sign in to load your saved chats.</div></div>
+    </aside>
 
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
@@ -486,8 +538,6 @@ ${safeJs}
   document.body.lastElementChild.textContent = error && error.message ? error.message : String(error);
 }
 <\/script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/dverseClient.js"></script>
 </body>
 </html>`;
         };
@@ -2155,6 +2205,216 @@ ${safeJs}
                 return `<span class="attachment-card mt-2"><span class="attachment-icon"><i class="fa-solid ${fileKindIcon(attachment.kind)}"></i></span><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name)}</span><span class="attachment-detail">${detail}</span></span></span>`;
             };
 
+            const dverseState = { session: null, chats: [], currentChatId: null, chatPromise: null, saving: false, loading: false };
+            const dverseApi = () => window.dverse?.dai;
+            const dverseReady = () => Boolean(window.dverse?.isConfigured && dverseApi());
+            const chatTitleFrom = (text) => String(text || 'New chat').replace(/\s+/g, ' ').trim().slice(0, 58) || 'New chat';
+            const visibleMessages = () => S.msg.filter(message => message.role !== 'system');
+            const displayFromStoredUser = (content) => String(content || '')
+                .replace(/\s*\[UPLOADED_IMAGE:[^\]]+\]/g, '')
+                .replace(/\s*\[UPLOADED_IMAGE_ASPECT_RATIO:[^\]]+\]/g, '')
+                .replace(/\n\n\[UPLOADED_DOCUMENT:[\s\S]*$/g, '\n\n📎 Uploaded document')
+                .trim();
+            const formatHistoryDate = (value) => {
+                if (!value) return 'Recently updated';
+                try {
+                    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+                } catch (e) {
+                    return 'Recently updated';
+                }
+            };
+            const setHistoryOpen = (open) => {
+                document.getElementById('history-panel')?.classList.toggle('open', open);
+                document.getElementById('history-panel')?.setAttribute('aria-hidden', open ? 'false' : 'true');
+                document.getElementById('history-backdrop')?.classList.toggle('hidden', !open);
+            };
+            const setSyncStatus = (message, state = '') => {
+                const status = document.getElementById('auth-status');
+                const button = document.getElementById('auth-button');
+                if (status) status.textContent = message;
+                if (button) {
+                    button.classList.toggle('is-error', state === 'error');
+                    button.classList.toggle('is-signed-in', state === 'signed-in');
+                }
+            };
+            const renderHistoryList = () => {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+                if (!dverseReady()) {
+                    list.innerHTML = '<div class="history-empty">Supabase is not configured yet. Add the client library and keys to enable cloud history.</div>';
+                    return;
+                }
+                if (!dverseState.session) {
+                    list.innerHTML = '<div class="history-empty">Sign in with Google to load saved chats from Supabase.</div>';
+                    return;
+                }
+                if (dverseState.loading) {
+                    list.innerHTML = '<div class="history-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading saved chats...</div>';
+                    return;
+                }
+                if (!dverseState.chats.length) {
+                    list.innerHTML = '<div class="history-empty">No saved chats yet. Your next message will create one automatically.</div>';
+                    return;
+                }
+                list.innerHTML = dverseState.chats.map(chat => `
+                    <button class="history-item ${chat.id === dverseState.currentChatId ? 'active' : ''}" data-chat-id="${escapeHtml(chat.id)}">
+                        <span class="history-item-title">${escapeHtml(chat.title || 'New chat')}</span>
+                        <span class="history-item-meta">${formatHistoryDate(chat.updated_at || chat.created_at)}</span>
+                    </button>
+                `).join('');
+            };
+            const refreshChats = async () => {
+                if (!dverseReady() || !dverseState.session) return renderHistoryList();
+                dverseState.loading = true;
+                renderHistoryList();
+                try {
+                    dverseState.chats = await dverseApi().listChats();
+                    setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • chats synced`, 'signed-in');
+                } catch (error) {
+                    console.error('[DVerse] Failed to load chats:', error);
+                    setSyncStatus(error?.message || 'Could not load saved chats.', 'error');
+                } finally {
+                    dverseState.loading = false;
+                    renderHistoryList();
+                }
+            };
+            const resetConversation = () => {
+                S.msg = [];
+                S.gen = false;
+                dverseState.currentChatId = null;
+                dverseState.chatPromise = null;
+                E.c.querySelectorAll('.msg-appear').forEach(node => node.remove());
+                E.h?.classList.remove('hidden');
+                window.hasVisionContext = false;
+                renderHistoryList();
+                setHistoryOpen(false);
+            };
+            const ensureSyncedChat = async (firstUserText) => {
+                if (!dverseReady() || !dverseState.session) return null;
+                if (dverseState.currentChatId) return dverseState.currentChatId;
+                if (dverseState.chatPromise) return dverseState.chatPromise;
+                dverseState.chatPromise = (async () => {
+                    try {
+                        const chat = await dverseApi().createChat(chatTitleFrom(firstUserText), { source: 'd-ai-web' });
+                        if (chat?.id) {
+                            dverseState.currentChatId = chat.id;
+                            dverseState.chats = [chat, ...dverseState.chats.filter(item => item.id !== chat.id)];
+                            renderHistoryList();
+                        }
+                        return chat?.id || null;
+                    } catch (error) {
+                        console.error('[DVerse] Failed to create chat:', error);
+                        setSyncStatus(error?.message || 'Could not create synced chat.', 'error');
+                        return null;
+                    } finally {
+                        dverseState.chatPromise = null;
+                    }
+                })();
+                return dverseState.chatPromise;
+            };
+            const saveSyncedMessage = async (role, content, metadata = {}) => {
+                if (!content) return;
+                const chatId = await ensureSyncedChat(role === 'user' ? content : visibleMessages().find(message => message.role === 'user')?.content);
+                if (!chatId) return;
+                try {
+                    await dverseApi().saveMessage(chatId, role, content, metadata);
+                    await dverseApi().updateChat(chatId, { metadata: { source: 'd-ai-web', last_role: role } });
+                    refreshChats();
+                } catch (error) {
+                    console.error('[DVerse] Failed to save message:', error);
+                    setSyncStatus(error?.message || 'Could not save message.', 'error');
+                }
+            };
+            const loadSyncedChat = async (chatId) => {
+                if (!dverseReady() || !dverseState.session || !chatId || dverseState.loading) return;
+                dverseState.loading = true;
+                renderHistoryList();
+                try {
+                    const messages = await dverseApi().listMessages(chatId);
+                    S.msg = messages.map(message => ({ role: message.role, content: message.content }));
+                    dverseState.currentChatId = chatId;
+                    E.c.querySelectorAll('.msg-appear').forEach(node => node.remove());
+                    E.h?.classList.toggle('hidden', S.msg.length > 0);
+                    S.msg.forEach(message => {
+                        if (message.role === 'user') {
+                            const safe = escapeHtml(displayFromStoredUser(message.content)).replace(/\n/g, '<br>');
+                            add('user', safe || 'Saved user message');
+                        } else if (message.role === 'assistant') {
+                            const node = add('assistant', '');
+                            renderAssistantContent(message.content, node.querySelector('.markdown-body'), { final: true });
+                        }
+                    });
+                    renderHistoryList();
+                    setHistoryOpen(false);
+                    requestAnimationFrame(window.scrollToBottom);
+                } catch (error) {
+                    console.error('[DVerse] Failed to load chat:', error);
+                    setSyncStatus(error?.message || 'Could not open saved chat.', 'error');
+                } finally {
+                    dverseState.loading = false;
+                    renderHistoryList();
+                }
+            };
+            const initDverseUi = async () => {
+                const authButton = document.getElementById('auth-button');
+                const newButtons = [document.getElementById('new-chat-button'), document.getElementById('history-new')].filter(Boolean);
+                document.getElementById('history-toggle')?.addEventListener('click', () => setHistoryOpen(true));
+                document.getElementById('history-close')?.addEventListener('click', () => setHistoryOpen(false));
+                document.getElementById('history-backdrop')?.addEventListener('click', () => setHistoryOpen(false));
+                newButtons.forEach(button => button.addEventListener('click', resetConversation));
+                document.getElementById('history-list')?.addEventListener('click', (event) => {
+                    const item = event.target.closest('[data-chat-id]');
+                    if (item) loadSyncedChat(item.getAttribute('data-chat-id'));
+                });
+                authButton?.addEventListener('click', async () => {
+                    try {
+                        if (!dverseReady()) throw new Error('Supabase client is not available.');
+                        if (dverseState.session) await window.dverse.signOut();
+                        else await window.dverse.signInWithGoogle();
+                    } catch (error) {
+                        console.error('[DVerse] Auth action failed:', error);
+                        setSyncStatus(error?.message || 'Authentication failed.', 'error');
+                    }
+                });
+                if (!dverseReady()) {
+                    authButton?.setAttribute('disabled', 'true');
+                    setSyncStatus('Supabase client is not available.', 'error');
+                    renderHistoryList();
+                    return;
+                }
+                window.dverse.onAuthStateChange((event, session) => {
+                    dverseState.session = session;
+                    if (session) {
+                        authButton.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Synced</span>';
+                        setSyncStatus(`${session.user.email || 'Signed in'} • syncing enabled`, 'signed-in');
+                        refreshChats();
+                    } else {
+                        authButton.innerHTML = '<i class="fa-solid fa-user-astronaut"></i><span>Sign in</span>';
+                        dverseState.chats = [];
+                        dverseState.currentChatId = null;
+                        dverseState.chatPromise = null;
+                        setSyncStatus('Sign in to save and reopen conversations.');
+                        renderHistoryList();
+                    }
+                });
+                try {
+                    dverseState.session = await window.dverse.getSession();
+                    if (dverseState.session) {
+                        authButton.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Synced</span>';
+                        setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • syncing enabled`, 'signed-in');
+                    } else {
+                        setSyncStatus('Sign in to save and reopen conversations.');
+                    }
+                    await refreshChats();
+                } catch (error) {
+                    console.error('[DVerse] Session check failed:', error);
+                    setSyncStatus(error?.message || 'Could not check sign-in status.', 'error');
+                    renderHistoryList();
+                }
+            };
+            if (window.dverse) initDverseUi();
+            else window.addEventListener('dverse:ready', initDverseUi, { once: true });
+
             const shouldSearch = (text) => {
                 const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update'];
                 return keywords.some(k => text.toLowerCase().includes(k));
@@ -2308,6 +2568,7 @@ ${safeJs}
 
                 S.msg.push({role:"user",content:userContent});
                 add('user', displayHtml);
+                saveSyncedMessage('user', userContent, { has_attachment: Boolean(attachment), display_text: t });
 
                 const assistantMessage = add('assistant','');
                 launchSendAura(assistantMessage);
@@ -2322,11 +2583,13 @@ ${safeJs}
                         const interfaceContent = await buildGenerativeInterface(t, interfaceType);
                         renderAssistantContent(interfaceContent, el, { final: true });
                         S.msg.push({role:"assistant",content:interfaceContent});
+                        saveSyncedMessage('assistant', interfaceContent, { mode: 'interface' });
                     } catch (interfaceError) {
                         console.error('Generative interface failed:', interfaceError);
                         const fallbackText = `I couldn't build that interactive view right now. ${interfaceError.message || 'The interface generator failed.'}`;
                         renderAssistantContent(fallbackText, el, { final: true });
                         S.msg.push({role:"assistant",content:fallbackText});
+                        saveSyncedMessage('assistant', fallbackText, { mode: 'interface-error' });
                     } finally {
                         if (shouldShowAnalysing) setAnalysing(el, false);
                         S.gen=false;
@@ -2401,6 +2664,7 @@ ${safeJs}
 
                     renderAssistantContent(fullText, el, { final: true });
                     S.msg.push({role:"assistant",content:fullText});
+                    saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat' });
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen=false;
                     document.getElementById('btn').disabled=false;
@@ -2414,6 +2678,7 @@ ${safeJs}
                     if (localMediaFallback) {
                         renderAssistantContent(localMediaFallback, el, { final: true });
                         S.msg.push({role:"assistant",content:localMediaFallback});
+                        saveSyncedMessage('assistant', localMediaFallback, { mode: 'local-media-fallback' });
                         S.gen=false;
                         document.getElementById('btn').disabled=false;
                         document.getElementById('btn').textContent = '➜';
@@ -2476,6 +2741,7 @@ ${safeJs}
                                 renderAssistantContent(fullText, el, { final: true });
                                 S.msg.push({role:"user",content:userContent});
                                 S.msg.push({role:"assistant",content:fullText});
+                                saveSyncedMessage('assistant', fullText, { mode: 'retry' });
 
                             } catch(retryError) {
                                 // If retry also fails, show a simpler error message
