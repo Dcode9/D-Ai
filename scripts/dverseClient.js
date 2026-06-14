@@ -3,6 +3,7 @@
   const SUPABASE_KEY = window.DVERSE_SUPABASE_KEY || 'sb_publishable_KX3MYtV84QJJdy9bPDuMEA_V99sLKSE';
   const ready = Boolean(window.supabase && SUPABASE_URL && SUPABASE_KEY);
   const client = ready ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+  const authRedirectUrl = () => `${window.location.origin}/`;
 
   async function getSession() {
     if (!client) return null;
@@ -21,7 +22,7 @@
     if (!client) throw new Error('D\'Verse Supabase client is not configured.');
     const { error } = await client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.href.split('#')[0] }
+      options: { redirectTo: authRedirectUrl() }
     });
     if (error) throw error;
   }
