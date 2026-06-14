@@ -162,6 +162,24 @@
     return data || [];
   }
 
+  async function deleteChat(chatId) {
+    const session = await getSession();
+    if (!client || !session || !chatId) return null;
+    const { error: messageError } = await client
+      .from('ai_messages')
+      .delete()
+      .eq('user_id', session.user.id)
+      .eq('chat_id', chatId);
+    if (messageError) throw messageError;
+    const { error } = await client
+      .from('ai_chats')
+      .delete()
+      .eq('id', chatId)
+      .eq('user_id', session.user.id);
+    if (error) throw error;
+    return true;
+  }
+
   async function listMessages(chatId) {
     const session = await getSession();
     if (!client || !session || !chatId) return [];
@@ -184,7 +202,7 @@
     onAuthStateChange,
     signInWithGoogle,
     signOut,
-    dai: { createChat, updateChat, saveMessage, listChats, listMessages }
+    dai: { createChat, updateChat, deleteChat, saveMessage, listChats, listMessages }
   };
 
   window.dispatchEvent(new CustomEvent('dverse:ready', { detail: { configured: ready } }));

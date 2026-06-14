@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D'Ai</title>
+    <title>D’Ai (Beta)</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     <link href="/styles/tailwind.css" rel="stylesheet">
 
@@ -339,6 +339,35 @@
         }
 
         #composer-dock { transform: translate3d(0, calc(var(--keyboard-inset, 0px) * -1), 0); transition: transform 180ms ease; will-change: transform; }
+        body::before { content: ''; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 8% 74%, rgba(168,85,247,0.42), transparent 14rem), radial-gradient(circle at 94% 8%, rgba(234,179,8,0.42), transparent 13rem), radial-gradient(circle at 82% 92%, rgba(236,72,153,0.24), transparent 15rem), linear-gradient(180deg, #121214 0%, #08080a 100%); z-index: -2; }
+        body::after { content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.36; background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 42px 42px; mask-image: radial-gradient(circle at center, black, transparent 74%); z-index: -1; }
+        header { background: rgba(12,12,14,0.72) !important; border-color: rgba(214,180,112,0.2) !important; box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 14px 60px rgba(0,0,0,0.28); }
+        .brand-title { font-family: Georgia, 'Times New Roman', serif; font-size: 1.35rem; font-weight: 800; line-height: 1; letter-spacing: 0.01em; color: #fff8e7; text-shadow: 0 0 18px rgba(245,158,11,0.28); }
+        .brand-title span { color: #e9c985; font-size: 0.82rem; font-family: Inter, sans-serif; font-weight: 800; vertical-align: 0.08em; }
+        .brand-subtitle { margin-top: 0.25rem; font-size: 0.58rem; color: #9a8f7a; text-transform: uppercase; letter-spacing: 0.22em; }
+        .ornate-top-button, .ornate-icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.38rem; min-height: 2rem; padding: 0.4rem 0.68rem; border: 1px solid rgba(214,180,112,0.35); border-radius: 0.28rem; color: #f8e7bd; background: linear-gradient(135deg, rgba(116,69,154,0.35), rgba(214,180,112,0.16)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px rgba(168,85,247,0.12); font-size: 0.72rem; font-weight: 800; }
+        .ornate-icon-button { width: 2rem; padding: 0; font-size: 1rem; }
+        .dverse-auth-btn { border-color: rgba(214,180,112,0.28); background: rgba(19,18,20,0.7); }
+        main::before { content: ''; position: absolute; left: -1rem; top: 0.2rem; bottom: 10.5rem; width: 1px; background: linear-gradient(transparent, rgba(214,180,112,0.45), transparent); box-shadow: 8px 0 0 rgba(214,180,112,0.12); }
+        .dai-hero { opacity: 1; min-height: 52vh; }
+        .mode-grid { display: grid; grid-template-columns: repeat(5, minmax(4.75rem, 1fr)); gap: clamp(0.85rem, 4vw, 2.35rem); width: min(690px, 94vw); margin-top: 10vh; }
+        .mode-card { position: relative; min-height: 4.15rem; display: grid; place-items: center; gap: 0.25rem; color: #fff6df; background: linear-gradient(180deg, rgba(18,18,20,0.92), rgba(10,10,12,0.9)); border: 1px solid rgba(214,180,112,0.5); clip-path: polygon(10% 0, 90% 0, 100% 22%, 100% 78%, 90% 100%, 10% 100%, 0 78%, 0 22%); box-shadow: 0 0 0 1px rgba(113,78,145,0.4), inset 0 0 22px rgba(214,180,112,0.08), 0 18px 35px rgba(0,0,0,0.35); transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
+        .mode-card:hover { transform: translateY(-4px); border-color: rgba(255,226,166,0.85); box-shadow: 0 0 0 1px rgba(168,85,247,0.55), inset 0 0 24px rgba(214,180,112,0.16), 0 18px 46px rgba(168,85,247,0.2); }
+        .mode-card i { color: #d8b66f; font-size: 1rem; }
+        .mode-card span { font-family: Georgia, 'Times New Roman', serif; font-size: 0.95rem; }
+        #composer-dock { background: linear-gradient(to top, rgba(5,5,6,0.98), rgba(5,5,6,0.82), transparent) !important; }
+        #composer-shell { border-color: rgba(214,180,112,0.46) !important; border-radius: 0 !important; background: rgba(11,12,14,0.86) !important; box-shadow: 0 0 0 1px rgba(116,69,154,0.36), 0 0 42px rgba(214,180,112,0.12), 0 18px 70px rgba(0,0,0,0.42); }
+        #composer-shell::before, #composer-shell::after { content: '◇'; position: absolute; top: 50%; transform: translateY(-50%); color: rgba(214,180,112,0.7); font-size: 1.6rem; pointer-events: none; }
+        #composer-shell::before { left: -1.2rem; } #composer-shell::after { right: -1.2rem; }
+        .composer-disclaimer { width: 100%; text-align: center; color: #8d8677; font-size: 0.76rem; margin: 0.45rem 0 0; }
+        .history-panel { background: radial-gradient(circle at 20% 0%, rgba(168,85,247,0.18), transparent 14rem), rgba(10,10,12,0.97) !important; border-right-color: rgba(214,180,112,0.28) !important; }
+        .history-item { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: center; border-color: rgba(214,180,112,0.09) !important; }
+        .history-open { min-width: 0; text-align: left; }
+        .history-delete { width: 1.85rem; height: 1.85rem; border-radius: 999px; color: #a79c89; border: 1px solid rgba(214,180,112,0.16); }
+        .history-delete:hover { color: #fecdd3; border-color: rgba(244,63,94,0.4); background: rgba(244,63,94,0.1); }
+        .dverse-auth-btn { border-color: rgba(214,180,112,0.28) !important; background: rgba(19,18,20,0.7) !important; }
+        @media (max-width: 640px) { .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 4vh; } .ornate-top-button span { display:none; } #composer-shell::before, #composer-shell::after { display:none; } }
+
 
         .dverse-auth-btn { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2rem; padding: 0.42rem 0.72rem; border: 1px solid var(--dai-border); border-radius: 999px; background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.01em; transition: border-color 0.2s, background 0.2s, color 0.2s; }
         .dverse-auth-btn:hover, .dverse-auth-btn.is-signed-in { border-color: rgba(56,189,248,0.42); background: rgba(56,189,248,0.1); color: #f8fafc; }
@@ -399,15 +428,15 @@
 </head>
 <body class="flex flex-col h-screen">
     <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
-        <button id="history-toggle" class="absolute left-6 top-5 text-gray-500 hover:text-white transition-colors text-lg" title="Open saved chats" aria-label="Open saved chats"><i class="fa-solid fa-bars-staggered"></i></button>
+        <button id="history-toggle" class="ornate-top-button absolute left-6 top-4" title="Open saved chats" aria-label="Open saved chats"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></button>
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
+            <div class="text-center"><h1 class="brand-title">D’Ai <span>(Beta)</span></h1><p class="brand-subtitle">Threaded creative AI workspace</p></div>
         </div>
         <div class="absolute right-6 top-4 flex items-center gap-2">
             <button id="auth-button" class="dverse-auth-btn" title="Sign in to sync chats" aria-label="Sign in to sync chats"><i class="fa-solid fa-user-astronaut"></i><span>Sign in</span></button>
-            <button id="new-chat-button" class="text-gray-500 hover:text-white transition-colors text-lg" title="New chat" aria-label="New chat"><i class="fa-solid fa-plus"></i></button>
-            <button onclick="location.reload()" class="text-gray-500 hover:text-white transition-colors text-lg" title="Refresh chat" aria-label="Refresh chat">↻</button>
+            <button id="new-chat-button" class="ornate-top-button" title="New chat" aria-label="New chat"><i class="fa-solid fa-plus"></i><span>New chat</span></button>
+            <button onclick="location.reload()" class="ornate-icon-button" title="Refresh chat" aria-label="Refresh chat">↻</button>
         </div>
     </header>
 
@@ -434,9 +463,14 @@
 
     <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
         <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center opacity-80 select-none">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-20 w-auto mb-6" alt="Logo">
-                <h2 class="text-2xl font-bold text-white tracking-tight">D'Ai ✨ - Scary Fast.</h2>
+            <div id="hero" class="h-full flex flex-col items-center justify-center select-none dai-hero">
+                <div class="mode-grid" aria-label="D’Ai modes">
+                    <button type="button" data-mode-prompt="Create an image of " class="mode-card"><i class="fa-regular fa-image"></i><span>Image</span></button>
+                    <button type="button" data-mode-prompt="Create a video of " class="mode-card"><i class="fa-solid fa-video"></i><span>Video</span></button>
+                    <button type="button" data-mode-prompt="Write code for " class="mode-card"><i class="fa-solid fa-code"></i><span>Code</span></button>
+                    <button type="button" data-mode-prompt="Help me write " class="mode-card"><i class="fa-solid fa-align-left"></i><span>Text</span></button>
+                    <button type="button" data-mode-prompt="Create music for " class="mode-card"><i class="fa-solid fa-music"></i><span>Music</span></button>
+                </div>
             </div>
         </div>
         <button id="scroll-btn" onclick="window.scrollToBottom()" title="Scroll to bottom" aria-label="Scroll to bottom">↓</button>
@@ -471,6 +505,7 @@
                 <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors text-xl" title="Send" aria-label="Send">➜</button>
             </div>
         </div>
+        <p class="composer-disclaimer">D’Ai can make mistakes.</p>
     </div>
 
     <!-- Scripts -->
@@ -2237,6 +2272,19 @@ ${safeJs}
                         await done;
                         return (chats || []).sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
                     },
+                    async deleteChat(chatId) {
+                        if (!chatId) return false;
+                        const db = await openDb();
+                        const tx = db.transaction(['chats', 'messages'], 'readwrite');
+                        const done = txDone(tx);
+                        tx.objectStore('chats').delete(chatId);
+                        const messageStore = tx.objectStore('messages');
+                        const index = messageStore.index('chat_id');
+                        const messages = await requestResult(index.getAllKeys(IDBKeyRange.only(chatId)));
+                        (messages || []).forEach(key => messageStore.delete(key));
+                        await done;
+                        return true;
+                    },
                     async listMessages(chatId) {
                         if (!chatId) return [];
                         const db = await openDb();
@@ -2320,10 +2368,13 @@ ${safeJs}
                     return;
                 }
                 list.innerHTML = dverseState.chats.map(chat => `
-                    <button class="history-item ${chat.id === dverseState.currentChatId ? 'active' : ''}" data-chat-id="${escapeHtml(chat.id)}">
-                        <span class="history-item-title">${escapeHtml(chat.title || 'New chat')}</span>
-                        <span class="history-item-meta">${formatHistoryDate(chat.updated_at || chat.created_at)}</span>
-                    </button>
+                    <div class="history-item ${chat.id === dverseState.currentChatId ? 'active' : ''}" data-chat-id="${escapeHtml(chat.id)}">
+                        <button class="history-open" data-open-chat-id="${escapeHtml(chat.id)}" title="Open conversation">
+                            <span class="history-item-title">${escapeHtml(chat.title || 'New chat')}</span>
+                            <span class="history-item-meta">${formatHistoryDate(chat.updated_at || chat.created_at)}</span>
+                        </button>
+                        <button class="history-delete" data-delete-chat-id="${escapeHtml(chat.id)}" title="Delete conversation" aria-label="Delete conversation"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
                 `).join('');
             };
             const refreshChats = async () => {
@@ -2434,10 +2485,29 @@ ${safeJs}
                 document.getElementById('history-close')?.addEventListener('click', () => setHistoryOpen(false));
                 document.getElementById('history-backdrop')?.addEventListener('click', () => setHistoryOpen(false));
                 newButtons.forEach(button => button.addEventListener('click', resetConversation));
-                document.getElementById('history-list')?.addEventListener('click', (event) => {
-                    const item = event.target.closest('[data-chat-id]');
-                    if (item) loadSyncedChat(item.getAttribute('data-chat-id'));
+                document.getElementById('history-list')?.addEventListener('click', async (event) => {
+                    const deleteItem = event.target.closest('[data-delete-chat-id]');
+                    if (deleteItem) {
+                        event.stopPropagation();
+                        const chatId = deleteItem.getAttribute('data-delete-chat-id');
+                        try {
+                            if (historyApi().deleteChat) await historyApi().deleteChat(chatId);
+                            if (dverseState.currentChatId === chatId) resetConversation();
+                            await refreshChats();
+                        } catch (error) {
+                            console.error('[DVerse] Failed to delete chat:', error);
+                            setSyncStatus(error?.message || 'Could not delete chat.', 'error');
+                        }
+                        return;
+                    }
+                    const item = event.target.closest('[data-open-chat-id]');
+                    if (item) loadSyncedChat(item.getAttribute('data-open-chat-id'));
                 });
+                document.querySelectorAll('[data-mode-prompt]').forEach(button => button.addEventListener('click', () => {
+                    E.i.value = button.getAttribute('data-mode-prompt') || '';
+                    E.i.focus();
+                    E.i.dispatchEvent(new Event('input', { bubbles: true }));
+                }));
                 authButton?.addEventListener('click', async () => {
                     try {
                         if (!dverseReady()) throw new Error('Supabase client is not available.');
