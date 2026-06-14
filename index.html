@@ -427,7 +427,7 @@
                 <p id="auth-status">Sign in to save and reopen conversations.</p>
             </div>
         </div>
-        <button id="history-new" class="history-primary"><i class="fa-solid fa-pen-to-square"></i> New synced chat</button>
+        <button id="history-new" class="history-primary"><i class="fa-solid fa-pen-to-square"></i> New chat</button>
         <div class="history-section-title">Recent conversations</div>
         <div id="history-list" class="history-list"><div class="history-empty">Sign in to load your saved chats.</div></div>
     </aside>
@@ -486,25 +486,6 @@
         window.pdfjsLib = pdfjsLib;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
-    <script type="module">
-        import { upload } from 'https://esm.sh/@vercel/blob@2.4.0/client';
-
-        window.uploadToPrivateBlob = (file, onProgress) => {
-            const safeName = file.name || `image-${Date.now()}`;
-            return upload(`vision/${Date.now()}-${safeName}`, file, {
-                access: 'private',
-                handleUploadUrl: '/api/upload',
-                contentType: file.type,
-                multipart: true,
-                clientPayload: JSON.stringify({
-                    contentType: file.type,
-                    size: file.size
-                }),
-                onUploadProgress: onProgress
-            });
-        };
-    </script>
-
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
         const stableId = (prefix, value) => `${prefix}-${Math.abs(hashCode(String(value || prefix))).toString(36)}`;
@@ -677,14 +658,7 @@ ${safeJs}
         window.privateBlobAvailable = false;
         window.attachmentPreviewUrl = null;
 
-        fetch('/api/upload')
-            .then(res => res.ok ? res.json() : { available: false })
-            .then(data => {
-                window.privateBlobAvailable = !!data.available;
-            })
-            .catch(() => {
-                window.privateBlobAvailable = false;
-            });
+        window.privateBlobAvailable = false;
 
         const fileToVisionDataUrl = async (file) => {
             const sourceUrl = URL.createObjectURL(file);
@@ -984,50 +958,15 @@ ${safeJs}
                 return;
             }
 
-            if (!window.privateBlobAvailable || !window.uploadToPrivateBlob) {
-                try {
-                    await useLocalVisionFallback(window.privateBlobAvailable ? 'Blob client module was not ready.' : 'Private Blob storage is not configured.');
-                } catch (err) {
-                    console.error(err);
-                    alert("Image upload failed. Please try again.");
-                    window.removeAttachment();
-                } finally {
-                    window.isUploading = false;
-                }
-                return;
+            try {
+                await useLocalVisionFallback('D\'Ai keeps uploads local and stores only metadata in cloud history.');
+            } catch (err) {
+                console.error(err);
+                alert("Image upload failed. Please try again.");
+                window.removeAttachment();
+            } finally {
+                window.isUploading = false;
             }
-
-            window.uploadToPrivateBlob(file)
-                .then(async blob => {
-                    const visionUrl = blob.downloadUrl || blob.url;
-                    if (!visionUrl) throw new Error('Upload completed without a readable image URL.');
-
-                    window.pendingAttachment = {
-                        type: 'image',
-                        name: safeAttachmentName(file.name || 'Image'),
-                        mime: file.type || 'image',
-                        size: file.size,
-                        url: visionUrl,
-                        width: imageMeta?.width || 0,
-                        height: imageMeta?.height || 0,
-                        aspectRatio: imageMeta?.aspectRatio || 'unknown'
-                    };
-                    console.log('[Upload] Image uploaded successfully:', blob.pathname || visionUrl);
-                    window.uploadedImageUrl = visionUrl;
-                    finishAttachmentPreview(`Image • ${formatBytes(file.size)}`);
-                })
-                .catch(async err => {
-                    try {
-                        await useLocalVisionFallback(err?.message || err);
-                    } catch (fallbackErr) {
-                        console.error(fallbackErr);
-                        alert("Image upload failed. Please try again.");
-                        window.removeAttachment();
-                    }
-                })
-                .finally(() => {
-                    window.isUploading = false;
-                });
         };
 
         window.removeAttachment = () => {
@@ -2204,17 +2143,149 @@ ${safeJs}
 
                 return `<span class="attachment-card mt-2"><span class="attachment-icon"><i class="fa-solid ${fileKindIcon(attachment.kind)}"></i></span><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name)}</span><span class="attachment-detail">${detail}</span></span></span>`;
             };
+            const renderStoredAttachmentChip = (attachment) => {
+                if (!attachment) return '';
+                const detail = attachment.type === 'image'
+                    ? `Image • ${formatBytes(attachment.size || 0)}`
+                    : `${(attachment.kind || attachment.mime || 'FILE').toUpperCase()} • ${formatBytes(attachment.size || 0)}`;
+                if (attachment.type === 'image' && attachment.url) {
+                    return `<span class="attachment-card mt-2"><img class="attachment-thumb" src="${escapeHtml(attachment.url)}" alt=""><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name || 'Image')}</span><span class="attachment-detail">${detail}</span></span></span>`;
+                }
+                return `<span class="attachment-card mt-2"><span class="attachment-icon"><i class="fa-solid ${attachment.type === 'image' ? 'fa-image' : fileKindIcon(attachment.kind)}"></i></span><span class="attachment-meta"><span class="attachment-name">${escapeHtml(attachment.name || 'Attachment')}</span><span class="attachment-detail">${detail} • local file only</span></span></span>`;
+            };
 
+            const localHistoryStore = (() => {
+                const dbName = 'dai-local-chat-history';
+                const version = 1;
+                let dbPromise = null;
+                const makeId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+                const openDb = () => {
+                    if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB is not available in this browser.'));
+                    if (!dbPromise) {
+                        dbPromise = new Promise((resolve, reject) => {
+                            const request = indexedDB.open(dbName, version);
+                            request.onupgradeneeded = () => {
+                                const db = request.result;
+                                if (!db.objectStoreNames.contains('chats')) {
+                                    const chats = db.createObjectStore('chats', { keyPath: 'id' });
+                                    chats.createIndex('updated_at', 'updated_at');
+                                }
+                                if (!db.objectStoreNames.contains('messages')) {
+                                    const messages = db.createObjectStore('messages', { keyPath: 'id' });
+                                    messages.createIndex('chat_id', 'chat_id');
+                                }
+                            };
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                    return dbPromise;
+                };
+                const txDone = (tx) => new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error);
+                });
+                const requestResult = (request) => new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                const withStore = async (storeName, mode, fn) => {
+                    const db = await openDb();
+                    const tx = db.transaction(storeName, mode);
+                    const done = txDone(tx);
+                    const value = await fn(tx.objectStore(storeName));
+                    await done;
+                    return value;
+                };
+                return {
+                    async createChat(title = 'New chat', metadata = {}) {
+                        const now = new Date().toISOString();
+                        const chat = { id: makeId('local_chat'), title, metadata, created_at: now, updated_at: now };
+                        await withStore('chats', 'readwrite', (store) => {
+                            store.put(chat);
+                            return Promise.resolve(chat);
+                        });
+                        return chat;
+                    },
+                    async updateChat(chatId, patch = {}) {
+                        if (!chatId) return null;
+                        return withStore('chats', 'readwrite', async (store) => {
+                            const existing = await requestResult(store.get(chatId));
+                            if (!existing) return null;
+                            const chat = { ...existing, ...patch, updated_at: patch.updated_at || new Date().toISOString() };
+                            store.put(chat);
+                            return chat;
+                        });
+                    },
+                    async saveMessage(chatId, role, content, metadata = {}) {
+                        if (!chatId || !content) return null;
+                        const now = new Date().toISOString();
+                        const message = { id: makeId('local_msg'), chat_id: chatId, role, content, metadata, created_at: now };
+                        await withStore('messages', 'readwrite', (store) => {
+                            store.add(message);
+                            return Promise.resolve(message);
+                        });
+                        await this.updateChat(chatId, { updated_at: now, metadata: { source: 'd-ai-local', last_role: role } });
+                        return message;
+                    },
+                    async listChats() {
+                        const db = await openDb();
+                        const tx = db.transaction('chats', 'readonly');
+                        const done = txDone(tx);
+                        const chats = await requestResult(tx.objectStore('chats').getAll());
+                        await done;
+                        return (chats || []).sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+                    },
+                    async listMessages(chatId) {
+                        if (!chatId) return [];
+                        const db = await openDb();
+                        const tx = db.transaction('messages', 'readonly');
+                        const done = txDone(tx);
+                        const messages = await requestResult(tx.objectStore('messages').index('chat_id').getAll(IDBKeyRange.only(chatId)));
+                        await done;
+                        return (messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                    }
+                };
+            })();
             const dverseState = { session: null, chats: [], currentChatId: null, chatPromise: null, saving: false, loading: false };
             const dverseApi = () => window.dverse?.dai;
             const dverseReady = () => Boolean(window.dverse?.isConfigured && dverseApi());
+            const usingCloudHistory = () => Boolean(dverseReady() && dverseState.session);
+            const historyApi = () => usingCloudHistory() ? dverseApi() : localHistoryStore;
             const chatTitleFrom = (text) => String(text || 'New chat').replace(/\s+/g, ' ').trim().slice(0, 58) || 'New chat';
             const visibleMessages = () => S.msg.filter(message => message.role !== 'system');
             const displayFromStoredUser = (content) => String(content || '')
                 .replace(/\s*\[UPLOADED_IMAGE:[^\]]+\]/g, '')
                 .replace(/\s*\[UPLOADED_IMAGE_ASPECT_RATIO:[^\]]+\]/g, '')
                 .replace(/\n\n\[UPLOADED_DOCUMENT:[\s\S]*$/g, '\n\n📎 Uploaded document')
+                .replace(/\n\n\[LOCAL_ATTACHMENT:[\s\S]*$/g, '\n\n📎 Uploaded file')
                 .trim();
+            const cloudSafeUserContent = (text, attachment) => {
+                const base = String(text || '').trim();
+                if (!attachment) return base;
+                const label = `${attachment.type || 'file'}; ${attachment.mime || attachment.kind || 'unknown'}; ${attachment.name || 'Attachment'}`;
+                return `${base}\n\n[LOCAL_ATTACHMENT: ${label}]`.trim();
+            };
+            const attachmentMetadata = (attachment, displayText, includeLocalPreview = false) => {
+                const metadata = { has_attachment: Boolean(attachment), display_text: displayText };
+                if (!attachment) return metadata;
+                metadata.attachment = {
+                    type: attachment.type,
+                    kind: attachment.kind || null,
+                    name: attachment.name || 'Attachment',
+                    mime: attachment.mime || null,
+                    size: attachment.size || 0,
+                    width: attachment.width || null,
+                    height: attachment.height || null,
+                    aspectRatio: attachment.aspectRatio || null,
+                    local_only: true
+                };
+                if (includeLocalPreview && attachment.type === 'image' && attachment.url) {
+                    metadata.attachment.url = attachment.url;
+                }
+                return metadata;
+            };
             const formatHistoryDate = (value) => {
                 if (!value) return 'Recently updated';
                 try {
@@ -2240,20 +2311,12 @@ ${safeJs}
             const renderHistoryList = () => {
                 const list = document.getElementById('history-list');
                 if (!list) return;
-                if (!dverseReady()) {
-                    list.innerHTML = '<div class="history-empty">Supabase is not configured yet. Add the client library and keys to enable cloud history.</div>';
-                    return;
-                }
-                if (!dverseState.session) {
-                    list.innerHTML = '<div class="history-empty">Sign in with Google to load saved chats from Supabase.</div>';
-                    return;
-                }
                 if (dverseState.loading) {
-                    list.innerHTML = '<div class="history-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading saved chats...</div>';
+                    list.innerHTML = `<div class="history-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${usingCloudHistory() ? 'cloud' : 'local'} chats...</div>`;
                     return;
                 }
                 if (!dverseState.chats.length) {
-                    list.innerHTML = '<div class="history-empty">No saved chats yet. Your next message will create one automatically.</div>';
+                    list.innerHTML = `<div class="history-empty">No ${usingCloudHistory() ? 'cloud' : 'local'} chats yet. Your next message will create one automatically.</div>`;
                     return;
                 }
                 list.innerHTML = dverseState.chats.map(chat => `
@@ -2264,12 +2327,15 @@ ${safeJs}
                 `).join('');
             };
             const refreshChats = async () => {
-                if (!dverseReady() || !dverseState.session) return renderHistoryList();
                 dverseState.loading = true;
                 renderHistoryList();
                 try {
-                    dverseState.chats = await dverseApi().listChats();
-                    setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • chats synced`, 'signed-in');
+                    dverseState.chats = await historyApi().listChats();
+                    if (usingCloudHistory()) {
+                        setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • chats synced`, 'signed-in');
+                    } else {
+                        setSyncStatus('Guest mode • chats saved on this device');
+                    }
                 } catch (error) {
                     console.error('[DVerse] Failed to load chats:', error);
                     setSyncStatus(error?.message || 'Could not load saved chats.', 'error');
@@ -2290,12 +2356,14 @@ ${safeJs}
                 setHistoryOpen(false);
             };
             const ensureSyncedChat = async (firstUserText) => {
-                if (!dverseReady() || !dverseState.session) return null;
                 if (dverseState.currentChatId) return dverseState.currentChatId;
                 if (dverseState.chatPromise) return dverseState.chatPromise;
                 dverseState.chatPromise = (async () => {
                     try {
-                        const chat = await dverseApi().createChat(chatTitleFrom(firstUserText), { source: 'd-ai-web' });
+                        const chat = await historyApi().createChat(chatTitleFrom(firstUserText), {
+                            source: usingCloudHistory() ? 'd-ai-web' : 'd-ai-local',
+                            storage: usingCloudHistory() ? 'supabase' : 'indexeddb'
+                        });
                         if (chat?.id) {
                             dverseState.currentChatId = chat.id;
                             dverseState.chats = [chat, ...dverseState.chats.filter(item => item.id !== chat.id)];
@@ -2317,8 +2385,10 @@ ${safeJs}
                 const chatId = await ensureSyncedChat(role === 'user' ? content : visibleMessages().find(message => message.role === 'user')?.content);
                 if (!chatId) return;
                 try {
-                    await dverseApi().saveMessage(chatId, role, content, metadata);
-                    await dverseApi().updateChat(chatId, { metadata: { source: 'd-ai-web', last_role: role } });
+                    await historyApi().saveMessage(chatId, role, content, metadata);
+                    await historyApi().updateChat(chatId, {
+                        metadata: { source: usingCloudHistory() ? 'd-ai-web' : 'd-ai-local', last_role: role }
+                    });
                     refreshChats();
                 } catch (error) {
                     console.error('[DVerse] Failed to save message:', error);
@@ -2326,19 +2396,21 @@ ${safeJs}
                 }
             };
             const loadSyncedChat = async (chatId) => {
-                if (!dverseReady() || !dverseState.session || !chatId || dverseState.loading) return;
+                if (!chatId || dverseState.loading) return;
                 dverseState.loading = true;
                 renderHistoryList();
                 try {
-                    const messages = await dverseApi().listMessages(chatId);
+                    const messages = await historyApi().listMessages(chatId);
                     S.msg = messages.map(message => ({ role: message.role, content: message.content }));
                     dverseState.currentChatId = chatId;
                     E.c.querySelectorAll('.msg-appear').forEach(node => node.remove());
                     E.h?.classList.toggle('hidden', S.msg.length > 0);
-                    S.msg.forEach(message => {
+                    messages.forEach(message => {
                         if (message.role === 'user') {
-                            const safe = escapeHtml(displayFromStoredUser(message.content)).replace(/\n/g, '<br>');
-                            add('user', safe || 'Saved user message');
+                            const meta = message.metadata || {};
+                            const displayText = meta.display_text ?? displayFromStoredUser(message.content);
+                            const safe = escapeHtml(displayText).replace(/\n/g, '<br>');
+                            add('user', `${safe || 'Saved user message'}${renderStoredAttachmentChip(meta.attachment)}`);
                         } else if (message.role === 'assistant') {
                             const node = add('assistant', '');
                             renderAssistantContent(message.content, node.querySelector('.markdown-body'), { final: true });
@@ -2378,8 +2450,8 @@ ${safeJs}
                 });
                 if (!dverseReady()) {
                     authButton?.setAttribute('disabled', 'true');
-                    setSyncStatus('Supabase client is not available.', 'error');
-                    renderHistoryList();
+                    setSyncStatus('Guest mode • chats saved on this device');
+                    await refreshChats();
                     return;
                 }
                 window.dverse.onAuthStateChange((event, session) => {
@@ -2390,11 +2462,10 @@ ${safeJs}
                         refreshChats();
                     } else {
                         authButton.innerHTML = '<i class="fa-solid fa-user-astronaut"></i><span>Sign in</span>';
-                        dverseState.chats = [];
                         dverseState.currentChatId = null;
                         dverseState.chatPromise = null;
-                        setSyncStatus('Sign in to save and reopen conversations.');
-                        renderHistoryList();
+                        setSyncStatus('Guest mode • chats saved on this device');
+                        refreshChats();
                     }
                 });
                 try {
@@ -2403,7 +2474,7 @@ ${safeJs}
                         authButton.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Synced</span>';
                         setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • syncing enabled`, 'signed-in');
                     } else {
-                        setSyncStatus('Sign in to save and reopen conversations.');
+                        setSyncStatus('Guest mode • chats saved on this device');
                     }
                     await refreshChats();
                 } catch (error) {
@@ -2568,7 +2639,9 @@ ${safeJs}
 
                 S.msg.push({role:"user",content:userContent});
                 add('user', displayHtml);
-                saveSyncedMessage('user', userContent, { has_attachment: Boolean(attachment), display_text: t });
+                const cloudHistoryActive = usingCloudHistory();
+                const persistedUserContent = cloudHistoryActive ? cloudSafeUserContent(t, attachment) : userContent;
+                saveSyncedMessage('user', persistedUserContent, attachmentMetadata(attachment, t, !cloudHistoryActive));
 
                 const assistantMessage = add('assistant','');
                 launchSendAura(assistantMessage);
