@@ -14,156 +14,70 @@ function getTextContent(content) {
   return '';
 }
 
-function cleanUploadedImageMarkers(content) {
-  if (typeof content === 'string') {
-    return content.replace(UPLOADED_IMAGE_RE, '[image attached]').replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]');
-  }
-  if (Array.isArray(content)) {
-    return content.map((part) => {
-      if (part?.type === 'text') {
-        return { ...part, text: (part.text || '').replace(UPLOADED_IMAGE_RE, '[image attached]').replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]') };
-      }
-      return part;
-    });
-  }
-  return content;
+function stripUploadedImageMarkers(text) {
+  return String(text || '')
+    .replace(UPLOADED_IMAGE_RE, '[image attached]')
+    .replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]')
+    .trim();
 }
 
-function collectUploadedImages(messages) {
-  const found = [];
-  for (const message of messages || []) {
-    const text = getTextContent(message.content);
-    let match;
-    UPLOADED_IMAGE_RE.lastIndex = 0;
-    while ((match = UPLOADED_IMAGE_RE.exec(text))) {
-      found.push({
-        url: match[1].trim(),
-        message
-      });
+function contentToCerebrasParts(content) {
+  const text = getTextContent(content);
+  const parts = [];
+  const cleanedText = stripUploadedImageMarkers(text);
+  if (cleanedText) {
+    parts.push({ type: 'text', text: cleanedText });
+  }
+
+  const imageMatches = [];
+  let match;
+  UPLOADED_IMAGE_RE.lastIndex = 0;
+  while ((match = UPLOADED_IMAGE_RE.exec(text)) && imageMatches.length < 5) {
+    const url = match[1].trim();
+    if (/^data:image\/(png|jpe?g);base64,/i.test(url)) {
+      imageMatches.push(url);
     }
   }
-  return found;
+
+  for (const url of imageMatches) {
+    parts.push({ type: 'image_url', image_url: { url } });
+  }
+
+  return imageMatches.length ? parts : cleanedText;
 }
 
-
-
-function collectUploadedImageAspects(messages) {
-  const found = [];
-  for (const message of messages || []) {
-    const text = getTextContent(message.content);
-    let match;
-    UPLOADED_IMAGE_ASPECT_RE.lastIndex = 0;
-    while ((match = UPLOADED_IMAGE_ASPECT_RE.exec(text))) {
-      found.push(match[1].trim());
-    }
+function normalizeMessageForCerebras(message) {
+  if (!message || typeof message !== 'object') return message;
+  if (message.role === 'user') {
+    return { ...message, content: contentToCerebrasParts(message.content) };
   }
-  return found;
+  if (typeof message.content === 'string') {
+    return { ...message, content: stripUploadedImageMarkers(message.content) };
+  }
+  if (Array.isArray(message.content)) {
+    return {
+      ...message,
+      content: message.content.map((part) => {
+        if (part?.type === 'text') return { ...part, text: stripUploadedImageMarkers(part.text) };
+        return part;
+      })
+    };
+  }
+  return message;
 }
 
 function normalizeChatModel(model) {
   const value = typeof model === 'string' ? model.trim() : '';
-  if (!value || value === 'llama3.1-8b') return 'gpt-oss-120b';
+  if (!value || value === 'llama3.1-8b' || value === 'gpt-oss-120b') return 'gemma-4-31b';
   return value;
-}
-
-function shouldUseVision(latestText, hasImageOnLatestTurn, hasPriorImage) {
-  if (hasImageOnLatestTurn) return true;
-  if (!hasPriorImage) return false;
-  return /\b(image|photo|picture|pic|screenshot|uploaded|attachment|visual|look|see|describe|what is this|what's this|in it|about it)\b/i.test(latestText);
-}
-
-async function describeImageWithPollinations({ apiKey, imageUrl, userText }) {
-  const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-scout',
-      stream: false,
-      max_tokens: 1200,
-      temperature: 0.2,
-      messages: [
-        {
-          role: 'system',
-          content: 'Describe the image in rich, objective detail for another assistant. Include visible objects, people, text, layout, colors, actions, notable context, and any details relevant to the user request. Do not answer the user directly.'
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `User request: ${userText || 'Describe this image.'}`
-            },
-            {
-              type: 'image_url',
-              image_url: { url: imageUrl }
-            }
-          ]
-        }
-      ]
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Pollinations vision error (${response.status}): ${errorText}`);
-  }
-
-  const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
-  if (typeof content === 'string') {
-    return content.trim();
-  }
-  if (Array.isArray(content)) {
-    return content.map((part) => part?.text || '').join('\n').trim();
-  }
-  return '';
 }
 
 async function prepareCerebrasBody(incomingBody) {
   const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
-  const latestUserIndex = messages.map((m) => m.role).lastIndexOf('user');
-  const latestUser = latestUserIndex >= 0 ? messages[latestUserIndex] : null;
-  const latestText = getTextContent(latestUser?.content || '');
-  const uploadedImages = collectUploadedImages(messages);
-  const uploadedAspects = collectUploadedImageAspects(messages);
-  const latestImages = latestUser ? collectUploadedImages([latestUser]) : [];
-  const latestAspects = latestUser ? collectUploadedImageAspects([latestUser]) : [];
-  const shouldDescribe = shouldUseVision(latestText, latestImages.length > 0, uploadedImages.length > 0);
-
-  let finalMessages = messages.map((message) => ({
-    ...message,
-    content: cleanUploadedImageMarkers(message.content)
-  }));
-
-  if (shouldDescribe) {
-    const pollinationsKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
-    if (!pollinationsKey) {
-      throw new Error('Missing POLLINATIONS_API env var for vision requests');
-    }
-
-    const imageUrl = (latestImages[latestImages.length - 1] || uploadedImages[uploadedImages.length - 1])?.url;
-    const imageDescription = await describeImageWithPollinations({
-      apiKey: pollinationsKey,
-      imageUrl,
-      userText: latestText.replace(UPLOADED_IMAGE_RE, '').trim()
-    });
-
-    if (imageDescription) {
-      const aspectRatio = (latestAspects[latestAspects.length - 1] || uploadedAspects[uploadedAspects.length - 1] || 'unknown');
-      finalMessages.splice(Math.max(latestUserIndex, 0), 0, {
-        role: 'system',
-        content: "Private vision analysis from Pollinations model 'llama-scout'. Use this as visual context to answer the user's request. The uploaded image aspect ratio is " + aspectRatio + ". Do not mention this analysis pass, the vision model, or internal model handoff unless the user explicitly asks about system internals.\n\n" + imageDescription
-      });
-    }
-  }
-
   return {
     ...incomingBody,
     model: normalizeChatModel(incomingBody.model),
-    messages: finalMessages
+    messages: messages.map(normalizeMessageForCerebras)
   };
 }
 
