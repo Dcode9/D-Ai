@@ -351,9 +351,12 @@
         .history-eyebrow, .history-section-title { color: #7dd3fc; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 800; }
         .history-close { width: 2rem; height: 2rem; border-radius: 999px; color: #94a3b8; border: 1px solid var(--dai-border-soft); background: rgba(255,255,255,0.04); }
         .history-close:hover { color: #fff; border-color: var(--dai-border); }
-        .auth-card { display: grid; grid-template-columns: 2.35rem 1fr; gap: 0.75rem; align-items: center; padding: 0.85rem; border: 1px solid var(--dai-border-soft); border-radius: 18px; background: linear-gradient(135deg, rgba(56,189,248,0.09), rgba(245,158,11,0.06)); }
+        .auth-card { display: grid; grid-template-columns: 2.35rem minmax(0, 1fr); gap: 0.75rem; align-items: center; padding: 0.85rem; border: 1px solid var(--dai-border-soft); border-radius: 18px; background: linear-gradient(135deg, rgba(56,189,248,0.09), rgba(245,158,11,0.06)); }
         .auth-card strong { color: #f8fafc; font-size: 0.86rem; }
         .auth-card p { margin: 0.18rem 0 0; color: #94a3b8; font-size: 0.76rem; line-height: 1.35; }
+        .sidebar-auth { grid-column: 1 / -1; justify-content: center; min-height: 2.55rem; }
+        .history-panel:not(.open) .auth-card { grid-template-columns: 2.35rem; width: 4.1rem; padding: 0.72rem; }
+        .history-panel:not(.open) .auth-card > div:not(.auth-icon), .history-panel:not(.open) .sidebar-auth span { display: none; }
         .auth-icon { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: 14px; color: #38bdf8; background: rgba(56,189,248,0.11); border: 1px solid rgba(56,189,248,0.22); }
         .history-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; border: 1px solid rgba(56,189,248,0.28); border-radius: 16px; padding: 0.78rem 0.85rem; background: rgba(56,189,248,0.1); color: #e0f2fe; font-weight: 800; font-size: 0.84rem; }
         .history-primary:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -369,6 +372,20 @@
         .history-secondary:hover { border-color: rgba(245,158,11,0.32); background: rgba(245,158,11,0.08); color: #fff7ed; }
         .history-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        .message-actions { display: flex; gap: 0.35rem; margin-top: 0.45rem; opacity: 0; transition: opacity 0.18s ease; }
+        .msg-appear:hover .message-actions, .msg-appear:focus-within .message-actions { opacity: 1; }
+        .message-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--dai-border-soft); border-radius: 999px; color: #94a3b8; background: rgba(255,255,255,0.035); }
+        .message-action:hover { color: #f8fafc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); }
+        .topic-chip { display: inline-flex; align-items: center; gap: 0.18rem; border: 1px solid rgba(125,211,252,0.24); border-radius: 999px; padding: 0.03rem 0.42rem; margin-inline: 0.05rem; color: #bae6fd; background: rgba(56,189,248,0.08); font-weight: 650; cursor: pointer; vertical-align: baseline; }
+        .topic-chip:hover { color: #fff; border-color: rgba(245,158,11,0.42); background: rgba(245,158,11,0.1); }
+        .definition-card { margin: 0.75rem 0 1rem; border: 1px solid rgba(125,211,252,0.18); border-radius: 18px; background: radial-gradient(circle at 15% 0%, rgba(56,189,248,0.16), transparent 34%), rgba(255,255,255,0.045); overflow: hidden; }
+        .definition-card[data-kind="math"] { border-color: rgba(245,158,11,0.28); background: radial-gradient(circle at 20% 0%, rgba(245,158,11,0.16), transparent 36%), rgba(255,255,255,0.04); }
+        .definition-card[data-kind="code"] { border-color: rgba(52,211,153,0.26); background: radial-gradient(circle at 20% 0%, rgba(52,211,153,0.14), transparent 36%), rgba(255,255,255,0.04); }
+        .definition-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.72rem 0.85rem; border-bottom: 1px solid var(--dai-border-soft); color: #f8fafc; font-weight: 800; }
+        .definition-body { padding: 0.85rem; color: var(--dai-soft); }
+        .definition-close { color: #94a3b8; }
+        .definition-close:hover { color: #fff; }
+
         @media (max-width: 640px) {
             body { height: 100dvh; overflow: hidden; }
 
@@ -381,7 +398,6 @@
             .history-primary, .history-secondary { min-height: 44px; padding-inline: 0.6rem; }
             header { min-height: 3.75rem; }
             header .max-w-3xl { max-width: 100%; padding-left: 3rem; padding-right: 7.5rem; }
-            header .absolute.right-6 { gap: 0.72rem; }
             header button { min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
             #composer-dock { z-index: 25; padding-top: 1.25rem; }
             #composer-shell { max-height: calc(48dvh - env(safe-area-inset-bottom)); overflow: hidden; }
@@ -389,11 +405,9 @@
             .attachment-card { width: 100%; }
             .attachment-name { max-width: 48vw; }
             header { padding-block: 0.75rem !important; }
-            header .max-w-3xl { padding-left: 3.2rem; padding-right: 7.5rem; justify-content: flex-start; }
+            header .max-w-3xl { padding-left: 3.2rem; padding-right: 1rem; justify-content: flex-start; }
             header img { height: 1.8rem; }
             #history-toggle { left: 1rem !important; top: 0.9rem !important; }
-            header .absolute.right-6 { right: 1rem !important; top: 0.75rem !important; }
-            .dverse-auth-btn span { display: none; }
             main { max-width: 100%; padding-top: 4.35rem; }
             #chat { padding: 0.75rem 0.72rem 12.5rem; gap: 1rem; }
             .msg-appear { margin-block: 0.2rem; }
@@ -406,7 +420,7 @@
             .dai-chart-summary { grid-template-columns: 1fr; }
             .dai-chart-shell { min-height: 320px; padding: 0.55rem; }
             .dai-chart-shell canvas { height: 300px !important; }
-            #composer-dock { padding: 2.6rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom)); }
+            #composer-dock { padding: 1.1rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); transform: none; }
             #composer-shell { border-radius: 24px; }
             #composer-shell .p-3\.5 { padding: 0.82rem; }
             #in { font-size: 16px; max-height: 32dvh; }
@@ -426,30 +440,26 @@
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
             <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
         </div>
-        <div class="absolute right-6 top-4 flex items-center gap-2">
-            <button id="auth-button" class="dverse-auth-btn" title="Sign in to sync chats" aria-label="Sign in to sync chats"><i class="fa-solid fa-user-astronaut"></i><span>Sign in</span></button>
-            <button id="new-chat-button" class="text-gray-500 hover:text-white transition-colors text-lg" title="New chat" aria-label="New chat"><i class="fa-solid fa-plus"></i></button>
-            <button onclick="location.reload()" class="text-gray-500 hover:text-white transition-colors text-lg" title="Refresh chat" aria-label="Refresh chat">↻</button>
-        </div>
     </header>
 
     <div id="history-backdrop" class="history-backdrop hidden"></div>
     <aside id="history-panel" class="history-panel" aria-label="Saved chat history" aria-hidden="true">
         <div class="history-head">
             <div>
-                <div class="history-eyebrow">D'Verse Cloud</div>
-                <h2>Saved chats</h2>
+                <div class="history-eyebrow">Workspace</div>
+                <h2>Chats</h2>
             </div>
             <button id="history-close" class="history-close" title="Close saved chats" aria-label="Close saved chats"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div id="auth-card" class="auth-card">
-            <div class="auth-icon"><i class="fa-brands fa-google"></i></div>
+        <div id="auth-card" class="auth-card auth-card-open">
+            <div class="auth-icon"><i class="fa-solid fa-user"></i></div>
             <div>
-                <strong>Sync with Supabase</strong>
-                <p id="auth-status">Sign in to save and reopen conversations.</p>
+                <strong id="auth-title">Continue as guest</strong>
+                <p id="auth-status">Sign in to sync chats across devices.</p>
             </div>
+            <button id="auth-button" class="dverse-auth-btn sidebar-auth" title="Sign in" aria-label="Sign in"><i class="fa-solid fa-right-to-bracket"></i><span>Sign in</span></button>
         </div>
-        <div class="thread-actions"><button id="history-new" class="history-primary"><i class="fa-solid fa-pen-to-square"></i> New chat</button><button id="thread-fork" class="history-secondary" title="Copy the current conversation into a new thread"><i class="fa-solid fa-code-branch"></i> Branch thread</button></div>
+        <div class="thread-actions"><button id="history-new" class="history-primary"><i class="fa-solid fa-pen-to-square"></i> New chat</button><button id="thread-fork" class="history-secondary" title="Copy the current conversation into a new thread"><i class="fa-solid fa-code-branch"></i> Branch</button></div>
         <div class="history-section-title">Recent conversations</div>
         <div id="history-list" class="history-list"><div class="history-empty">Sign in to load your saved chats.</div></div>
     </aside>
@@ -1622,15 +1632,15 @@ ${safeJs}
                 .replace(/(^|[^\\])\\\(/g,'$1$').replace(/\\\)/g,'$');
 
             const sanitizeRenderedHtml = (html) => window.DOMPurify.sanitize(html, {
-                ADD_TAGS: ['svg', 'defs', 'filter', 'feGaussianBlur', 'rect'],
+                ADD_TAGS: ['svg', 'defs', 'filter', 'feGaussianBlur', 'rect', 'button'],
                 ADD_ATTR: [
                     'target', 'rel', 'style', 'controls', 'loop', 'autoplay', 'muted', 'playsinline',
                     'data-dai-media', 'data-dai-widget', 'data-widget-type', 'data-code-action',
-                    'data-table-action', 'data-dai-action', 'data-prompt', 'data-width', 'data-height',
+                    'data-table-action', 'data-dai-action', 'data-message-action', 'data-message-index', 'data-topic', 'data-kind', 'data-prompt', 'data-width', 'data-height',
                     'data-seed', 'data-container-id', 'data-source', 'data-ratio', 'data-duration',
                     'data-style', 'data-filename', 'pathLength', 'stroke-dasharray', 'stroke-dashoffset',
                     'stroke-linecap', 'stroke-width', 'stroke-opacity', 'stdDeviation', 'result',
-                    'x', 'y', 'rx', 'fill', 'stroke', 'filter'
+                    'x', 'y', 'rx', 'fill', 'stroke', 'filter', 'class', 'type', 'aria-label'
                 ],
                 FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
                 FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus']
@@ -2096,6 +2106,70 @@ ${safeJs}
                 if (options.final) hydrateAnswerSurface(target);
             };
 
+            const explainTopic = async (button) => {
+                const topic = button?.getAttribute('data-topic') || button?.textContent?.trim();
+                if (!topic) return;
+                const kind = button.getAttribute('data-kind') || 'general';
+                const existing = button.closest('.markdown-body')?.querySelector(`.definition-card[data-topic="${CSS.escape(topic)}"]`);
+                if (existing) { existing.remove(); return; }
+                const card = document.createElement('div');
+                card.className = 'definition-card';
+                card.dataset.kind = kind;
+                card.dataset.topic = topic;
+                card.innerHTML = `<div class="definition-head"><span>${escapeHtml(topic)}</span><button class="definition-close" type="button" aria-label="Close definition"><i class="fa-solid fa-xmark"></i></button></div><div class="definition-body">${activityLoader('Explaining topic', 'Building a focused definition')}</div>`;
+                button.closest('p, li, .markdown-body')?.insertAdjacentElement('afterend', card);
+                card.querySelector('.definition-close')?.addEventListener('click', () => card.remove());
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'gemma-4-31b',
+                            stream: false,
+                            max_completion_tokens: 900,
+                            temperature: 0.45,
+                            messages: [
+                                { role: 'system', content: `Explain one clicked topic for D'Ai. Topic kind: ${kind}. Use the app style: direct, compact sections, concrete example, and for math include a visual intuition or a small dai-ui demo if helpful. Do not include a top-level heading.` },
+                                { role: 'user', content: `Give a detailed but concise explanation of: ${topic}` }
+                            ]
+                        })
+                    });
+                    if (!res.ok) throw new Error(`Definition failed (${res.status})`);
+                    const data = await res.json().catch(() => null);
+                    const text = data?.choices?.[0]?.message?.content || data?.content || '';
+                    const body = card.querySelector('.definition-body');
+                    if (text && body) renderAssistantContent(text, body, { final: true });
+                    else throw new Error('No definition content returned.');
+                } catch (error) {
+                    const body = card.querySelector('.definition-body');
+                    if (body) body.textContent = error?.message || 'Could not explain this topic right now.';
+                }
+            };
+
+            document.addEventListener('click', async (event) => {
+                const topicButton = event.target.closest('.topic-chip[data-topic]');
+                if (topicButton) {
+                    event.preventDefault();
+                    explainTopic(topicButton);
+                    return;
+                }
+                const messageButton = event.target.closest('[data-message-action]');
+                if (!messageButton) return;
+                const actions = messageButton.closest('.message-actions');
+                const index = Number(actions?.getAttribute('data-message-index'));
+                const action = messageButton.getAttribute('data-message-action');
+                const message = Number.isFinite(index) ? S.msg[index] : null;
+                if (action === 'copy' && message) {
+                    await navigator.clipboard?.writeText?.(displayFromStoredUser(message.content) || message.content || '');
+                    messageButton.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    setTimeout(() => { messageButton.innerHTML = '<i class="fa-regular fa-copy"></i>'; }, 1200);
+                } else if ((action === 'branch' || action === 'branch-response') && Number.isFinite(index)) {
+                    forkThreadFromIndex(index);
+                } else if (action === 'edit' && Number.isFinite(index)) {
+                    editFromMessage(index);
+                }
+            });
+
             // SEARCH TAVILY - NOW USES SERVER ROUTE
             const searchTavily = async (query) => {
                 try {
@@ -2141,16 +2215,33 @@ ${safeJs}
                 }
             };
 
-            const add = (r,t) => {
+            const messageActions = (role, index = '') => {
+                const safeIndex = Number.isFinite(Number(index)) ? Number(index) : '';
+                const editButton = role === 'user' ? '<button class="message-action" title="Edit and resend from here" data-message-action="edit"><i class="fa-regular fa-pen-to-square"></i></button>' : '';
+                const responseButton = role === 'assistant' ? '<button class="message-action" title="Branch from this response" data-message-action="branch-response"><i class="fa-solid fa-code-branch"></i></button>' : '';
+                return `<div class="message-actions" data-message-index="${safeIndex}"><button class="message-action" title="Copy message" data-message-action="copy"><i class="fa-regular fa-copy"></i></button><button class="message-action" title="Branch from here" data-message-action="branch"><i class="fa-solid fa-diagram-project"></i></button>${editButton}${responseButton}</div>`;
+            };
+
+            const add = (r,t,index = '') => {
                 const d=document.createElement('div');
                 d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'} msg-appear`;
-                d.innerHTML=r==='user'?`<div class="user-bubble">${t}</div>`:`<div class="assistant-shell is-loading"><div class="markdown-body"></div></div>`;
+                d.dataset.role = r;
+                if (index !== '') d.dataset.messageIndex = String(index);
+                d.innerHTML=r==='user'
+                    ? `<div class="flex flex-col items-end max-w-full"><div class="user-bubble">${t}</div>${messageActions(r, index)}</div>`
+                    : `<div class="assistant-shell is-loading"><div class="markdown-body"></div>${messageActions(r, index)}</div>`;
                 E.c.appendChild(d);
 
                 if (r === 'user') {
                     d.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 return d;
+            };
+
+            const setMessageNodeIndex = (node, index) => {
+                if (!node || !Number.isFinite(Number(index))) return;
+                node.dataset.messageIndex = String(index);
+                node.querySelector('.message-actions')?.setAttribute('data-message-index', String(index));
             };
 
             const renderAttachmentChip = (attachment) => {
@@ -2275,7 +2366,11 @@ ${safeJs}
             const dverseReady = () => Boolean(window.dverse?.isConfigured && dverseApi());
             const usingCloudHistory = () => Boolean(dverseReady() && dverseState.session);
             const historyApi = () => usingCloudHistory() ? dverseApi() : localHistoryStore;
-            const chatTitleFrom = (text) => String(text || 'New chat').replace(/\s+/g, ' ').trim().slice(0, 58) || 'New chat';
+            const chatTitleFrom = (text) => {
+                const cleaned = String(text || 'New chat').replace(/\[[^\]]+\]/g, '').replace(/[^\p{L}\p{N}\s'’-]/gu, ' ').replace(/\s+/g, ' ').trim();
+                const words = cleaned.split(' ').filter(Boolean).slice(0, 5);
+                return (words.length ? words.join(' ') : 'New chat').slice(0, 58);
+            };
             const visibleMessages = () => S.msg.filter(message => message.role !== 'system');
             const displayFromStoredUser = (content) => String(content || '')
                 .replace(/\s*\[UPLOADED_IMAGE:[^\]]+\]/g, '')
@@ -2324,10 +2419,14 @@ ${safeJs}
             const setSyncStatus = (message, state = '') => {
                 const status = document.getElementById('auth-status');
                 const button = document.getElementById('auth-button');
+                const title = document.getElementById('auth-title');
                 if (status) status.textContent = message;
+                if (title) title.textContent = state === 'signed-in' ? 'Signed in' : state === 'error' ? 'Sign-in issue' : 'Continue as guest';
                 if (button) {
                     button.classList.toggle('is-error', state === 'error');
                     button.classList.toggle('is-signed-in', state === 'signed-in');
+                    button.title = state === 'signed-in' ? 'Sign out' : 'Sign in';
+                    button.setAttribute('aria-label', button.title);
                 }
             };
             const renderHistoryList = () => {
@@ -2377,6 +2476,36 @@ ${safeJs}
                 renderHistoryList();
                 setHistoryOpen(false);
             };
+            const generateChatTitle = async (chatId, seedText) => {
+                if (!chatId || !seedText) return;
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'gemma-4-31b',
+                            stream: false,
+                            max_completion_tokens: 24,
+                            temperature: 0.2,
+                            messages: [
+                                { role: 'system', content: 'Name this chat in 3 to 5 words. Return only the title, no punctuation unless necessary.' },
+                                { role: 'user', content: String(seedText).slice(0, 700) }
+                            ]
+                        })
+                    });
+                    if (!res.ok) return;
+                    const data = await res.json().catch(() => null);
+                    const raw = data?.choices?.[0]?.message?.content || '';
+                    const title = chatTitleFrom(raw.replace(/[\"“”]/g, ''));
+                    if (!title || title === 'New chat') return;
+                    await historyApi().updateChat(chatId, { title, metadata: { source: usingCloudHistory() ? 'd-ai-web' : 'd-ai-local', title_source: 'model' } });
+                    dverseState.chats = dverseState.chats.map(chat => chat.id === chatId ? { ...chat, title } : chat);
+                    renderHistoryList();
+                } catch (error) {
+                    console.info('[ChatTitle] Model title generation skipped:', error?.message || error);
+                }
+            };
+
             const ensureSyncedChat = async (firstUserText) => {
                 if (dverseState.currentChatId) return dverseState.currentChatId;
                 if (dverseState.chatPromise) return dverseState.chatPromise;
@@ -2390,6 +2519,7 @@ ${safeJs}
                             dverseState.currentChatId = chat.id;
                             dverseState.chats = [chat, ...dverseState.chats.filter(item => item.id !== chat.id)];
                             renderHistoryList();
+                            generateChatTitle(chat.id, firstUserText);
                         }
                         return chat?.id || null;
                     } catch (error) {
@@ -2417,6 +2547,70 @@ ${safeJs}
                     setSyncStatus(error?.message || 'Could not save message.', 'error');
                 }
             };
+            const forkThreadFromIndex = async (messageIndex) => {
+                const index = Number(messageIndex);
+                if (!Number.isFinite(index) || index < 0) return forkCurrentThread();
+                const previousChatId = dverseState.currentChatId;
+                const sliced = S.msg.slice(0, index + 1).filter(message => message.role !== 'system');
+                if (!sliced.length) return;
+                dverseState.loading = true;
+                renderHistoryList();
+                try {
+                    const firstUser = sliced.find(message => message.role === 'user')?.content || 'Branched conversation';
+                    const chat = await historyApi().createChat(`Branch: ${chatTitleFrom(firstUser)}`, {
+                        source: usingCloudHistory() ? 'd-ai-web' : 'd-ai-local',
+                        storage: usingCloudHistory() ? 'supabase' : 'indexeddb',
+                        forked_from: previousChatId,
+                        forked_at: new Date().toISOString(),
+                        branch_message_index: index
+                    });
+                    if (!chat?.id) throw new Error('Could not create a branched thread.');
+                    for (const message of sliced) {
+                        await historyApi().saveMessage(chat.id, message.role, message.content, {
+                            forked_from: previousChatId,
+                            branch_message_index: index,
+                            display_text: message.role === 'user' ? displayFromStoredUser(message.content) : undefined
+                        });
+                    }
+                    dverseState.currentChatId = chat.id;
+                    dverseState.chats = [chat, ...dverseState.chats.filter(item => item.id !== chat.id)];
+                    const systemMessages = S.msg.filter(message => message.role === 'system');
+                    S.msg = [...systemMessages, ...S.msg.slice(0, index + 1).filter(message => message.role !== 'system')];
+                    E.c.querySelectorAll('.msg-appear').forEach((node) => {
+                        const nodeIndex = Number(node.dataset.messageIndex);
+                        if (Number.isFinite(nodeIndex) && nodeIndex > index) node.remove();
+                    });
+                    E.c.querySelectorAll('.msg-appear').forEach((node, uiIndex) => setMessageNodeIndex(node, systemMessages.length + uiIndex));
+                    setSyncStatus('Branched from that message. Continue from here.');
+                    await refreshChats();
+                } catch (error) {
+                    console.error('[DVerse] Failed to branch from message:', error);
+                    setSyncStatus(error?.message || 'Could not branch from that message.', 'error');
+                } finally {
+                    dverseState.loading = false;
+                    renderHistoryList();
+                }
+            };
+
+            const editFromMessage = (messageIndex) => {
+                const index = Number(messageIndex);
+                if (!Number.isFinite(index) || S.msg[index]?.role !== 'user' || S.gen) return;
+                const content = displayFromStoredUser(S.msg[index].content);
+                S.msg = S.msg.slice(0, index);
+                dverseState.currentChatId = null;
+                dverseState.chatPromise = null;
+                E.c.querySelectorAll('.msg-appear').forEach((node) => {
+                    const nodeIndex = Number(node.dataset.messageIndex);
+                    if (!Number.isFinite(nodeIndex) || nodeIndex >= index) node.remove();
+                });
+                E.i.value = content;
+                E.i.focus();
+                E.i.style.height = '';
+                E.i.style.height = `${E.i.scrollHeight}px`;
+                setSyncStatus('Editing from that message creates a new thread.');
+                updateKeyboardInset();
+            };
+
             const forkCurrentThread = async () => {
                 const transcript = visibleMessages();
                 if (!transcript.length || dverseState.loading) return;
@@ -2461,14 +2655,14 @@ ${safeJs}
                     dverseState.currentChatId = chatId;
                     E.c.querySelectorAll('.msg-appear').forEach(node => node.remove());
                     E.h?.classList.toggle('hidden', S.msg.length > 0);
-                    messages.forEach(message => {
+                    messages.forEach((message, loadedIndex) => {
                         if (message.role === 'user') {
                             const meta = message.metadata || {};
                             const displayText = meta.display_text ?? displayFromStoredUser(message.content);
                             const safe = escapeHtml(displayText).replace(/\n/g, '<br>');
-                            add('user', `${safe || 'Saved user message'}${renderStoredAttachmentChip(meta.attachment)}`);
+                            add('user', `${safe || 'Saved user message'}${renderStoredAttachmentChip(meta.attachment)}`, loadedIndex);
                         } else if (message.role === 'assistant') {
-                            const node = add('assistant', '');
+                            const node = add('assistant', '', loadedIndex);
                             renderAssistantContent(message.content, node.querySelector('.markdown-body'), { final: true });
                         }
                     });
@@ -2514,11 +2708,11 @@ ${safeJs}
                 window.dverse.onAuthStateChange((event, session) => {
                     dverseState.session = session;
                     if (session) {
-                        authButton.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Synced</span>';
-                        setSyncStatus(`${session.user.email || 'Signed in'} • syncing enabled`, 'signed-in');
+                        authButton.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Sign out</span>';
+                        setSyncStatus(`${session.user.email || 'Signed in'} • chats sync automatically`, 'signed-in');
                         refreshChats();
                     } else {
-                        authButton.innerHTML = '<i class="fa-solid fa-user-astronaut"></i><span>Sign in</span>';
+                        authButton.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Sign in</span>';
                         dverseState.currentChatId = null;
                         dverseState.chatPromise = null;
                         setSyncStatus('Guest mode • chats saved on this device');
@@ -2528,8 +2722,8 @@ ${safeJs}
                 try {
                     dverseState.session = await window.dverse.getSession();
                     if (dverseState.session) {
-                        authButton.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Synced</span>';
-                        setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • syncing enabled`, 'signed-in');
+                        authButton.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Sign out</span>';
+                        setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • chats sync automatically`, 'signed-in');
                     } else {
                         setSyncStatus('Guest mode • chats saved on this device');
                     }
@@ -2548,9 +2742,10 @@ ${safeJs}
                 return keywords.some(k => text.toLowerCase().includes(k));
             };
 
-            const generativeInterfaceRe = /\b(graph|chart|plot|visuali[sz]e|dashboard|interactive demo|mini demo|simulation|pythagorean|pythagoras|hypotenuse)\b/i;
+            const generativeInterfaceRe = /\b(graph|chart|plot|visuali[sz]e|dashboard|interactive demo|mini demo|simulation|diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability|pythagorean|pythagoras|hypotenuse)\b/i;
             const detectGenerativeInterfaceType = (text) => {
                 if (/\b(pythagorean|pythagoras|hypotenuse|right triangle)\b/i.test(text)) return 'pythagoras';
+                if (/\b(diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability)\b/i.test(text)) return 'demo';
                 if (/\b(demo|interactive|simulation|calculator|sandbox|html|css|javascript|js)\b/i.test(text)) return 'demo';
                 return 'chart';
             };
@@ -2636,15 +2831,17 @@ ${safeJs}
                         content: "You are D'Ai, a helpful AI assistant made by Dhairya Shah.\n" +
                                  "Answer naturally and directly. Be warm, but do not overdo greetings or filler.\n" +
                                  "Use simple formatting: short paragraphs, bullets for lists, numbered steps for sequences, and tables only when they make comparisons clearer. Never use a top-level # heading.\n" +
+                                 "When a new conversation starts, choose an internal 3-5 word topic title through your wording and keep the answer focused on that thread.\n" +
                                  "Start with the answer or result first, then add only the context, caveats, or steps that help the user. Match the user's requested depth and tone.\n" +
                                  "Use LaTeX only for complex formulas. For normal numbers, units, and basic arithmetic, write plain text like 180°C, 10%, or 2x + 5 = 11.\n" +
                                  "If an uploaded document or image is provided, use it as context without exposing hidden tags or internal processing.\n" +
+                                 "Clickable definitions: mark 1-4 important terms only when useful with HTML buttons like <button class=\"topic-chip\" data-topic=\"Gradient descent\" data-kind=\"math\" type=\"button\">gradient descent</button>. Use data-kind values math, science, history, code, finance, or general. Do not over-tag common words.\n" +
                                  "**GENERATIVE INTERFACES:**\n" +
                                  "1. When the user asks for a graph, chart, plot, trend, comparison visualization, or data visual, create it on the spot with a `dai-ui chart` fence and a short explanation.\n" +
                                  "2. Chart format must be valid JSON exactly like: ```dai-ui chart\n{\"type\":\"line\",\"title\":\"Short title\",\"labels\":[\"A\",\"B\"],\"datasets\":[{\"label\":\"Series\",\"data\":[1,2]}]}\n```\n" +
                                  "3. Supported chart types: line, bar, pie, doughnut, scatter, radar. Prefer line for trends, bar for comparisons, and pie/doughnut only for parts of a whole.\n" +
                                  "4. For HTML/CSS/JS mini demos, use `dai-ui demo` with JSON keys: title, caption, html, css, js, height. Keep demos compact and self-contained.\n" +
-                                 "5. For the Pythagorean theorem, include a `dai-ui pythagoras` JSON widget with a, b, min, max, and step values.\n" +
+                                 "5. For the Pythagorean theorem, include a `dai-ui pythagoras` JSON widget with a, b, min, max, and step values. For geometry, vectors, functions, transformations, probability, or calculus intuition, prefer a compact `dai-ui demo` diagram using app-matching dark CSS and simple controls when it helps.\n" +
                                  "6. Never expose widget internals unless the user asks how the interface works.\n" +
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
@@ -2695,7 +2892,8 @@ ${safeJs}
                 console.log('[Send] User message content:', userContent.length > 500 ? `${userContent.slice(0, 500)}...` : userContent);
 
                 S.msg.push({role:"user",content:userContent});
-                add('user', displayHtml);
+                const userMessageIndex = S.msg.length - 1;
+                add('user', displayHtml, userMessageIndex);
                 const cloudHistoryActive = usingCloudHistory();
                 const persistedUserContent = cloudHistoryActive ? cloudSafeUserContent(t, attachment) : userContent;
                 saveSyncedMessage('user', persistedUserContent, attachmentMetadata(attachment, t, !cloudHistoryActive));
@@ -2713,12 +2911,14 @@ ${safeJs}
                         const interfaceContent = await buildGenerativeInterface(t, interfaceType);
                         renderAssistantContent(interfaceContent, el, { final: true });
                         S.msg.push({role:"assistant",content:interfaceContent});
+                        setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                         saveSyncedMessage('assistant', interfaceContent, { mode: 'interface' });
                     } catch (interfaceError) {
                         console.error('Generative interface failed:', interfaceError);
                         const fallbackText = `I couldn't build that interactive view right now. ${interfaceError.message || 'The interface generator failed.'}`;
                         renderAssistantContent(fallbackText, el, { final: true });
                         S.msg.push({role:"assistant",content:fallbackText});
+                        setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                         saveSyncedMessage('assistant', fallbackText, { mode: 'interface-error' });
                     } finally {
                         if (shouldShowAnalysing) setAnalysing(el, false);
@@ -2794,6 +2994,7 @@ ${safeJs}
 
                     renderAssistantContent(fullText, el, { final: true });
                     S.msg.push({role:"assistant",content:fullText});
+                    setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                     saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat' });
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen=false;
@@ -2808,6 +3009,7 @@ ${safeJs}
                     if (localMediaFallback) {
                         renderAssistantContent(localMediaFallback, el, { final: true });
                         S.msg.push({role:"assistant",content:localMediaFallback});
+                        setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                         saveSyncedMessage('assistant', localMediaFallback, { mode: 'local-media-fallback' });
                         S.gen=false;
                         document.getElementById('btn').disabled=false;
@@ -2871,6 +3073,7 @@ ${safeJs}
                                 renderAssistantContent(fullText, el, { final: true });
                                 S.msg.push({role:"user",content:userContent});
                                 S.msg.push({role:"assistant",content:fullText});
+                                setMessageNodeIndex(el.closest('.msg-appear'), S.msg.length - 1);
                                 saveSyncedMessage('assistant', fullText, { mode: 'retry' });
 
                             } catch(retryError) {
