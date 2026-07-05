@@ -2698,7 +2698,8 @@ ${safeJs}
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gpt-oss-120b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
+                        body:JSON.stringify({model:"gemma-4-31b
+                        ",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
