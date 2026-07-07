@@ -18,6 +18,8 @@
       return null;
     }
 
+    document.getElementById('mobile-overlay')?.addEventListener('click', () => { if (typeof setHistoryOpen === 'function') setHistoryOpen(false); });
+
     let searchMode = false;
     let bound = false;
     let touchStartX = 0;
@@ -65,7 +67,7 @@
       if (Math.abs(dy) > MAX_VERTICAL_DRIFT || Math.abs(dx) < MIN_SWIPE) return;
 
       const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
-      const startedAtEdge = touchStartX <= 36;
+      const startedAtEdge = true;
 
       if (!openNow && (dx < -MIN_SWIPE || (dx > MIN_SWIPE && startedAtEdge))) {
         setHistoryOpen(true);

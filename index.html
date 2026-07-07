@@ -399,15 +399,16 @@
         .definition-close:hover { color: #fff; }
 
         @media (max-width: 640px) {
-            body { height: 100dvh; overflow: hidden; }
+            body { position: fixed; inset: 0; width: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; }
+            html { overflow: hidden; overscroll-behavior: none; }
 
-            html, body { width: 100%; min-height: 100dvh; overscroll-behavior: none; }
-            .history-panel { width: min(100vw, 420px); max-width: 100vw; height: 100dvh; padding: calc(0.85rem + env(safe-area-inset-top)) 0.85rem calc(0.85rem + env(safe-area-inset-bottom)); transform: translateX(-105%); transition: transform 220ms ease; }
-            .history-panel.open { transform: translateX(0); width: min(100vw, 420px); }
-            .history-panel.search-open { width: 100vw; }
+            .history-panel { transform: none; width: min(100vw, 330px); max-width: 100vw; height: 100dvh; padding: calc(0.85rem + env(safe-area-inset-top)) 0.85rem calc(0.85rem + env(safe-area-inset-bottom)); z-index: 10; background: var(--dai-bg, #050505); left: 0; top: 0; }
+            .history-panel.open { transform: none; width: min(100vw, 330px); }
+            .history-panel.search-open { width: 100vw; z-index: 40; }
             .history-panel.search-open .history-search-wrap { position: sticky; top: 0; z-index: 5; }
-            .history-backdrop { z-index: 35; }
-            .history-panel { z-index: 40; }
+
+            main, #composer-dock { transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; z-index: 20; position: relative; background: var(--dai-bg, #050505); }
+            header { transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; z-index: 30; position: fixed; background: var(--dai-bg, #050505); }
             .history-list { padding-bottom: 0.5rem; }
             .thread-actions { grid-template-columns: 1fr; }
             .history-primary, .history-secondary { min-height: 44px; padding-inline: 0.6rem; }
@@ -442,16 +443,16 @@
             #scroll-btn { right: 0.9rem; bottom: 8.7rem; }
             .code-action { width: 34px; height: 34px; }
             .history-panel.search-open .history-list { padding-top: 0.2rem; }
+            body.sidebar-shifted .history-backdrop { display: none !important; }
             body.sidebar-shifted main,
             body.sidebar-shifted #composer-dock,
-            body.sidebar-shifted header .max-w-3xl,
-            body.sidebar-shifted #history-toggle {
+            body.sidebar-shifted header {
                 transform: translateX(min(74vw, 330px));
-                transition: transform 260ms ease;
-                will-change: transform;
+                pointer-events: none;
             }
-            body.sidebar-shifted main,
-            body.sidebar-shifted #composer-dock { pointer-events: none; }
+            body.sidebar-shifted { background-color: var(--dai-bg, #050505); }
+            #mobile-overlay { transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms; }
+            body.sidebar-shifted #mobile-overlay { display: block !important; opacity: 1; pointer-events: auto; transform: translateX(min(74vw, 330px)); }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -461,11 +462,12 @@
     </style>
 </head>
 <body class="flex flex-col h-screen">
+    <div id="mobile-overlay" class="fixed inset-0 bg-black/50 z-30 opacity-0 pointer-events-none transition-opacity hidden"></div>
     <header class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-4 transition-all duration-500">
         <button id="history-toggle" class="absolute left-6 top-5 text-gray-500 hover:text-white transition-colors text-lg" title="Open saved chats" aria-label="Open saved chats"><i class="fa-solid fa-bars-staggered"></i></button>
         <div class="max-w-3xl mx-auto flex justify-center items-center gap-3">
             <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-8 w-auto" alt="Logo">
-            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight">D'Ai</h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
+            <div class="text-center"><h1 class="font-bold leading-none text-lg tracking-tight flex items-center justify-center gap-1">D'Ai <span class="bg-brand text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">Beta</span></h1><p class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">Fastest AI on the Planet</p></div>
         </div>
     </header>
 
@@ -2169,6 +2171,28 @@ ${safeJs}
                 }));
             };
 
+            const renderWeatherWidget = async (el, payload) => {
+                el.innerHTML = '<div class="p-4 bg-dark-surface rounded-xl text-center"><i class="fa-solid fa-spinner fa-spin text-brand text-2xl"></i><p class="text-xs text-gray-400 mt-2">Loading weather...</p></div>';
+                try {
+                    const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(payload.location)}&count=1`).then(r => r.json());
+                    if(!geo.results || geo.results.length === 0) throw new Error('Location not found');
+                    const { latitude, longitude, name } = geo.results[0];
+                    const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`).then(r => r.json());
+                    const temp = weather.current.temperature_2m;
+                    el.innerHTML = `<div class="p-4 bg-dark-surface border border-dark-border rounded-xl flex items-center justify-between"><div class="flex flex-col"><span class="text-xl font-bold text-white">${temp}°C</span><span class="text-sm text-gray-400">${name}</span></div><i class="fa-solid fa-cloud-sun text-3xl text-brand"></i></div>`;
+                } catch(e) { el.innerHTML = `<div class="p-4 bg-dark-surface rounded-xl text-red-400 text-sm">Failed to load weather for ${payload.location}</div>`; }
+            };
+
+            const renderSportsWidget = async (el, payload) => {
+                el.innerHTML = '<div class="p-4 bg-dark-surface rounded-xl text-center"><i class="fa-solid fa-spinner fa-spin text-brand text-2xl"></i><p class="text-xs text-gray-400 mt-2">Loading sports...</p></div>';
+                try {
+                    const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(payload.team)}`).then(r => r.json());
+                    if(!res.teams || res.teams.length === 0) throw new Error('Team not found');
+                    const t = res.teams[0];
+                    el.innerHTML = `<div class="p-4 bg-dark-surface border border-dark-border rounded-xl flex items-center gap-4"><img src="${t.strBadge}" alt="${t.strTeam}" class="w-12 h-12 object-contain"><div class="flex flex-col"><span class="text-lg font-bold text-white">${t.strTeam}</span><span class="text-xs text-gray-400">${t.strLeague}</span></div></div>`;
+                } catch(e) { el.innerHTML = `<div class="p-4 bg-dark-surface rounded-xl text-red-400 text-sm">Failed to load sports for ${payload.team}</div>`; }
+            };
+
             const hydrateDaiWidgets = (root) => {
                 root.querySelectorAll('.dai-widget[data-dai-widget]').forEach((widget) => {
                     if (widget.getAttribute('data-hydrated') === 'true') return;
@@ -2178,6 +2202,8 @@ ${safeJs}
                         if (type === 'chart' || type === 'graph') renderChartWidget(widget, json);
                         else if (type === 'pythagoras') renderPythagorasWidget(widget, json);
                         else if (type === 'demo' || type === 'sandbox') renderDemoWidget(widget, json);
+                        else if (type === 'weather') renderWeatherWidget(widget, json);
+                        else if (type === 'sports') renderSportsWidget(widget, json);
                         else widgetError(widget, `Unsupported interactive block: ${type}`);
                     } catch (error) {
                         widgetError(widget, error?.message || 'Interactive block could not be rendered.');
@@ -3050,6 +3076,8 @@ ${safeJs}
                                  "6. Reuse these starter patterns whenever possible: coordinate grid, axis labels, point markers, triangle diagram, function curve, or flow boxes.\n" +
                                  "7. For the Pythagorean theorem, include a `dai-ui pythagoras` JSON widget with a, b, min, max, and step values only when the user asks for that interactive view.\n" +
                                  "8. Never expose widget internals unless the user asks how the interface works.\n" +
+                                 "9. When asked for current weather, output EXACTLY ONE dai-ui block: ```dai-ui weather\n{\"location\": \"City Name\"}\n```.\n" +
+                                 "10. When asked for sports team info, output EXACTLY ONE dai-ui block: ```dai-ui sports\n{\"team\": \"Team Name\"}\n```.\n" +
                                  "**IMAGE GENERATION:**\n" +
                                  "1. **Always** precede the image generation tag with a warm, conversational sentence describing what you are making (e.g., 'Sure! Here is a futuristic car for you:', 'I've created that sunset scene:', 'Check out this design:').\n" +
                                  "2. Format: <<GENERATE_IMAGE: detailed_prompt | aspect_ratio | filename_slug | source_image_url (optional)>>\n" +
