@@ -3165,7 +3165,7 @@ ${safeJs}
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"zai-glm-4.7",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
+                        body:JSON.stringify({model:"zai-glm-4.7",messages:messagesToSend,stream:true,max_completion_tokens:8192,temperature:0.85})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
