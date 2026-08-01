@@ -69,6 +69,7 @@ function normalizeMessageForCerebras(message) {
 function normalizeChatModel(model) {
   const value = typeof model === 'string' ? model.trim() : '';
   if (!value || value === 'llama3.1-8b' || value === 'gpt-oss-120b') return 'gemma-4-31b';
+  if (value === 'glm' || value === 'glm-4.7') return 'zai-glm-4.7';
   return value;
 }
 
@@ -108,6 +109,9 @@ export default async function handler(req, res) {
       }
 
       const cerebrasBody = await prepareCerebrasBody(req.body || {});
+      if (cerebrasBody.model === 'zai-glm-4.7' && cerebrasBody.clear_thinking === undefined) {
+        cerebrasBody.clear_thinking = false;
+      }
 
       // Call Cerebras
       const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
@@ -122,6 +126,13 @@ export default async function handler(req, res) {
       if (!response.ok) {
         const errorText = await response.text();
         return res.status(response.status).json({ error: errorText });
+      }
+
+      if (cerebrasBody.stream === false) {
+        const contentType = response.headers.get('content-type') || 'application/json';
+        const payloadText = await response.text();
+        res.setHeader('Content-Type', contentType);
+        return res.status(200).send(payloadText);
       }
 
       // Stream the response back

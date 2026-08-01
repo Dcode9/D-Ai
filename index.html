@@ -345,7 +345,7 @@
         .dverse-auth-btn:hover, .dverse-auth-btn.is-signed-in { border-color: rgba(56,189,248,0.42); background: rgba(56,189,248,0.1); color: #f8fafc; }
         .dverse-auth-btn.is-error { border-color: rgba(244,63,94,0.4); background: rgba(244,63,94,0.08); color: #fecdd3; }
         .history-backdrop { position: fixed; inset: 0; z-index: 28; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-        .history-panel { position: fixed; inset: 0 auto 0 0; z-index: 30; width: 4.7rem; transform: translateX(0); transition: width 220ms ease; background: rgba(10,10,10,0.96); border-right: 1px solid var(--dai-border); box-shadow: 20px 0 60px rgba(0,0,0,0.45); padding: 0.9rem; display: flex; flex-direction: column; gap: 0.9rem; }
+        .history-panel { position: fixed; inset: 0 auto 0 0; z-index: 30; width: 4.7rem; transform: translateX(0); transition: width 220ms ease, transform 260ms ease; background: rgba(10,10,10,0.96); border-right: 1px solid var(--dai-border); box-shadow: 20px 0 60px rgba(0,0,0,0.45); padding: 0.9rem; display: flex; flex-direction: column; gap: 0.9rem; }
         .history-panel.open { width: min(360px, calc(100vw - 32px)); }
         .history-panel.search-open { width: min(50vw, 720px); }
         .history-main { display: flex; flex-direction: column; min-height: 0; gap: 0.75rem; flex: 1; }
@@ -366,12 +366,13 @@
         .auth-icon { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: 14px; color: #38bdf8; background: rgba(56,189,248,0.11); border: 1px solid rgba(56,189,248,0.22); }
         .history-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; border: 1px solid rgba(56,189,248,0.28); border-radius: 16px; padding: 0.78rem 0.85rem; background: rgba(56,189,248,0.1); color: #e0f2fe; font-weight: 800; font-size: 0.84rem; }
         .history-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+        .history-panel:not(.search-open) .history-search-wrap { display: none; }
         .history-search-wrap { display: flex; align-items: center; gap: 0.45rem; border: 1px solid var(--dai-border-soft); border-radius: 14px; padding: 0.52rem 0.68rem; background: rgba(255,255,255,0.03); color: #94a3b8; }
         .history-search-wrap input { width: 100%; background: transparent; border: 0; outline: none; color: #f8fafc; font-size: 0.82rem; }
         .history-search-wrap input::placeholder { color: #64748b; }
         .history-panel.search-open .thread-actions { display: none; }
         .history-panel.search-open .history-section-title { margin-top: 0.25rem; }
-        .history-panel.search-open .history-search-wrap { border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.08); }
+        .history-panel.search-open .history-search-wrap { display: flex; border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.08); }
         .history-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.45rem; padding-right: 0.15rem; }
         .history-item { text-align: left; border: 1px solid transparent; border-radius: 15px; padding: 0.72rem 0.78rem; background: rgba(255,255,255,0.035); color: #e5e7eb; transition: background 0.2s, border-color 0.2s; }
         .history-item:hover, .history-item.active { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.28); }
@@ -388,7 +389,7 @@
         .msg-appear:hover .message-actions, .msg-appear:focus-within .message-actions { opacity: 1; }
         .message-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--dai-border-soft); border-radius: 999px; color: #94a3b8; background: rgba(255,255,255,0.035); }
         .message-action:hover { color: #f8fafc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); }
-        .topic-chip { display: inline-flex; align-items: center; gap: 0.18rem; border: 1px solid rgba(125,211,252,0.24); border-radius: 999px; padding: 0.03rem 0.42rem; margin-inline: 0.05rem; color: #bae6fd; background: rgba(56,189,248,0.08); font-weight: 650; cursor: pointer; vertical-align: baseline; }
+        .topic-chip { display: inline-flex; align-items: center; gap: 0.18rem; border: 1px solid rgba(125,211,252,0.24); border-radius: 999px; padding: 0.12rem 0.52rem; margin-inline: 0.05rem; color: #bae6fd; background: rgba(56,189,248,0.08); font-weight: 650; cursor: pointer; vertical-align: baseline; }
         .topic-chip:hover { color: #fff; border-color: rgba(245,158,11,0.42); background: rgba(245,158,11,0.1); }
         .definition-card { margin: 0.75rem 0 1rem; border: 1px solid rgba(125,211,252,0.18); border-radius: 18px; background: radial-gradient(circle at 15% 0%, rgba(56,189,248,0.16), transparent 34%), rgba(255,255,255,0.045); overflow: hidden; }
         .definition-card[data-kind="math"] { border-color: rgba(245,158,11,0.28); background: radial-gradient(circle at 20% 0%, rgba(245,158,11,0.16), transparent 36%), rgba(255,255,255,0.04); }
@@ -433,8 +434,8 @@
             .markdown-body ul, .markdown-body ol { margin-left: 0.8rem; padding-left: 0.7rem; }
             .table-scroll, .code-box, .dai-widget, .markdown-body .math-block { border-radius: 16px; margin-inline: 0; }
             .dai-chart-summary { grid-template-columns: 1fr; }
-            .dai-chart-shell { min-height: 286px; padding: 0.55rem; }
-            .dai-chart-shell canvas { height: 248px !important; }
+            .dai-chart-shell { min-height: 320px; padding: 0.5rem; overflow-x: auto; }
+            .dai-chart-shell canvas { min-width: 520px; height: 270px !important; }
             #composer-dock { padding: 1.1rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); transform: none; }
             #composer-shell { border-radius: 24px; }
             #composer-shell .p-3\.5 { padding: 0.82rem; }
@@ -446,12 +447,13 @@
             body.sidebar-shifted #composer-dock,
             body.sidebar-shifted header .max-w-3xl,
             body.sidebar-shifted #history-toggle {
-                transform: translateX(min(74vw, 330px));
+                transform: translateX(min(82vw, 360px));
                 transition: transform 260ms ease;
                 will-change: transform;
             }
             body.sidebar-shifted main,
             body.sidebar-shifted #composer-dock { pointer-events: none; }
+            body.sidebar-shifted main { opacity: 0.72; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -556,6 +558,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
     <script src="scripts/sidebarUX.js"></script>
+    <script src="scripts/interfacePrompts.js"></script>
     <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
         const stableId = (prefix, value) => `${prefix}-${Math.abs(hashCode(String(value || prefix))).toString(36)}`;
@@ -2230,7 +2233,7 @@ ${safeJs}
                             max_completion_tokens: 900,
                             temperature: 0.45,
                             messages: [
-                                { role: 'system', content: `Explain one clicked topic for D'Ai. Topic kind: ${kind}. Keep the style direct, natural, and compact with a concrete example. If a mini visual or interactive block would help, include exactly one valid \`\`\`dai-ui chart\`\`\` or \`\`\`dai-ui demo\`\`\` fence that matches the explanation. Do not include a top-level heading.` },
+                                { role: 'system', content: `Explain one clicked topic for D'Ai. Topic kind: ${kind}. Keep the style direct, natural, and compact with a concrete example. Do not include demos, charts, sandbox widgets, media directives, or dai-ui fences. Do not include a top-level heading.` },
                                 { role: 'user', content: `Give a detailed but concise explanation of: ${topic}` }
                             ]
                         })
@@ -2900,7 +2903,7 @@ ${safeJs}
                 return keywords.some(k => text.toLowerCase().includes(k));
             };
 
-            const generativeInterfaceRe = /\b(graph|chart|plot|visuali[sz]e|dashboard|interactive demo|mini demo|simulation|diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability|pythagorean|pythagoras|hypotenuse)\b/i;
+            const generativeInterfaceRe = /\b(graph|chart|plot|visuali[sz]e|dashboard|interactive demo|mini demo|simulation|diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability|pythagorean|pythagoras|hypotenuse|interactive|html|css|javascript|js)\b/i;
             const detectGenerativeInterfaceType = (text) => {
                 if (/\b(pythagorean|pythagoras|hypotenuse|right triangle)\b/i.test(text)) return 'pythagoras';
                 if (/\b(diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability)\b/i.test(text)) return 'demo';
@@ -2919,30 +2922,13 @@ ${safeJs}
             };
 
             const buildGenerativeInterface = async (prompt, type) => {
-                const guardrails = [
-                    "You are D'Ai's interface specialist.",
-                    "Return exactly one short lead sentence and one dai-ui fenced block only.",
-                    "Do not include markdown headings, extra prose, or multiple fences.",
-                    "Use compact, mobile-safe content that fits in a narrow screen.",
-                    "Chart block format: ```dai-ui chart with JSON keys type,title,labels,datasets.",
-                    "Demo block format: ```dai-ui demo with JSON keys title,caption,html,css,js,height.",
-                    "Pythagoras block format: ```dai-ui pythagoras with JSON keys title,a,b,min,max,step.",
-                    "For diagram-style requests, prefer dai-ui demo with semantic HTML/SVG and simple CSS.",
-                    "Requested type: " + type
-                ].join(' ');
-                const res = await fetch('/api/chat', {
+                const guardrails = window.DAI_INTERFACE_PROMPTS?.codingSystem?.(type) || `You are D'Ai's SOTA interactive coding specialist. Return exactly one short lead sentence and one dai-ui fenced block. Requested type: ${type}`;
+                const res = await fetch('/api/interface', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: 'gemma-4-31b',
-                        stream: false,
-                        max_completion_tokens: 8192,
-                        temperature: 0.35,
-                        messages: [
-                            { role: 'system', content: guardrails },
-                            { role: 'user', content: prompt }
-                        ]
-                    })
+                    body: JSON.stringify({ prompt: `${guardrails}
+
+User request: ${prompt}`, type })
                 });
                 if (!res.ok) {
                     let detail = res.statusText;
@@ -3114,7 +3100,7 @@ ${safeJs}
                     try {
                         const interfaceType = detectGenerativeInterfaceType(t);
                         setAnswerAura(el, 'loading');
-                        el.innerHTML = activityLoader('Building interface', 'Generating the interactive view');
+                        el.innerHTML = activityLoader('Coding interface', 'Thinking through the design, guardrails, and implementation');
                         const interfaceContent = await buildGenerativeInterface(t, interfaceType);
                         renderAssistantContent(interfaceContent, el, { final: true });
                         S.msg.push({role:"assistant",content:interfaceContent});
@@ -3165,7 +3151,7 @@ ${safeJs}
                     const res = await fetch("/api/chat", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:8192,temperature:0.85})
+                        body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:8192,temperature:0.85,reasoning_effort:"medium"})
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -3245,7 +3231,7 @@ ${safeJs}
                                 const res = await fetch("/api/chat", {
                                     method:"POST",
                                     headers:{"Content-Type":"application/json"},
-                                    body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
+                                    body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85,reasoning_effort:"medium"})
                                 });
 
                                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
