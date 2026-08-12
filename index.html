@@ -1271,7 +1271,7 @@ ${safeJs}
             }
 
             try {
-                const body = { prompt, width, height, seed, model: sourceImage ? 'p-image-edit' : 'flux' };
+                const body = { prompt, width, height, seed, model: sourceImage ? 'vendouple/lucid-origin' : 'vendouple/lucid-origin' };
                 if (sourceImage) body.image = sourceImage;
 
                 console.log('[fetchServerImage] Sending to /api/image:', body);
