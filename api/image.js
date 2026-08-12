@@ -112,8 +112,8 @@ function extractImageData(payload) {
 }
 
 function selectModel({ hasImage, requestedModel } = {}) {
-  if (hasImage) return requestedModel || 'kontext';
-  return requestedModel || 'flux';
+  if (hasImage) return requestedModel || 'vendouple/lucid-origin';
+  return requestedModel || 'vendouple/lucid-origin';
 }
 
 export default async function handler(req) {
