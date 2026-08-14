@@ -575,8 +575,8 @@
             <div class="sidebar-footer p-3 border-t border-white/10 mt-auto">
                 <div id="auth-card" class="auth-card flex items-center justify-between p-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all">
                     <!-- Account Details Trigger -->
-                    <button id="auth-button" onclick="window.openAccountModal()" class="flex items-center gap-2.5 flex-1 min-w-0 text-left group p-1" title="Account Details & Sign In">
-                        <div class="auth-icon w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <button id="auth-button" onclick="window.openAccountModal()" class="flex items-center gap-2.5 flex-1 min-w-0 text-left group p-1 cursor-pointer" title="Account Details & Sign In">
+                        <div id="auth-icon-container" class="auth-icon w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs flex-shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
                             <i class="fa-solid fa-user"></i>
                         </div>
                         <div class="auth-info flex-1 min-w-0">
@@ -586,13 +586,72 @@
                     </button>
 
                     <!-- Settings Gear Trigger (Right in the same container!) -->
-                    <button id="settings-trigger" onclick="window.openSettingsModal()" class="w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors flex-shrink-0 ml-1" title="Settings (Memory, Export, Theme)">
+                    <button id="settings-trigger" onclick="window.openSettingsModal()" class="w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors flex-shrink-0 ml-1 cursor-pointer" title="Settings (Memory, Export, Theme)">
                         <i class="fa-solid fa-gear"></i>
                     </button>
                 </div>
             </div>
         </div>
     </aside>
+
+    <!-- Account Modal (Profile, Cloud Sync, Sign In / Sign Out) -->
+    <div id="account-menu-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="w-full max-w-sm bg-[#0e1017] border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-4 py-3.5 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-user-circle text-sky-400 text-sm"></i>
+                    <h3 class="text-xs font-bold text-white tracking-wide">Account & Cloud Sync</h3>
+                </div>
+                <button onclick="window.closeAccountModal()" class="w-7 h-7 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer" title="Close (Esc)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Signed Out (Guest View) -->
+            <div id="account-modal-guest" class="p-5 space-y-4 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-2xl mx-auto">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white">Sync your chats across devices</h4>
+                    <p class="text-xs text-gray-400 mt-1 leading-relaxed">Sign in with Google to enable real-time cloud backup, sync conversations, and access your personal AI memory from anywhere.</p>
+                </div>
+                <button id="account-modal-signin-btn" onclick="window.handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-gray-900 font-semibold text-xs transition-all shadow-lg cursor-pointer">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </button>
+            </div>
+
+            <!-- Signed In (User View) -->
+            <div id="account-modal-user" class="p-5 space-y-4 hidden">
+                <div class="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.03]">
+                    <div id="account-modal-avatar" class="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div id="account-modal-name" class="text-xs font-bold text-white truncate">User Name</div>
+                        <div id="account-modal-email" class="text-[11px] text-gray-400 truncate">user@example.com</div>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="text-[10px] font-medium text-emerald-400">Cloud Sync Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-1">
+                    <button id="account-modal-signout-btn" onclick="window.handleSignOut()" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-semibold text-xs transition-all cursor-pointer">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sign out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Settings Modal (Memory, Export, Theme) -->
     <div id="settings-menu-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200">
@@ -3243,41 +3302,70 @@ ${safeJs}
                     const item = event.target.closest('[data-chat-id]');
                     if (item) loadSyncedChat(item.getAttribute('data-chat-id'));
                 });
-                authButton?.addEventListener('click', async () => {
-                    try {
-                        if (!dverseReady()) throw new Error('Supabase client is not available.');
-                        if (dverseState.session) await window.dverse.signOut();
-                        else await window.dverse.signInWithGoogle();
-                    } catch (error) {
-                        console.error('[DVerse] Auth action failed:', error);
-                        setSyncStatus(error?.message || 'Authentication failed.', 'error');
+
+                const updateAuthUI = (session) => {
+                    dverseState.session = session;
+                    const status = document.getElementById('auth-status');
+                    const title = document.getElementById('auth-title');
+                    const icon = document.getElementById('auth-icon-container');
+                    const button = document.getElementById('auth-button');
+
+                    if (session?.user) {
+                        const email = session.user.email || 'User';
+                        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+                        const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture;
+
+                        if (title) title.textContent = name;
+                        if (status) status.textContent = email;
+                        if (icon) {
+                            if (avatarUrl) {
+                                icon.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-lg" alt="Avatar" referrerpolicy="no-referrer">`;
+                            } else {
+                                icon.innerHTML = `<i class="fa-solid fa-user-check"></i>`;
+                            }
+                        }
+                        if (button) {
+                            button.classList.remove('is-error');
+                            button.classList.add('is-signed-in');
+                            button.title = `Signed in as ${email}`;
+                        }
+                    } else {
+                        if (title) title.textContent = 'Guest';
+                        if (status) status.textContent = 'Click to sign in';
+                        if (icon) {
+                            icon.innerHTML = `<i class="fa-solid fa-user"></i>`;
+                        }
+                        if (button) {
+                            button.classList.remove('is-signed-in', 'is-error');
+                            button.title = 'Sign in with Google';
+                        }
                     }
-                });
+                };
+
                 if (!dverseReady()) {
-                    authButton?.setAttribute('disabled', 'true');
                     setSyncStatus('Guest mode • chats saved on this device');
                     await refreshChats();
                     return;
                 }
+
                 window.dverse.onAuthStateChange((event, session) => {
-                    dverseState.session = session;
+                    updateAuthUI(session);
                     if (session) {
-                        authButton.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Sign out</span>';
                         setSyncStatus(`${session.user.email || 'Signed in'} • chats sync automatically`, 'signed-in');
                         refreshChats();
                     } else {
-                        authButton.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Sign in</span>';
                         dverseState.currentChatId = null;
                         dverseState.chatPromise = null;
                         setSyncStatus('Guest mode • chats saved on this device');
                         refreshChats();
                     }
                 });
+
                 try {
-                    dverseState.session = await window.dverse.getSession();
-                    if (dverseState.session) {
-                        authButton.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Sign out</span>';
-                        setSyncStatus(`${dverseState.session.user.email || 'Signed in'} • chats sync automatically`, 'signed-in');
+                    const session = await window.dverse.getSession();
+                    updateAuthUI(session);
+                    if (session) {
+                        setSyncStatus(`${session.user.email || 'Signed in'} • chats sync automatically`, 'signed-in');
                     } else {
                         setSyncStatus('Guest mode • chats saved on this device');
                     }
@@ -3410,9 +3498,93 @@ ${safeJs}
                 if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
             };
 
-            window.openAccountModal = async () => {
-                const authBtn = document.getElementById('auth-button');
-                if (authBtn) authBtn.click();
+            window.openAccountModal = () => {
+                const modal = document.getElementById('account-menu-modal');
+                if (!modal) return;
+                const session = dverseState.session;
+                const guestView = document.getElementById('account-modal-guest');
+                const userView = document.getElementById('account-modal-user');
+                const nameEl = document.getElementById('account-modal-name');
+                const emailEl = document.getElementById('account-modal-email');
+                const avatarEl = document.getElementById('account-modal-avatar');
+
+                if (session?.user) {
+                    if (guestView) guestView.classList.add('hidden');
+                    if (userView) userView.classList.remove('hidden');
+                    const email = session.user.email || 'User';
+                    const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+                    const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture;
+
+                    if (nameEl) nameEl.textContent = name;
+                    if (emailEl) emailEl.textContent = email;
+                    if (avatarEl) {
+                        if (avatarUrl) {
+                            avatarEl.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-xl" alt="Avatar" referrerpolicy="no-referrer">`;
+                        } else {
+                            avatarEl.innerHTML = `<i class="fa-solid fa-user text-lg text-sky-400"></i>`;
+                        }
+                    }
+                } else {
+                    if (guestView) guestView.classList.remove('hidden');
+                    if (userView) userView.classList.add('hidden');
+                }
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+            };
+
+            window.closeAccountModal = () => {
+                const modal = document.getElementById('account-menu-modal');
+                if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+            };
+
+            window.handleGoogleSignIn = async () => {
+                try {
+                    const btn = document.getElementById('account-modal-signin-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>Connecting to Google...</span>`;
+                    }
+                    setSyncStatus('Connecting to Google...', 'loading');
+                    if (!dverseReady()) throw new Error('DVerse Supabase client is not ready.');
+                    await window.dverse.signInWithGoogle();
+                } catch (error) {
+                    console.error('[DVerse] Sign-in failed:', error);
+                    setSyncStatus(error?.message || 'Authentication failed.', 'error');
+                    const btn = document.getElementById('account-modal-signin-btn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<span>Retry Google Sign-in</span>`;
+                    }
+                }
+            };
+
+            window.handleSignOut = async () => {
+                try {
+                    const btn = document.getElementById('account-modal-signout-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>Signing out...</span>`;
+                    }
+                    if (window.dverse?.signOut) {
+                        await window.dverse.signOut();
+                    }
+                    dverseState.session = null;
+                    dverseState.currentChatId = null;
+                    dverseState.chatPromise = null;
+                    const status = document.getElementById('auth-status');
+                    const title = document.getElementById('auth-title');
+                    const icon = document.getElementById('auth-icon-container');
+                    const button = document.getElementById('auth-button');
+                    if (title) title.textContent = 'Guest';
+                    if (status) status.textContent = 'Click to sign in';
+                    if (icon) icon.innerHTML = `<i class="fa-solid fa-user"></i>`;
+                    if (button) button.classList.remove('is-signed-in');
+                    window.closeAccountModal();
+                    setSyncStatus('Guest mode • chats saved on this device');
+                    await refreshChats();
+                } catch (error) {
+                    console.error('[DVerse] Sign-out error:', error);
+                    window.closeAccountModal();
+                }
             };
 
             window.addEventListener('dai:memory-updated', () => {
@@ -3435,6 +3607,7 @@ ${safeJs}
                     resetConversation();
                 } else if (e.key === 'Escape') {
                     window.closeSettingsModal();
+                    window.closeAccountModal();
                     if (window.closePersonalContextModal) window.closePersonalContextModal();
                 }
             });

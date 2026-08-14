@@ -1,8 +1,14 @@
 (function () {
   const SUPABASE_URL = window.DVERSE_SUPABASE_URL || 'https://gmwieijbrrztukqpfwkg.supabase.co';
-  const SUPABASE_KEY = window.DVERSE_SUPABASE_KEY || 'sb_publishable_KX3MYtV84QJJdy9bPDuMEA_V99sLKSE';
+  const SUPABASE_KEY = window.DVERSE_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdtd2llaWpicnJ6dHVrcXBmd2tnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNzcyMDAsImV4cCI6MjA5Njc1MzIwMH0.yPVyvYH3g1TBCb65S86USa6_dNNactQb-bNLKWxcf3w';
   const ready = Boolean(window.supabase && SUPABASE_URL && SUPABASE_KEY);
-  const client = ready ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+  const client = ready ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  }) : null;
   const PORTAL_ORIGIN = (window.DVERSE_PORTAL_ORIGIN || 'https://dverse.fun').replace(/\/$/, '');
   const AUTH_BRIDGE_URL = `${PORTAL_ORIGIN}/auth-bridge.html`;
   const authRedirectUrl = () => `${window.location.origin}/`;
@@ -22,7 +28,7 @@
         finished = true;
         window.removeEventListener('message', onMessage);
         clearTimeout(timer);
-        frame.remove();
+        try { frame.remove(); } catch (e) {}
         resolve(value);
       }
 
@@ -66,7 +72,10 @@
         });
         if (restoreError) throw restoreError;
         return restored.session || null;
-      })().finally(() => {
+      })().catch((e) => {
+        console.warn('[DVerse] Bridge session check failed:', e);
+        return null;
+      }).finally(() => {
         portalSessionPromise = null;
       });
     }
@@ -102,9 +111,8 @@
 
   async function signInWithGoogle() {
     if (!client) throw new Error("D'Verse Supabase client is not configured.");
+    const isIframe = window !== window.top;
     try {
-      const isIframe = window !== window.top;
-      // If inside an iframe on mobile/desktop, open auth in top window or popup to prevent iframe OAuth block
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -119,12 +127,11 @@
         } else {
           window.location.href = data.url;
         }
-        return;
       }
     } catch (e) {
-      console.warn('[DVerse] Direct OAuth failed, falling back to portal redirect:', e);
+      console.warn('[DVerse] Direct OAuth failed, attempting portal redirect fallback:', e);
       const targetUrl = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(authRedirectUrl())}`;
-      if (window !== window.top) {
+      if (isIframe) {
         window.open(targetUrl, '_blank');
       } else {
         window.location.href = targetUrl;
@@ -134,9 +141,13 @@
 
   async function signOut() {
     if (!client) return;
-    const { error } = await client.auth.signOut();
-    if (error) throw error;
-    await bridgeRequest({ type: 'dverse-auth:sign-out' }, 1500);
+    try {
+      const { error } = await client.auth.signOut();
+      if (error) console.warn('[DVerse] Supabase sign-out error:', error);
+    } catch (e) {
+      console.warn('[DVerse] Sign-out exception:', e);
+    }
+    await bridgeRequest({ type: 'dverse-auth:sign-out' }, 1500).catch(() => {});
   }
 
   async function createChat(title = 'New chat', metadata = {}) {
