@@ -1,0 +1,1 @@
+const window = { addEventListener: () => {}, daiWidgetPayloads: new Map() }; const document = { getElementById: () => ({ addEventListener: () => {} }), addEventListener: () => {}, querySelector: () => {} }; const navigator = {};

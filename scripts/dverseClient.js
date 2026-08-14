@@ -101,8 +101,35 @@
   }
 
   async function signInWithGoogle() {
-    if (!client) throw new Error('D\'Verse Supabase client is not configured.');
-    window.location.href = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(authRedirectUrl())}`;
+    if (!client) throw new Error("D'Verse Supabase client is not configured.");
+    try {
+      const isIframe = window !== window.top;
+      // If inside an iframe on mobile/desktop, open auth in top window or popup to prevent iframe OAuth block
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: authRedirectUrl(),
+          skipBrowserRedirect: isIframe
+        }
+      });
+      if (error) throw error;
+      if (data?.url) {
+        if (isIframe) {
+          window.open(data.url, '_blank');
+        } else {
+          window.location.href = data.url;
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('[DVerse] Direct OAuth failed, falling back to portal redirect:', e);
+      const targetUrl = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(authRedirectUrl())}`;
+      if (window !== window.top) {
+        window.open(targetUrl, '_blank');
+      } else {
+        window.location.href = targetUrl;
+      }
+    }
   }
 
   async function signOut() {

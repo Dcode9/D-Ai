@@ -1,4 +1,4 @@
-// Standard Node.js Serverless Function (Bypasses some Edge WAF rules)
+// Standard Node.js Serverless Function (Bypasses Edge WAF rules)
 const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/gi;
 const UPLOADED_IMAGE_ASPECT_RE = /\[UPLOADED_IMAGE_ASPECT_RATIO:\s*([^\]]+)\]/gi;
 
@@ -73,11 +73,34 @@ function normalizeChatModel(model) {
 }
 
 async function prepareCerebrasBody(incomingBody) {
-  const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
+  let messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
+  
+  const systemMessages = messages.filter(m => m && m.role === 'system');
+  const otherMessages = messages.filter(m => m && m.role !== 'system');
+
+  const baseSystemPrompt = `You are D'Ai, a scary-fast, helpful, unbiased AI assistant created by Dhairya Shah.
+Key Guidelines:
+1. Provide concise, clear, accurate, and direct answers in well-formatted Markdown.
+2. Adapt naturally to the user's personal context or instructions without over-explaining.
+3. If the user explicitly asks to generate media or interactive widgets, use clean fenced directives:
+   - Image: <<GENERATE_IMAGE: prompt | 16:9 | 1024x1024>>
+   - Video: <<GENERATE_VIDEO: prompt | 16:9 | 4>>
+   - Music: <<GENERATE_MUSIC: prompt | 15>>
+   - Interactive UI: \`\`\`dai-ui chart\`\`\`
+4. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append a directive on its own final line:
+   [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
+5. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
+
+  const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
+  const fullSystemPrompt = `${baseSystemPrompt}\n\n${extraSystem}`.trim();
+
   return {
     ...incomingBody,
     model: normalizeChatModel(incomingBody.model),
-    messages: messages.map(normalizeMessageForCerebras)
+    messages: [
+      { role: 'system', content: fullSystemPrompt },
+      ...otherMessages.map(normalizeMessageForCerebras)
+    ]
   };
 }
 

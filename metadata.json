@@ -1,0 +1,6 @@
+{
+  "name": "D'Ai",
+  "description": "Fast AI interface for chat, image generation, search, video, music, and interactive widgets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

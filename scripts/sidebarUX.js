@@ -1,7 +1,7 @@
 (function () {
   const MOBILE_QUERY = '(max-width: 640px)';
-  const MIN_SWIPE = 60;
-  const MAX_VERTICAL_DRIFT = 42;
+  const MIN_SWIPE = 50;
+  const MAX_VERTICAL_DRIFT = 50;
 
   window.createSidebarUXController = function createSidebarUXController(options = {}) {
     const panel = options.panel;
@@ -22,7 +22,10 @@
     let bound = false;
     let touchStartX = 0;
     let touchStartY = 0;
+    let currentTouchX = 0;
     let trackingTouch = false;
+    let isSwiping = false;
+    let lockDirection = false; // 'h' for horizontal, 'v' for vertical
 
     const setSearchMode = (next) => {
       searchMode = Boolean(next);
@@ -32,11 +35,16 @@
     };
 
     const sync = (open) => {
+      // Manage desktop vs mobile body layout classes
       if (!mobileMq.matches) {
         document.body.classList.remove('sidebar-shifted');
+        document.body.classList.toggle('desktop-sidebar-open', Boolean(open));
+        document.body.style.removeProperty('--swipe-shift');
         return;
       }
+      document.body.classList.remove('desktop-sidebar-open');
       document.body.classList.toggle('sidebar-shifted', Boolean(open));
+      document.body.style.removeProperty('--swipe-shift');
     };
 
     const toggleSearchMode = () => {
@@ -48,40 +56,99 @@
       }
     };
 
+    const applySwipeShift = (shiftPx) => {
+      document.body.style.setProperty('--swipe-shift', `${Math.round(shiftPx)}px`);
+      if (backdrop) {
+        const opacity = Math.min(1, Math.max(0, shiftPx / 280));
+        backdrop.style.opacity = String(opacity);
+        if (shiftPx > 0) backdrop.classList.remove('hidden');
+      }
+    };
+
+    const resetSwipeShift = () => {
+      document.body.style.removeProperty('--swipe-shift');
+      if (backdrop) backdrop.style.removeProperty('opacity');
+    };
+
     const handleTouchStart = (event) => {
       if (!mobileMq.matches || event.touches.length !== 1) return;
       const touch = event.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
+      currentTouchX = touch.clientX;
       trackingTouch = true;
+      isSwiping = false;
+      lockDirection = false;
+    };
+
+    const handleTouchMove = (event) => {
+      if (!trackingTouch || !mobileMq.matches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      currentTouchX = touch.clientX;
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+
+      if (!lockDirection) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+          lockDirection = 'v';
+          trackingTouch = false;
+          return;
+        } else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+          lockDirection = 'h';
+          isSwiping = true;
+        }
+      }
+
+      if (isSwiping && lockDirection === 'h') {
+        const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
+        const maxShift = Math.min(window.innerWidth * 0.82, 340);
+
+        if (!openNow && dx > 0) {
+          const shift = Math.min(dx, maxShift);
+          applySwipeShift(shift);
+        } else if (openNow && dx < 0) {
+          const shift = Math.max(0, maxShift + dx);
+          applySwipeShift(shift);
+        }
+      }
     };
 
     const handleTouchEnd = (event) => {
-      if (!trackingTouch || !mobileMq.matches || event.changedTouches.length !== 1) return;
-      trackingTouch = false;
-      const touch = event.changedTouches[0];
-      const dx = touch.clientX - touchStartX;
-      const dy = touch.clientY - touchStartY;
-      if (Math.abs(dy) > MAX_VERTICAL_DRIFT || Math.abs(dx) < MIN_SWIPE) return;
-
-      const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
-      const startedAtEdge = touchStartX <= 36;
-
-      if (!openNow && (dx < -MIN_SWIPE || (dx > MIN_SWIPE && startedAtEdge))) {
-        setHistoryOpen(true);
-      } else if (openNow && dx > MIN_SWIPE) {
-        setHistoryOpen(false);
+      if (!trackingTouch || !mobileMq.matches) {
+        resetSwipeShift();
+        return;
       }
+      trackingTouch = false;
+      const dx = currentTouchX - touchStartX;
+      const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
+
+      resetSwipeShift();
+
+      if (isSwiping && lockDirection === 'h') {
+        if (!openNow && dx > MIN_SWIPE) {
+          setHistoryOpen(true);
+        } else if (openNow && dx < -MIN_SWIPE) {
+          setHistoryOpen(false);
+        }
+      }
+      isSwiping = false;
+      lockDirection = false;
     };
 
     const bind = () => {
       if (bound) return;
       bound = true;
-      [chat, main, backdrop].filter(Boolean).forEach((target) => {
+
+      const targets = [chat, main, backdrop, document.body].filter(Boolean);
+      targets.forEach((target) => {
         target.addEventListener('touchstart', handleTouchStart, { passive: true });
+        target.addEventListener('touchmove', handleTouchMove, { passive: true });
         target.addEventListener('touchend', handleTouchEnd, { passive: true });
+        target.addEventListener('touchcancel', handleTouchEnd, { passive: true });
       });
+
       mobileMq.addEventListener?.('change', () => sync(panel.classList.contains('open')));
+
       panel.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') setSearchMode(false);
       });

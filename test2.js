@@ -7,9 +7,6 @@
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     <link href="/styles/tailwind.css" rel="stylesheet">
 
-    <script>
-        window.resetConversation = () => {};
-        window.setHistoryOpen = () => {};
         // Filter non-actionable extension script errors.
         (function() {
             window.addEventListener('error', (event) => {
@@ -26,14 +23,12 @@
                 return false;
             };
         })();
-    </script>
 
     <!-- Critical CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 
     <!-- Suppress custom element registration errors from browser extensions -->
-    <script>
         // Run as early as possible to intercept extension custom element registrations
         (function() {
             const originalDefine = window.CustomElementRegistry && window.CustomElementRegistry.prototype.define;
@@ -55,7 +50,6 @@
             customElements.define = safeDefine;
             window.CustomElementRegistry.prototype.define = safeDefine;
         })();
-    </script>
 
     <!-- Deferred Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
@@ -416,46 +410,43 @@
         .history-panel:not(.open) .sidebar-top > div > div { display: none !important; }
         .history-panel:not(.open) .history-search-wrap,
         .history-panel:not(.open) #history-list,
-        .history-panel:not(.open) .auth-info,
-        .history-panel:not(.open) #auth-title,
-        .history-panel:not(.open) #auth-status { display: none !important; width: 0 !important; height: 0 !important; opacity: 0 !important; visibility: hidden !important; }
+        .history-panel:not(.open) .auth-info { display: none !important; }
         .history-panel:not(.open) #history-scroll-area { padding: 0.5rem 0; align-items: center; }
         .history-panel:not(.open) #history-new { width: 2.6rem; height: 2.6rem; padding: 0; border-radius: 999px; justify-content: center; margin: 0 auto; }
         .history-panel:not(.open) #history-new span { display: none !important; }
-        .history-panel:not(.open) .sidebar-footer { padding: 0.25rem 0 !important; border-top: none; }
+        .history-panel:not(.open) .sidebar-footer { padding: 0.5rem 0; border-top: none; }
         .history-panel:not(.open) #auth-card {
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
             justify-content: center !important;
-            padding: 0.25rem !important;
+            padding: 0 !important;
             border: none !important;
             background: transparent !important;
             gap: 0.5rem !important;
             width: 100% !important;
         }
         .history-panel:not(.open) #auth-button {
-            width: 2.2rem !important;
-            height: 2.2rem !important;
-            min-height: 2.2rem !important;
+            width: 2.4rem !important;
+            height: 2.4rem !important;
+            min-height: 2.4rem !important;
             padding: 0 !important;
             border-radius: 999px !important;
             justify-content: center !important;
             flex: none !important;
             margin: 0 auto !important;
-            overflow: hidden !important;
         }
         .history-panel:not(.open) #auth-button .auth-icon {
-            width: 2.2rem !important;
-            height: 2.2rem !important;
+            width: 2.4rem !important;
+            height: 2.4rem !important;
             border-radius: 999px !important;
         }
         .history-panel:not(.open) #settings-trigger {
-            width: 2.2rem !important;
-            height: 2.2rem !important;
+            width: 2.4rem !important;
+            height: 2.4rem !important;
             padding: 0 !important;
             border-radius: 999px !important;
-            margin: 0 auto !important;
+            margin-left: 0 !important;
             justify-content: center !important;
         }
 
@@ -468,6 +459,9 @@
         .msg-appear:hover .message-actions, .msg-appear:focus-within .message-actions { opacity: 1; }
         .message-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--dai-border-soft); border-radius: 999px; color: #94a3b8; background: rgba(255,255,255,0.035); cursor: pointer; }
         .message-action:hover { color: #f8fafc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); }
+
+        main { display: flex; flex-direction: column; flex: 1 1 0%; min-height: 0; overflow: hidden; position: relative; width: 100%; }
+        #chat { flex: 1 1 0%; min-height: 0; overflow-y: auto !important; overscroll-behavior: contain; scroll-behavior: smooth; }
 
         @media (min-width: 641px) {
             .history-backdrop { display: none !important; }
@@ -484,12 +478,15 @@
             .history-panel { width: 280px; max-width: 85vw; height: 100dvh; padding: 0.75rem; transform: translateX(-105%); transition: transform 220ms ease; }
             .history-panel.open { transform: translateX(0); }
             header, main, #composer-dock { padding-left: 0 !important; }
-            header { min-height: 3.5rem; }
+            header { min-height: 3.5rem; padding-block: 0.5rem !important; }
+            header .max-w-3xl { max-width: 100%; padding-left: 0; padding-right: 0; justify-content: center !important; }
+            #history-toggle { left: 0.85rem !important; top: 50% !important; transform: translateY(-50%) !important; }
+            main { max-width: 100%; padding-top: 4rem; }
             #chat { padding: 0.75rem 0.75rem 12rem; gap: 1rem; width: 100% !important; max-width: 100% !important; }
             .assistant-shell { border-radius: 22px; padding: 0.92rem; }
             .user-bubble { max-width: 92%; border-radius: 20px 20px 5px 20px; font-size: 0.92rem; }
-            #composer-dock { padding: 0.75rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); }
-            #composer-shell { border-radius: 24px; width: 100% !important; }
+            #composer-dock { padding: 1.1rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); transform: none; }
+            #composer-shell { border-radius: 24px; }
             #in { font-size: 16px; max-height: 32dvh; }
             #scroll-btn { right: 0.9rem; bottom: 8.7rem; }
         }
@@ -500,38 +497,12 @@
 
     </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden bg-dark-bg text-gray-100">
-    <!-- Redesigned Top Bar Header -->
-    <header id="main-header" class="fixed top-0 left-0 right-0 z-20 h-14 bg-dark-bg/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
-        <div class="h-full w-full max-w-3xl mx-auto px-4 flex items-center justify-between relative">
-            
-            <!-- Left: Mobile/Desktop Sidebar Toggle Button -->
-            <button id="history-toggle" onclick="window.setHistoryOpen(!document.getElementById('history-panel')?.classList.contains('open'))" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center text-sm transition-all shadow-sm cursor-pointer z-30" title="Toggle Sidebar (Ctrl+B)" aria-label="Toggle Sidebar">
-                <i class="fa-solid fa-bars-staggered"></i>
-            </button>
-
-            <!-- Center: Brand Logo & Identifier -->
-            <div class="flex items-center gap-2 cursor-pointer select-none" onclick="window.resetConversation()">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto drop-shadow-md" alt="Logo">
-                <div class="flex items-center gap-1.5">
-                    <h1 class="font-black text-sm tracking-tight text-white">D'Ai</h1>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">✨ Fast</span>
-                </div>
-            </div>
-
-            <!-- Right: Quick Action Controls (New Chat, Settings, Theme) -->
-            <div class="flex items-center gap-1.5 z-30">
-                <button onclick="window.resetConversation()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/40 text-gray-300 hover:text-sky-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="New Chat (Ctrl+K)" aria-label="New Chat">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
-                <button onclick="window.openSettingsModal()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 text-gray-300 hover:text-purple-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="Settings & Personal Memory" aria-label="Settings">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-                <button onclick="window.toggleTheme()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/40 text-gray-300 hover:text-amber-300 flex items-center justify-center text-xs transition-all cursor-pointer theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-            </div>
-
+<body class="flex flex-col h-screen">
+    <header id="main-header" class="fixed w-full z-20 bg-dark-bg/95 backdrop-blur-md border-b border-dark-border py-3.5 transition-all duration-500">
+        <button id="history-toggle" class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors text-base p-1.5 rounded-lg hover:bg-white/10" title="Toggle Saved Chats (Ctrl+B)" aria-label="Toggle Saved Chats"><i class="fa-solid fa-bars-staggered"></i></button>
+        <div class="max-w-3xl mx-auto flex justify-center items-center gap-2.5">
+            <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-7 w-auto" alt="Logo">
+            <div class="text-center"><h1 class="font-bold leading-none text-base tracking-tight text-white">D'Ai</h1><p class="text-[8px] text-gray-400 uppercase tracking-[0.2em] font-semibold mt-0.5">Fastest AI on the Planet</p></div>
         </div>
     </header>
 
@@ -655,8 +626,8 @@
         <span id="toast-message">Notification</span>
     </div>
 
-    <main class="flex-1 flex flex-col w-full relative min-h-0 overflow-hidden pt-14">
-        <div id="chat" class="w-full max-w-3xl mx-auto flex-1 overflow-y-auto px-4 pt-4 pb-52 space-y-6 min-h-0 scroll-smooth">
+    <main class="flex-1 flex flex-col pt-20 w-full max-w-3xl mx-auto overflow-hidden relative">
+        <div id="chat" class="flex-1 overflow-y-auto p-4 pb-52 space-y-8 scroll-smooth">
             <div id="hero" class="h-full flex flex-col items-center justify-center select-none py-6">
                 <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4" alt="Logo">
                 <h2 class="text-2xl font-extrabold text-white tracking-tight mb-2">D'Ai ✨ - Scary Fast.</h2>
@@ -688,8 +659,8 @@
         </button>
     </main>
 
-    <div id="composer-dock" class="fixed bottom-0 left-0 right-0 z-10 pointer-events-none pb-6 pt-10 px-4 bg-gradient-to-t from-dark-bg via-dark-bg/95 to-transparent">
-        <div id="composer-shell" class="w-full max-w-3xl mx-auto pointer-events-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+    <div id="composer-dock" class="fixed bottom-0 w-full bg-gradient-to-t from-dark-bg via-dark-bg to-transparent pb-8 pt-12 px-4 z-10">
+        <div id="composer-shell" class="max-w-3xl mx-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
 
             <!-- Attachment Preview Area -->
             <div id="attachment-preview" class="hidden w-full px-3 pt-2">
@@ -721,20 +692,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
-    <script type="module">
         import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
         window.pdfjsLib = pdfjsLib;
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
-    <script src="scripts/sidebarUX.js"></script>
-    <script>
         const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
         const stableId = (prefix, value) => `${prefix}-${Math.abs(hashCode(String(value || prefix))).toString(36)}`;
         window.daiWidgetPayloads = new Map();
@@ -769,7 +729,6 @@ ${safeCss}
 </head>
 <body>
 ${safeHtml}
-<script>
 try {
 ${safeJs}
 } catch (error) {
@@ -2844,7 +2803,6 @@ ${safeJs}
                 const closeIcon = document.querySelector('#history-close i');
                 if (closeIcon) closeIcon.className = panel?.classList.contains('open') ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
             };
-            window.setHistoryOpen = setHistoryOpen;
             const setSyncStatus = (message, state = '') => {
                 const status = document.getElementById('auth-status');
                 const button = document.getElementById('auth-button');
@@ -2979,9 +2937,9 @@ ${safeJs}
                 E.c.querySelectorAll('.msg-appear').forEach(node => node.remove());
                 E.h?.classList.remove('hidden');
                 window.hasVisionContext = false;
-                if (typeof renderHeroPrompts === 'function') renderHeroPrompts();
-                if (typeof renderHistoryList === 'function') renderHistoryList();
-                if (window.setHistoryOpen) window.setHistoryOpen(false);
+                renderHeroPrompts();
+                renderHistoryList();
+                setHistoryOpen(false);
             };
             window.resetConversation = resetConversation;
             const generateChatTitle = async (chatId, seedText) => {
@@ -3868,10 +3826,5 @@ ${safeJs}
                 }
             };
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/dverseClient.js"></script>
-    <script src="scripts/codeStudio.js"></script>
-    <script src="scripts/personalContext.js"></script>
 </body>
 </html>
