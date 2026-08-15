@@ -4,12 +4,19 @@
 
   // --- Theme Management (Light/Dark) ---
   function getStoredTheme() {
-    return localStorage.getItem(THEME_KEY) || 'dark';
+    try {
+      return localStorage.getItem(THEME_KEY) || 'dark';
+    } catch (e) {
+      return 'dark';
+    }
   }
 
-  function setTheme(mode) {
+  function setTheme(mode, notify = false) {
     const isLight = mode === 'light';
-    localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+    try {
+      localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+    } catch (e) {}
+    
     document.documentElement.classList.toggle('light-theme', isLight);
     document.body.classList.toggle('light-theme', isLight);
     
@@ -18,28 +25,39 @@
     themeBtns.forEach(btn => {
       const icon = btn.querySelector('i');
       if (icon) {
-        icon.className = isLight ? 'fa-solid fa-sun text-amber-400' : 'fa-solid fa-moon text-indigo-400';
+        icon.className = isLight ? 'fa-solid fa-sun text-amber-500' : 'fa-solid fa-moon text-indigo-400';
       }
       btn.title = isLight ? 'Switch to Dark Mode (Ctrl+Theme)' : 'Switch to Light Mode (Ctrl+Theme)';
     });
 
-    if (window.showToast) {
+    // Update meta theme-color tag for mobile browsers
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isLight ? '#f8fafc' : '#050505');
+    }
+
+    if (notify && window.showToast) {
       window.showToast(isLight ? '☀️ Switched to Light Mode' : '🌙 Switched to Dark Mode', 'fa-solid fa-circle-half-stroke text-sky-400');
     }
   }
 
   function toggleTheme() {
     const current = getStoredTheme();
-    setTheme(current === 'light' ? 'dark' : 'light');
+    setTheme(current === 'light' ? 'dark' : 'light', true);
   }
 
-  // Initialize theme on load
-  document.addEventListener('DOMContentLoaded', () => {
-    setTheme(getStoredTheme());
-  });
+  // Initialize theme on load (silently without toast)
   if (typeof document !== 'undefined') {
-    document.documentElement.classList.toggle('light-theme', getStoredTheme() === 'light');
+    const initTheme = getStoredTheme();
+    document.documentElement.classList.toggle('light-theme', initTheme === 'light');
+    if (document.body) {
+      document.body.classList.toggle('light-theme', initTheme === 'light');
+    }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTheme(getStoredTheme(), false);
+  });
 
   // --- Personal Context / Memory System ---
   function getMemory() {
@@ -99,104 +117,96 @@
   function clearMemory() {
     saveMemory([]);
     if (window.showToast) {
-      window.showToast('Cleared all stored personal memory', 'fa-solid fa-eraser text-amber-400');
+      window.showToast('All personal memory cleared', 'fa-solid fa-trash-can text-rose-400');
     }
   }
 
-  // Auto-Extract Facts from User Input & AI Responses
-  function processTextForFacts(userText, aiResponseText) {
-    // 1. Check for AI's explicit [MEMORY_UPDATE: {"add": [...]}] tag
-    if (aiResponseText) {
-      const match = aiResponseText.match(/\[MEMORY_UPDATE:\s*(\{[\s\S]*?\})\]/);
-      if (match) {
-        try {
-          const payload = JSON.parse(match[1]);
-          if (payload.add && Array.isArray(payload.add)) {
-            payload.add.forEach(fact => addMemoryItem(fact));
-          }
-        } catch (e) {}
-      }
-    }
-
-    if (!userText) return;
+  // Detect and extract potential memory facts from natural conversation
+  function extractImplicitMemory(userText) {
+    if (!userText || typeof userText !== 'string') return;
     const text = userText.trim();
-    const lower = text.toLowerCase();
-    
-    // Explicit name checks
-    if (lower.includes('dhairya')) {
-      addMemoryItem("User's name is Dhairya");
-    } else {
-      const nameMatch = text.match(/(?:my name is|i'm|i am|call me|myself|name is)\s+([A-Z][a-zA-Z]+)/i);
-      if (nameMatch && nameMatch[1]) {
-        const name = nameMatch[1].trim();
-        const ignoreWords = ['here', 'student', 'developer', 'learning', 'trying', 'asking', 'wondering', 'ready'];
-        if (!ignoreWords.includes(name.toLowerCase())) {
-          addMemoryItem(`User's name is ${name}`);
-        }
-      }
+    if (text.length < 5 || text.length > 250) return;
+
+    // Direct assertions
+    const nameMatch = text.match(/(?:my name is|i am|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+    if (nameMatch && nameMatch[1] && !['A', 'The', 'User', 'Here', 'Just', 'Going'].includes(nameMatch[1])) {
+      addMemoryItem(`User's name is ${nameMatch[1]}`);
     }
 
-    // Standard / Grade checks
-    const gradeMatch = text.match(/\b(10th|11th|12th|9th|8th|7th|6th|5th|class\s*\d+|standard\s*\d+|\d+th\s+standard|\d+th\s+grade|grade\s*\d+)\b/i);
+    const gradeMatch = text.match(/(?:i am in|i'm in|studying in|class)\s+(\d{1,2}(?:th|st|nd|rd)?\s*(?:grade|class|standard)?)/i);
     if (gradeMatch && gradeMatch[1]) {
-      addMemoryItem(`User studies in ${gradeMatch[1]}`);
-    } else if (lower.includes('10th') || lower.includes('class 10') || lower.includes('standard 10')) {
-      addMemoryItem("User studies in 10th standard");
+      addMemoryItem(`User is studying in ${gradeMatch[1]}`);
     }
 
-    // Tech / Subject interests
-    const techMatch = text.match(/\b(python|javascript|typescript|react|express|node|flutter|c\+\+|java|rust|physics|maths?|chemistry)\b/i);
-    if (techMatch && techMatch[1] && (lower.includes('use') || lower.includes('learn') || lower.includes('code') || lower.includes('study') || lower.includes('subject'))) {
-      addMemoryItem(`User works/studies ${techMatch[1]}`);
+    const goalMatch = text.match(/(?:my goal is to|i want to become|i am preparing for)\s+([^.!?\n]+)/i);
+    if (goalMatch && goalMatch[1]) {
+      addMemoryItem(`User's goal/prep: ${goalMatch[1].trim()}`);
+    }
+
+    const techMatch = text.match(/(?:i code in|i build with|my stack is|i work as a)\s+([^.!?\n]+)/i);
+    if (techMatch && techMatch[1]) {
+      addMemoryItem(`User works/studies ${techMatch[1].trim()}`);
     }
   }
 
   // Generate Personalized Hero Prompt Chips based on Memory Context
   function getContextualHeroPrompts() {
     const memory = getMemory();
-    const memStr = memory.join(' ').toLowerCase();
-
     const prompts = [];
+    const usedQueries = new Set();
 
-    // Personalization rules
-    if (memStr.includes('dhairya') || memStr.includes('user\'s name')) {
-      prompts.push({
-        title: "👋 Personal Greeting",
-        desc: "Get a personalized daily learning goal & quote",
-        query: "Hey D'Ai! Give me a quick personalized daily learning quote and goal for Dhairya."
-      });
-    }
+    // 1. Process user memories
+    memory.forEach((fact) => {
+      const f = fact.trim();
+      const fLower = f.toLowerCase();
+      if (!f || prompts.length >= 4) return;
 
-    if (memStr.includes('10th') || memStr.includes('class 10') || memStr.includes('standard')) {
-      prompts.push({
-        title: "📚 10th Grade Study Notes",
-        desc: "Physics & Chemistry key formulas & summary",
-        query: "Create a clean 10th grade Physics formula cheatsheet with key concepts."
-      });
-      prompts.push({
-        title: "📐 Math Quadratic Solver",
-        desc: "Step-by-step quadratic equations & geometry",
-        query: "Explain how to solve quadratic equations step-by-step with examples for 10th grade."
-      });
-    }
+      if (fLower.includes('name is') || fLower.includes('my name') || fLower.includes('dhairya')) {
+        const nameMatch = f.match(/name (?:is )?([a-zA-Z]+)/i) || [null, 'Dhairya'];
+        const userName = nameMatch[1] || 'Dhairya';
+        const p = {
+          title: `👋 Daily Goal for ${userName}`,
+          desc: "Personalized morning motivation & learning goal",
+          query: `Hey D'Ai! Give me a personalized daily learning quote, focus goal, and tip for ${userName}.`
+        };
+        if (!usedQueries.has(p.query)) {
+          usedQueries.add(p.query);
+          prompts.push(p);
+        }
+      } else if (fLower.includes('10th') || fLower.includes('grade') || fLower.includes('class') || fLower.includes('school') || fLower.includes('exam')) {
+        const p = {
+          title: "📚 Key Concept Cheatsheet",
+          desc: `High-yield study summary: "${f.slice(0, 26)}"`,
+          query: `Create a clean study cheatsheet and formula summary tailored to: ${f}.`
+        };
+        if (!usedQueries.has(p.query)) {
+          usedQueries.add(p.query);
+          prompts.push(p);
+        }
+      } else if (fLower.includes('python') || fLower.includes('rust') || fLower.includes('javascript') || fLower.includes('code') || fLower.includes('developer') || fLower.includes('engineer') || fLower.includes('react')) {
+        const p = {
+          title: "💻 Interactive Code Template",
+          desc: `Clean script architecture: "${f.slice(0, 26)}"`,
+          query: `Write a clean, modular code template with live preview and explanations tailored to: ${f}.`
+        };
+        if (!usedQueries.has(p.query)) {
+          usedQueries.add(p.query);
+          prompts.push(p);
+        }
+      } else {
+        const p = {
+          title: `🧠 Explore "${f.slice(0, 22)}${f.length > 22 ? '...' : ''}"`,
+          desc: "Deep dive tailored to your saved context",
+          query: `Tell me something fascinating, actionable, and deep based on my context: "${f}".`
+        };
+        if (!usedQueries.has(p.query)) {
+          usedQueries.add(p.query);
+          prompts.push(p);
+        }
+      }
+    });
 
-    if (memStr.includes('python') || memStr.includes('code') || memStr.includes('developer')) {
-      prompts.push({
-        title: "🐍 Python Script Generator",
-        desc: "Fast Python automation script",
-        query: "Write a clean Python script using asyncio and httpx to fetch API data."
-      });
-    }
-
-    if (memStr.includes('react') || memStr.includes('typescript') || memStr.includes('web')) {
-      prompts.push({
-        title: "💻 React Component Studio",
-        desc: "Interactive UI widget preview",
-        query: "Create an interactive HTML/Tailwind CSS dashboard widget with code."
-      });
-    }
-
-    // Fill defaults if less than 4
+    // 2. High quality default prompts to ensure always 4
     const defaults = [
       {
         title: "⚡ Quantum Computing",
@@ -206,7 +216,7 @@
       {
         title: "🎨 Surreal Wallpaper",
         desc: "Generate futuristic neon city wallpaper",
-        query: "Generate a surreal futuristic neon city wallpaper."
+        query: "Generate a surreal futuristic neon city wallpaper with vibrant lights."
       },
       {
         title: "📊 Interactive Math Graph",
@@ -221,7 +231,8 @@
     ];
 
     defaults.forEach(d => {
-      if (prompts.length < 4 && !prompts.some(p => p.title === d.title)) {
+      if (prompts.length < 4 && !usedQueries.has(d.query)) {
+        usedQueries.add(d.query);
         prompts.push(d);
       }
     });
@@ -318,29 +329,29 @@
       const items = getMemory();
       if (!items.length) {
         listEl.innerHTML = `
-          <div class="p-6 border border-dashed border-white/10 rounded-xl text-center">
-            <div class="text-purple-400 text-lg mb-1"><i class="fa-solid fa-brain opacity-60"></i></div>
-            <p class="text-xs text-gray-300 font-medium">No personal facts remembered yet.</p>
-            <p class="text-[11px] text-gray-500 mt-0.5">Tell D'Ai your name, grade, or interests and it will remember automatically!</p>
+          <div class="text-center py-6 text-xs text-gray-500 border border-dashed border-white/10 rounded-xl">
+            <i class="fa-solid fa-brain text-gray-600 text-lg mb-1 block"></i>
+            No facts stored yet. Add things you want D'Ai to always remember!
           </div>
         `;
         return;
       }
+
       listEl.innerHTML = items.map((item, idx) => `
-        <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-xs text-gray-200 group">
-          <div class="flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-            <span>${escapeHtml(item)}</span>
+        <div class="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors group">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400 flex-shrink-0"></span>
+            <span class="text-xs text-gray-200 truncate">${item.replace(/[<>&"]/g, '')}</span>
           </div>
-          <button data-memory-delete="${idx}" class="text-gray-500 hover:text-rose-400 text-xs transition-colors p-1 opacity-80 group-hover:opacity-100" title="Delete memory">
+          <button data-remove-idx="${idx}" class="w-7 h-7 rounded-lg text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center text-xs transition-colors cursor-pointer flex-shrink-0" title="Remove fact">
             <i class="fa-solid fa-trash-can"></i>
           </button>
         </div>
       `).join('');
 
-      listEl.querySelectorAll('[data-memory-delete]').forEach(btn => {
+      listEl.querySelectorAll('[data-remove-idx]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.getAttribute('data-memory-delete'), 10);
+          const idx = Number(btn.getAttribute('data-remove-idx'));
           removeMemoryItem(idx);
           updateListUI();
         });
@@ -349,21 +360,21 @@
 
     updateListUI();
     modal.classList.remove('opacity-0', 'pointer-events-none');
+    setTimeout(() => modal.querySelector('#memory-add-input')?.focus(), 100);
   }
 
-  function escapeHtml(str) {
-    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  // Global Exports
-  window.getPersonalContext = getMemory;
-  window.getPersonalContextFacts = getMemory;
-  window.savePersonalContext = saveMemory;
-  window.addPersonalMemoryItem = addMemoryItem;
-  window.processTextForFacts = processTextForFacts;
-  window.getContextualHeroPrompts = getContextualHeroPrompts;
-  window.openPersonalContextModal = renderPersonalContextModal;
   window.toggleTheme = toggleTheme;
   window.setTheme = setTheme;
   window.getStoredTheme = getStoredTheme;
+  window.getPersonalContextFacts = getMemory;
+  window.addPersonalContextFact = addMemoryItem;
+  window.removePersonalContextFact = removeMemoryItem;
+  window.clearPersonalContextMemory = clearMemory;
+  window.extractImplicitMemory = extractImplicitMemory;
+  window.getContextualHeroPrompts = getContextualHeroPrompts;
+  window.openPersonalContextModal = renderPersonalContextModal;
+  window.closePersonalContextModal = () => {
+    const modal = document.getElementById('personal-context-modal');
+    if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+  };
 })();

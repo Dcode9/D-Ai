@@ -1,6 +1,6 @@
 (function () {
   const MOBILE_QUERY = '(max-width: 640px)';
-  const MIN_SWIPE = 45;
+  const MIN_SWIPE = 40;
 
   window.createSidebarUXController = function createSidebarUXController(options = {}) {
     const panel = options.panel;
@@ -26,6 +26,8 @@
     let isSwiping = false;
     let lockDirection = false; // 'h' for horizontal, 'v' for vertical
 
+    const getMaxShift = () => Math.min(window.innerWidth - 40, 310);
+
     const setSearchMode = (next) => {
       searchMode = Boolean(next);
       panel.classList.toggle('search-open', searchMode);
@@ -38,11 +40,13 @@
         document.body.classList.remove('sidebar-shifted');
         document.body.classList.toggle('desktop-sidebar-open', Boolean(open));
         document.body.style.removeProperty('--swipe-shift');
+        document.body.style.removeProperty('--swipe-ratio');
         return;
       }
       document.body.classList.remove('desktop-sidebar-open');
       document.body.classList.toggle('sidebar-shifted', Boolean(open));
       document.body.style.removeProperty('--swipe-shift');
+      document.body.style.removeProperty('--swipe-ratio');
     };
 
     const toggleSearchMode = () => {
@@ -55,16 +59,20 @@
     };
 
     const applySwipeShift = (shiftPx) => {
-      document.body.style.setProperty('--swipe-shift', `${Math.round(shiftPx)}px`);
+      const maxShift = getMaxShift();
+      const clamped = Math.max(0, Math.min(shiftPx, maxShift));
+      const ratio = clamped / maxShift;
+      document.body.style.setProperty('--swipe-shift', `${Math.round(clamped)}px`);
+      document.body.style.setProperty('--swipe-ratio', ratio.toFixed(3));
       if (backdrop) {
-        const opacity = Math.min(1, Math.max(0, shiftPx / 285));
-        backdrop.style.opacity = String(opacity);
-        if (shiftPx > 0) backdrop.classList.remove('hidden');
+        backdrop.style.opacity = String(Math.min(0.65, ratio * 0.65));
+        if (clamped > 0) backdrop.classList.remove('hidden');
       }
     };
 
     const resetSwipeShift = () => {
       document.body.style.removeProperty('--swipe-shift');
+      document.body.style.removeProperty('--swipe-ratio');
       if (backdrop) backdrop.style.removeProperty('opacity');
     };
 
@@ -78,10 +86,10 @@
       if (isInteractiveElement(event.target)) return;
 
       const touch = event.touches[0];
-      const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
+      const openNow = typeof isOpen === 'function' ? isOpen() : document.body.classList.contains('sidebar-shifted');
 
-      // If closed, only track swipe if starting from left edge (< 35px)
-      if (!openNow && touch.clientX > 35) return;
+      // If sidebar is closed, only start swipe tracking if swiping from left edge area (< 45px)
+      if (!openNow && touch.clientX > 45) return;
 
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
@@ -99,26 +107,24 @@
       const dy = touch.clientY - touchStartY;
 
       if (!lockDirection) {
-        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 7) {
           lockDirection = 'v';
           trackingTouch = false;
           return;
-        } else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+        } else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 7) {
           lockDirection = 'h';
           isSwiping = true;
         }
       }
 
       if (isSwiping && lockDirection === 'h') {
-        const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
-        const maxShift = Math.min(window.innerWidth * 0.85, 285);
+        const openNow = typeof isOpen === 'function' ? isOpen() : document.body.classList.contains('sidebar-shifted');
+        const maxShift = getMaxShift();
 
         if (!openNow && dx > 0) {
-          const shift = Math.min(dx, maxShift);
-          applySwipeShift(shift);
+          applySwipeShift(dx);
         } else if (openNow && dx < 0) {
-          const shift = Math.max(0, maxShift + dx);
-          applySwipeShift(shift);
+          applySwipeShift(maxShift + dx);
         }
       }
     };
@@ -130,7 +136,7 @@
       }
       trackingTouch = false;
       const dx = currentTouchX - touchStartX;
-      const openNow = typeof isOpen === 'function' ? isOpen() : panel.classList.contains('open');
+      const openNow = typeof isOpen === 'function' ? isOpen() : document.body.classList.contains('sidebar-shifted');
 
       resetSwipeShift();
 
@@ -154,7 +160,15 @@
       document.body.addEventListener('touchend', handleTouchEnd, { passive: true });
       document.body.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
-      mobileMq.addEventListener?.('change', () => sync(panel.classList.contains('open')));
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setHistoryOpen(false);
+        });
+      }
+
+      mobileMq.addEventListener?.('change', () => sync(panel.classList.contains('open') || document.body.classList.contains('sidebar-shifted')));
 
       panel.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') setSearchMode(false);

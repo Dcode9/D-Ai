@@ -83,13 +83,15 @@
             --dai-good: #34d399;
             --dai-warn: #f43f5e;
             --keyboard-inset: 0px;
+            --swipe-shift: 0px;
+            --swipe-ratio: 0;
         }
         :root.light-theme {
             --dai-bg: #f8fafc;
             --dai-surface: #ffffff;
             --dai-surface-2: #f1f5f9;
-            --dai-border: rgba(0, 0, 0, 0.12);
-            --dai-border-soft: rgba(0, 0, 0, 0.08);
+            --dai-border: rgba(0, 0, 0, 0.1);
+            --dai-border-soft: rgba(0, 0, 0, 0.06);
             --dai-text: #0f172a;
             --dai-muted: #64748b;
             --dai-soft: #334155;
@@ -103,33 +105,145 @@
             background-color: #f8fafc !important;
             color: #0f172a !important;
         }
-        body.light-theme header {
+        body.light-theme .chat-viewport,
+        body.light-theme main,
+        body.light-theme #chat {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        body.light-theme header#main-header {
             background-color: rgba(255, 255, 255, 0.95) !important;
-            border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+            border-bottom-color: rgba(0, 0, 0, 0.08) !important;
         }
         body.light-theme header h1 {
             color: #0f172a !important;
         }
-        body.light-theme .history-panel {
-            background-color: #ffffff !important;
-            border-right-color: rgba(0, 0, 0, 0.1) !important;
+        body.light-theme header button,
+        body.light-theme #history-toggle {
+            background-color: rgba(0, 0, 0, 0.04) !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #334155 !important;
         }
-        body.light-theme .history-head h2,
-        body.light-theme .auth-card strong {
+        body.light-theme header button:hover,
+        body.light-theme #history-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.08) !important;
             color: #0f172a !important;
         }
-        body.light-theme .user-bubble {
+        body.light-theme .history-panel {
+            background-color: #ffffff !important;
+            border-right-color: rgba(0, 0, 0, 0.08) !important;
+            color: #0f172a !important;
+        }
+        body.light-theme .sidebar-top span,
+        body.light-theme .sidebar-top h2 {
+            color: #0f172a !important;
+        }
+        body.light-theme .history-search-wrap {
+            background-color: #f1f5f9 !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #0f172a !important;
+        }
+        body.light-theme .history-search-wrap input {
+            color: #0f172a !important;
+        }
+        body.light-theme .history-search-wrap input::placeholder {
+            color: #94a3b8 !important;
+        }
+        body.light-theme .history-item {
+            color: #334155 !important;
+        }
+        body.light-theme .history-item:hover {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+        body.light-theme .history-item.active {
             background-color: #e0f2fe !important;
             color: #0369a1 !important;
             border-color: #bae6fd !important;
         }
+        body.light-theme .auth-card {
+            background-color: #f8fafc !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-theme #auth-title {
+            color: #0f172a !important;
+        }
+        body.light-theme #auth-status {
+            color: #64748b !important;
+        }
+        body.light-theme #settings-trigger {
+            background-color: rgba(0, 0, 0, 0.04) !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #334155 !important;
+        }
+        body.light-theme #hero h2 {
+            color: #0f172a !important;
+        }
+        body.light-theme #hero p {
+            color: #64748b !important;
+        }
+        body.light-theme .hero-chip {
+            background-color: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        body.light-theme .hero-chip div:first-child {
+            color: #0f172a !important;
+        }
+        body.light-theme .hero-chip div:last-child {
+            color: #64748b !important;
+        }
+        body.light-theme .user-bubble {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+        }
         body.light-theme .assistant-shell {
             background-color: #ffffff !important;
             border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #1e293b !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+        body.light-theme .markdown-body {
+            color: #334155 !important;
+        }
+        body.light-theme .markdown-body h1,
+        body.light-theme .markdown-body h2,
+        body.light-theme .markdown-body h3,
+        body.light-theme .markdown-body h4,
+        body.light-theme .markdown-body strong {
+            color: #0f172a !important;
+        }
+        body.light-theme .markdown-body blockquote {
+            background: rgba(217, 119, 6, 0.08) !important;
+            color: #334155 !important;
+        }
+        body.light-theme .markdown-body a {
+            color: #0284c7 !important;
+            border-bottom-color: rgba(2, 132, 199, 0.3) !important;
+        }
+        body.light-theme .markdown-body hr {
+            border-top-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-theme .markdown-body table {
+            background: #ffffff !important;
+        }
+        body.light-theme .markdown-body th {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-theme .markdown-body td {
+            color: #334155 !important;
+            border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+        }
+        body.light-theme #composer-dock {
+            background: linear-gradient(to top, #f8fafc 75%, rgba(248, 250, 252, 0.95) 90%, transparent) !important;
         }
         body.light-theme #composer-shell {
             background-color: #ffffff !important;
             border-color: rgba(0, 0, 0, 0.15) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
         }
         body.light-theme #in {
             color: #0f172a !important;
@@ -137,11 +251,32 @@
         body.light-theme #in::placeholder {
             color: #94a3b8 !important;
         }
-        body.light-theme .hero-chip {
-            background-color: #ffffff !important;
+        body.light-theme .message-action {
+            background-color: rgba(0, 0, 0, 0.04) !important;
             border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #64748b !important;
         }
-        body.light-theme .hero-chip div:first-child {
+        body.light-theme .message-action:hover {
+            color: #0f172a !important;
+            background-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        body.light-theme #account-menu-modal > div,
+        body.light-theme #settings-menu-modal > div,
+        body.light-theme #personal-context-modal > div {
+            background-color: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.15) !important;
+            color: #0f172a !important;
+        }
+        body.light-theme #account-menu-modal .border-b,
+        body.light-theme #settings-menu-modal .border-b,
+        body.light-theme #personal-context-modal .border-b {
+            background-color: #f8fafc !important;
+            border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        body.light-theme #account-menu-modal h3,
+        body.light-theme #settings-menu-modal h3,
+        body.light-theme #personal-context-modal h3,
+        body.light-theme #account-menu-modal h4 {
             color: #0f172a !important;
         }
         body{background:var(--dai-bg);color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden;overflow-x:hidden}
@@ -482,39 +617,114 @@
             .code-action { width: 34px; height: 34px; }
         }
 
+        .chat-viewport {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--dai-bg);
+            transition: padding-left 240ms cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+
         @media (min-width: 641px) {
             .history-backdrop { display: none !important; }
-            header, main, #composer-dock { transition: padding-left 240ms cubic-bezier(0.2, 0.9, 0.4, 1); padding-left: 4.5rem; }
-            body.desktop-sidebar-open header,
-            body.desktop-sidebar-open main,
-            body.desktop-sidebar-open #composer-dock { padding-left: 280px; }
+            .chat-viewport { padding-left: 4.5rem; }
+            body.desktop-sidebar-open .chat-viewport { padding-left: 280px; }
             #history-toggle { display: flex; align-items: center; justify-content: center; }
         }
 
         @media (max-width: 640px) {
-            body { height: 100dvh; height: -webkit-fill-available; overflow: hidden; }
-            html, body { width: 100%; min-height: 100dvh; min-height: -webkit-fill-available; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+            body {
+                height: 100dvh;
+                height: -webkit-fill-available;
+                overflow: hidden;
+                background: var(--dai-bg);
+            }
+            html, body {
+                width: 100%;
+                min-height: 100dvh;
+                min-height: -webkit-fill-available;
+                overscroll-behavior: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Mobile Sidebar in background */
+            .history-panel {
+                position: fixed !important;
+                inset: 0 auto 0 0 !important;
+                width: calc(100vw - 36px) !important;
+                max-width: 310px !important;
+                height: 100dvh !important;
+                height: -webkit-fill-available !important;
+                padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
+                padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+                padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+                z-index: 10 !important;
+                transform: translateX(0) !important;
+                background: var(--dai-bg) !important;
+                border-right: 1px solid var(--dai-border) !important;
+                box-shadow: none !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Mobile Chat Viewport shifts right revealing sidebar */
+            .chat-viewport {
+                position: fixed !important;
+                inset: 0 !important;
+                width: 100vw !important;
+                height: 100dvh !important;
+                height: -webkit-fill-available !important;
+                z-index: 20 !important;
+                padding-left: 0 !important;
+                background: var(--dai-bg) !important;
+                transform: translate3d(var(--swipe-shift, 0px), 0, 0) scale(calc(1 - var(--swipe-ratio, 0) * 0.05));
+                border-radius: calc(var(--swipe-ratio, 0) * 24px);
+                box-shadow: -15px 0 calc(var(--swipe-ratio, 0) * 45px) rgba(0, 0, 0, 0.7);
+                transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 260ms ease, box-shadow 260ms ease;
+                overflow: hidden !important;
+                will-change: transform;
+            }
+
+            body.sidebar-shifted .chat-viewport {
+                transform: translate3d(calc(100vw - 36px), 0, 0) scale(0.95);
+                border-radius: 24px;
+                box-shadow: -15px 0 45px rgba(0, 0, 0, 0.75);
+                pointer-events: none;
+            }
+
+            .history-backdrop {
+                position: absolute !important;
+                inset: 0 !important;
+                z-index: 28 !important;
+                background: rgba(0, 0, 0, 0.35) !important;
+                backdrop-filter: blur(1.5px) !important;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 260ms ease;
+            }
+
+            body.sidebar-shifted .history-backdrop {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+
             header#main-header {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
                 height: calc(3.5rem + env(safe-area-inset-top, 0px));
                 padding-top: env(safe-area-inset-top, 0px);
+                padding-left: 0 !important;
             }
             main {
                 padding-top: calc(3.5rem + env(safe-area-inset-top, 0px)) !important;
                 padding-left: 0 !important;
             }
-            .history-panel {
-                width: 285px;
-                max-width: 86vw;
-                height: 100dvh;
-                height: -webkit-fill-available;
-                padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-                padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-                padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-                transform: translateX(-105%);
-                transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-                -webkit-overflow-scrolling: touch;
-            }
-            .history-panel.open { transform: translateX(0); }
             #chat {
                 padding: 0.75rem 0.75rem calc(11.5rem + env(safe-area-inset-bottom, 0px));
                 gap: 0.85rem;
@@ -526,6 +736,10 @@
             .assistant-shell { border-radius: 20px; padding: 0.85rem; font-size: 0.94rem; }
             .user-bubble { max-width: 90%; border-radius: 18px 18px 4px 18px; font-size: 0.92rem; padding: 0.65rem 0.9rem; }
             #composer-dock {
+                position: absolute !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
                 padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
                 padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
                 padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
@@ -544,41 +758,6 @@
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden bg-dark-bg text-gray-100">
-    <!-- Redesigned Top Bar Header -->
-    <header id="main-header" class="fixed top-0 left-0 right-0 z-20 h-14 bg-dark-bg/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
-        <div class="h-full w-full max-w-3xl mx-auto px-4 flex items-center justify-between relative">
-            
-            <!-- Left: Mobile/Desktop Sidebar Toggle Button -->
-            <button id="history-toggle" onclick="window.setHistoryOpen(!document.getElementById('history-panel')?.classList.contains('open'))" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center text-sm transition-all shadow-sm cursor-pointer z-30" title="Toggle Sidebar (Ctrl+B)" aria-label="Toggle Sidebar">
-                <i class="fa-solid fa-bars-staggered"></i>
-            </button>
-
-            <!-- Center: Brand Logo & Identifier -->
-            <div class="flex items-center gap-2 cursor-pointer select-none" onclick="window.resetConversation()">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto drop-shadow-md" alt="Logo">
-                <div class="flex items-center gap-1.5">
-                    <h1 class="font-black text-sm tracking-tight text-white">D'Ai</h1>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">✨ Fast</span>
-                </div>
-            </div>
-
-            <!-- Right: Quick Action Controls (New Chat, Settings, Theme) -->
-            <div class="flex items-center gap-1.5 z-30">
-                <button onclick="window.resetConversation()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/40 text-gray-300 hover:text-sky-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="New Chat (Ctrl+K)" aria-label="New Chat">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
-                <button onclick="window.openSettingsModal()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 text-gray-300 hover:text-purple-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="Settings & Personal Memory" aria-label="Settings">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-                <button onclick="window.toggleTheme()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/40 text-gray-300 hover:text-amber-300 flex items-center justify-center text-xs transition-all cursor-pointer theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-            </div>
-
-        </div>
-    </header>
-
-    <div id="history-backdrop" class="history-backdrop hidden"></div>
     <aside id="history-panel" class="history-panel" aria-label="Saved chat history" aria-hidden="true">
         <div class="history-main flex flex-col h-full">
             <!-- Sidebar Header & Single Top Search Bar -->
@@ -636,6 +815,113 @@
             </div>
         </div>
     </aside>
+
+    <div id="chat-viewport" class="chat-viewport">
+        <!-- Redesigned Top Bar Header -->
+        <header id="main-header" class="fixed top-0 left-0 right-0 z-20 h-14 bg-dark-bg/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+            <div class="h-full w-full max-w-3xl mx-auto px-4 flex items-center justify-between relative">
+                
+                <!-- Left: Mobile/Desktop Sidebar Toggle Button -->
+                <button id="history-toggle" onclick="window.setHistoryOpen(!document.getElementById('history-panel')?.classList.contains('open'))" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/15 text-gray-300 hover:text-white flex items-center justify-center text-sm transition-all shadow-sm cursor-pointer z-30" title="Toggle Sidebar (Ctrl+B)" aria-label="Toggle Sidebar">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+
+                <!-- Center: Brand Logo & Identifier -->
+                <div class="flex items-center gap-2 cursor-pointer select-none" onclick="window.resetConversation()">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-6 w-auto drop-shadow-md" alt="Logo">
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="font-black text-sm tracking-tight text-white">D'Ai</h1>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">✨ Fast</span>
+                    </div>
+                </div>
+
+                <!-- Right: Quick Action Controls (New Chat, Settings, Theme) -->
+                <div class="flex items-center gap-1.5 z-30">
+                    <button onclick="window.resetConversation()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/40 text-gray-300 hover:text-sky-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="New Chat (Ctrl+K)" aria-label="New Chat">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button onclick="window.openSettingsModal()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 text-gray-300 hover:text-purple-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="Settings & Personal Memory" aria-label="Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button onclick="window.toggleTheme()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500/20 hover:border-amber-500/40 text-gray-300 hover:text-amber-300 flex items-center justify-center text-xs transition-all cursor-pointer theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+
+            </div>
+        </header>
+
+        <div id="history-backdrop" class="history-backdrop hidden"></div>
+
+        <main class="flex-1 flex flex-col w-full relative min-h-0 overflow-hidden pt-14">
+            <div id="chat" class="w-full max-w-3xl mx-auto flex-1 overflow-y-auto px-4 pt-4 pb-52 space-y-6 min-h-0 scroll-smooth">
+                <div id="hero" class="h-full flex flex-col items-center justify-center select-none py-6">
+                    <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4" alt="Logo">
+                    <h2 class="text-2xl font-extrabold text-white tracking-tight mb-2">D'Ai ✨ - Scary Fast.</h2>
+                    <p class="text-xs text-gray-400 mb-8 max-w-md text-center">Lightning fast chat, image generation, web search, code previews, and interactive widgets.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl px-2">
+                        <button onclick="window.sendPrompt('⚡ Explain quantum computing simply')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 transition-all text-xs group">
+                            <div class="font-semibold text-white group-hover:text-sky-300">⚡ Quantum Computing</div>
+                            <div class="text-gray-400 text-[11px] mt-0.5">Explain superposition & qubits simply</div>
+                        </button>
+                        <button onclick="window.sendPrompt('🎨 Generate a surreal futuristic city wallpaper with vibrant neon lights')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all text-xs group">
+                            <div class="font-semibold text-white group-hover:text-amber-300">🎨 Image Generation</div>
+                            <div class="text-gray-400 text-[11px] mt-0.5">Surreal neon city wallpaper</div>
+                        </button>
+                        <button onclick="window.sendPrompt('📊 Visualize the Pythagorean theorem with interactive sliders')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all text-xs group">
+                            <div class="font-semibold text-white group-hover:text-emerald-300">📊 Math Visualizer</div>
+                            <div class="text-gray-400 text-[11px] mt-0.5">Interactive Pythagorean theorem demo</div>
+                        </button>
+                        <button onclick="window.sendPrompt('💻 Create a REST API using Node.js, Express, and TypeScript')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-purple-500/10 hover:border-purple-500/30 transition-all text-xs group">
+                            <div class="font-semibold text-white group-hover:text-purple-300">💻 Express API</div>
+                            <div class="text-gray-400 text-[11px] mt-0.5">TypeScript REST API starter</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button id="scroll-btn" class="relative" onclick="window.scrollToBottom()" title="Scroll to bottom" aria-label="Scroll to bottom">
+                ↓
+                <span id="scroll-unread-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-sky-500 text-black text-[10px] font-black rounded-full flex items-center justify-center hidden">0</span>
+            </button>
+        </main>
+
+        <div id="composer-dock" class="fixed bottom-0 left-0 right-0 z-10 pointer-events-none pb-6 pt-10 px-4 bg-gradient-to-t from-dark-bg via-dark-bg/95 to-transparent">
+            <div id="composer-shell" class="w-full max-w-3xl mx-auto pointer-events-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+
+                <!-- Attachment Preview Area -->
+                <div id="attachment-preview" class="hidden w-full px-3 pt-2">
+                    <div class="attachment-card">
+                        <div id="attachment-visual" class="relative">
+                            <div class="attachment-icon"><i class="fa-solid fa-file-lines"></i></div>
+                            <div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]">
+                                <i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="attachment-meta">
+                            <div id="attachment-name" class="attachment-name">Attachment</div>
+                            <div id="attachment-detail" class="attachment-detail">Preparing...</div>
+                        </div>
+                        <button onclick="window.removeAttachment()" class="attachment-remove" title="Remove attachment"><i class="fa-solid fa-times text-[11px]"></i></button>
+                    </div>
+                </div>
+
+                <div class="w-full flex items-end gap-1.5 p-1">
+                    <button type="button" onclick="document.getElementById('file-input').click()" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all rounded-full flex-shrink-0 cursor-pointer text-base" title="Attach file (Images, PDF, Docs)" aria-label="Attach file">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.markdown,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleFile(this.files[0])">
+
+                    <textarea id="in" rows="1" class="w-full bg-transparent text-white py-2.5 px-2 max-h-36 resize-none outline-none placeholder-gray-500 text-base leading-relaxed" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
+
+                    <button type="button" id="btn" onclick="window.send()" class="w-10 h-10 flex items-center justify-center rounded-full bg-sky-500 hover:bg-sky-400 active:scale-95 text-black font-bold disabled:opacity-40 disabled:hover:bg-sky-500 disabled:active:scale-100 transition-all flex-shrink-0 cursor-pointer shadow-md shadow-sky-500/20" title="Send message" aria-label="Send message">
+                        <i class="fa-solid fa-arrow-up text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="max-w-3xl mx-auto mt-2 px-2 text-[11px] text-gray-500 text-center">D’Ai can make mistakes.</p>
+        </div>
+    </div>
 
     <!-- Account Modal (Profile, Cloud Sync, Sign In / Sign Out) -->
     <div id="account-menu-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200">
@@ -755,75 +1041,6 @@
     <div id="dai-toast" class="fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-dark-surface/95 border border-white/15 text-xs text-white shadow-2xl backdrop-blur-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px]">
         <i id="toast-icon" class="fa-solid fa-circle-info text-sky-400"></i>
         <span id="toast-message">Notification</span>
-    </div>
-
-    <main class="flex-1 flex flex-col w-full relative min-h-0 overflow-hidden pt-14">
-        <div id="chat" class="w-full max-w-3xl mx-auto flex-1 overflow-y-auto px-4 pt-4 pb-52 space-y-6 min-h-0 scroll-smooth">
-            <div id="hero" class="h-full flex flex-col items-center justify-center select-none py-6">
-                <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4" alt="Logo">
-                <h2 class="text-2xl font-extrabold text-white tracking-tight mb-2">D'Ai ✨ - Scary Fast.</h2>
-                <p class="text-xs text-gray-400 mb-8 max-w-md text-center">Lightning fast chat, image generation, web search, code previews, and interactive widgets.</p>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl px-2">
-                    <button onclick="window.sendPrompt('⚡ Explain quantum computing simply')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 transition-all text-xs group">
-                        <div class="font-semibold text-white group-hover:text-sky-300">⚡ Quantum Computing</div>
-                        <div class="text-gray-400 text-[11px] mt-0.5">Explain superposition & qubits simply</div>
-                    </button>
-                    <button onclick="window.sendPrompt('🎨 Generate a surreal futuristic city wallpaper with vibrant neon lights')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all text-xs group">
-                        <div class="font-semibold text-white group-hover:text-amber-300">🎨 Image Generation</div>
-                        <div class="text-gray-400 text-[11px] mt-0.5">Surreal neon city wallpaper</div>
-                    </button>
-                    <button onclick="window.sendPrompt('📊 Visualize the Pythagorean theorem with interactive sliders')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all text-xs group">
-                        <div class="font-semibold text-white group-hover:text-emerald-300">📊 Math Visualizer</div>
-                        <div class="text-gray-400 text-[11px] mt-0.5">Interactive Pythagorean theorem demo</div>
-                    </button>
-                    <button onclick="window.sendPrompt('💻 Create a REST API using Node.js, Express, and TypeScript')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-purple-500/10 hover:border-purple-500/30 transition-all text-xs group">
-                        <div class="font-semibold text-white group-hover:text-purple-300">💻 Express API</div>
-                        <div class="text-gray-400 text-[11px] mt-0.5">TypeScript REST API starter</div>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <button id="scroll-btn" class="relative" onclick="window.scrollToBottom()" title="Scroll to bottom" aria-label="Scroll to bottom">
-            ↓
-            <span id="scroll-unread-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-sky-500 text-black text-[10px] font-black rounded-full flex items-center justify-center hidden">0</span>
-        </button>
-    </main>
-
-    <div id="composer-dock" class="fixed bottom-0 left-0 right-0 z-10 pointer-events-none pb-6 pt-10 px-4 bg-gradient-to-t from-dark-bg via-dark-bg/95 to-transparent">
-        <div id="composer-shell" class="w-full max-w-3xl mx-auto pointer-events-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
-
-            <!-- Attachment Preview Area -->
-            <div id="attachment-preview" class="hidden w-full px-3 pt-2">
-                <div class="attachment-card">
-                    <div id="attachment-visual" class="relative">
-                        <div class="attachment-icon"><i class="fa-solid fa-file-lines"></i></div>
-                        <div id="upload-progress" class="absolute inset-0 flex items-center justify-center bg-black/45 rounded-[10px]">
-                            <i class="fa-solid fa-circle-notch fa-spin text-teal-300 text-xl"></i>
-                        </div>
-                    </div>
-                    <div class="attachment-meta">
-                        <div id="attachment-name" class="attachment-name">Attachment</div>
-                        <div id="attachment-detail" class="attachment-detail">Preparing...</div>
-                    </div>
-                    <button onclick="window.removeAttachment()" class="attachment-remove" title="Remove attachment"><i class="fa-solid fa-times text-[11px]"></i></button>
-                </div>
-            </div>
-
-            <div class="w-full flex items-end gap-1.5 p-1">
-                <button type="button" onclick="document.getElementById('file-input').click()" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all rounded-full flex-shrink-0 cursor-pointer text-base" title="Attach file (Images, PDF, Docs)" aria-label="Attach file">
-                    <i class="fa-solid fa-paperclip"></i>
-                </button>
-                <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.markdown,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleFile(this.files[0])">
-
-                <textarea id="in" rows="1" class="w-full bg-transparent text-white py-2.5 px-2 max-h-36 resize-none outline-none placeholder-gray-500 text-base leading-relaxed" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
-
-                <button type="button" id="btn" onclick="window.send()" class="w-10 h-10 flex items-center justify-center rounded-full bg-sky-500 hover:bg-sky-400 active:scale-95 text-black font-bold disabled:opacity-40 disabled:hover:bg-sky-500 disabled:active:scale-100 transition-all flex-shrink-0 cursor-pointer shadow-md shadow-sky-500/20" title="Send message" aria-label="Send message">
-                    <i class="fa-solid fa-arrow-up text-sm"></i>
-                </button>
-            </div>
-        </div>
-        <p class="max-w-3xl mx-auto mt-2 px-2 text-[11px] text-gray-500 text-center">D’Ai can make mistakes.</p>
     </div>
 
     <!-- Scripts -->
@@ -1202,6 +1419,7 @@ ${safeJs}
 
         const inputEl = document.getElementById('in');
 
+        // iOS Safari & Mobile Virtual Keyboard resizing workaround
         const updateKeyboardInset = () => {
             const viewport = window.visualViewport;
             const inEl = document.getElementById('in');
@@ -1210,12 +1428,18 @@ ${safeJs}
                 document.documentElement.style.setProperty('--keyboard-inset', '0px');
                 return;
             }
+
+            // In iOS Safari, prevent whole-page scrolling jitter on virtual keyboard open
+            if (window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+            }
+
             const layoutHeight = window.innerHeight;
             const visualHeight = viewport.height;
             const offsetTop = viewport.offsetTop || 0;
             const rawInset = layoutHeight - visualHeight - offsetTop;
 
-            const inset = (rawInset > 45) ? Math.min(rawInset, Math.round(layoutHeight * 0.55)) : 0;
+            const inset = (rawInset > 35) ? Math.min(rawInset, Math.round(layoutHeight * 0.6)) : 0;
             document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
             if (inset > 0) {
                 requestAnimationFrame(() => {
@@ -1229,14 +1453,25 @@ ${safeJs}
             window.visualViewport.addEventListener('scroll', updateKeyboardInset);
         }
         window.addEventListener('resize', updateKeyboardInset);
+        window.addEventListener('scroll', () => {
+            if (document.activeElement === inputEl && window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+            }
+        });
         window.addEventListener('orientationchange', () => setTimeout(updateKeyboardInset, 250));
 
         inputEl.addEventListener('focus', () => {
-            setTimeout(updateKeyboardInset, 60);
-            setTimeout(updateKeyboardInset, 320);
+            setTimeout(updateKeyboardInset, 50);
+            setTimeout(updateKeyboardInset, 200);
+            setTimeout(updateKeyboardInset, 450);
         });
         inputEl.addEventListener('blur', () => {
             document.documentElement.style.setProperty('--keyboard-inset', '0px');
+        });
+        inputEl.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+            updateKeyboardInset();
         });
         updateKeyboardInset();
 
@@ -2707,11 +2942,11 @@ ${safeJs}
                 const input = document.getElementById('in');
                 if (!input) return;
                 input.value = text;
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 140) + 'px';
                 input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.focus();
-                const form = document.getElementById('composer-dock')?.querySelector('form') || input.closest('form');
-                if (form) {
-                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                if (typeof window.send === 'function') {
+                    window.send();
                 } else {
                     document.getElementById('btn')?.click();
                 }
@@ -2966,6 +3201,9 @@ ${safeJs}
                 const isDesktop = window.matchMedia('(min-width: 641px)').matches;
                 if (isDesktop) {
                     document.body.classList.toggle('desktop-sidebar-open', open);
+                    document.body.classList.remove('sidebar-shifted');
+                } else {
+                    document.body.classList.toggle('sidebar-shifted', open);
                 }
                 const closeIcon = document.querySelector('#history-close i');
                 if (closeIcon) closeIcon.className = panel?.classList.contains('open') ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
@@ -3087,7 +3325,7 @@ ${safeJs}
                 if (!prompts.length) return;
 
                 heroGrid.innerHTML = prompts.map((p, idx) => `
-                    <button onclick="window.sendPrompt('${escapeHtml(p.query).replace(/'/g, "\\'")}')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 transition-all text-xs group cursor-pointer hero-chip-swipe" style="animation-delay: ${idx * 65}ms">
+                    <button type="button" onclick="window.sendPrompt('${escapeHtml(p.query).replace(/'/g, "\\'")}')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 transition-all text-xs group cursor-pointer hero-chip-swipe" style="animation-delay: ${idx * 65}ms">
                         <div class="font-semibold text-white group-hover:text-sky-300 flex items-center justify-between">
                             <span>${escapeHtml(p.title)}</span>
                             <i class="fa-solid fa-arrow-right text-[10px] opacity-0 group-hover:opacity-100 transition-opacity text-sky-400"></i>
@@ -3096,6 +3334,8 @@ ${safeJs}
                     </button>
                 `).join('');
             };
+            window.renderHeroPrompts = renderHeroPrompts;
+            window.addEventListener('dai:memory-updated', renderHeroPrompts);
 
             const resetConversation = () => {
                 S.msg = [];
