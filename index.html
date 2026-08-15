@@ -3969,7 +3969,11 @@ ${safeJs}
                 const hashParams = window.location.hash ? new URLSearchParams(window.location.hash.replace(/^#\/?/, '')) : null;
                 const initialPrompt = params.get('prompt') || params.get('q') || (hashParams ? (hashParams.get('prompt') || hashParams.get('q')) : null);
                 if (initialPrompt && initialPrompt.trim()) {
-                    const cleanPrompt = initialPrompt.trim();
+                    let cleanPrompt = initialPrompt.trim();
+                    const lower = cleanPrompt.toLowerCase();
+                    if (lower === '1947' || lower === 'independence' || lower === 'ind' || lower === 'august15' || lower === 'independence-day') {
+                        cleanPrompt = 'What is the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, and why did it change world history?';
+                    }
                     if (E.i) {
                         E.i.value = cleanPrompt;
                         E.i.style.height = 'auto';
