@@ -235,39 +235,39 @@
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'personal-context-modal';
-      modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200';
+      modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]';
       
       modal.innerHTML = `
-        <div class="w-full max-w-lg bg-[#0e1017] border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-          <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 text-sm">
+        <div class="w-full max-w-lg bg-[#0e1017] border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]">
+          <div class="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 text-xs sm:text-sm flex-shrink-0">
                 <i class="fa-solid fa-brain"></i>
               </div>
-              <div>
-                <h3 class="text-sm font-bold text-white tracking-wide">Personal Context & Memory</h3>
-                <p class="text-[11px] text-gray-400">Facts D'Ai remembers to tailor your answers</p>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-white tracking-wide truncate">Personal Context & Memory</h3>
+                <p class="text-[10px] sm:text-[11px] text-gray-400 truncate">Facts D'Ai remembers to tailor your answers</p>
               </div>
             </div>
-            <button id="memory-modal-close" class="w-8 h-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors" title="Close (Esc)">
+            <button id="memory-modal-close" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors flex-shrink-0 cursor-pointer" title="Close (Esc)">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
 
-          <div class="p-5 flex-1 overflow-y-auto space-y-4">
+          <div class="p-3.5 sm:p-5 flex-1 overflow-y-auto space-y-3 sm:space-y-4 -webkit-overflow-scrolling-touch">
             <div class="flex gap-2">
-              <input id="memory-add-input" type="text" placeholder="Add a fact (e.g., 'My name is Dhairya', '10th grade')" class="flex-1 px-3.5 py-2.5 rounded-xl border border-white/15 bg-white/5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50">
-              <button id="memory-add-btn" class="px-4 py-2.5 rounded-xl border border-purple-500/30 bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 transition-colors flex items-center gap-1.5" title="Add Fact">
-                <i class="fa-solid fa-plus"></i> Add
+              <input id="memory-add-input" type="text" placeholder="Add a fact (e.g., 'My name is Dhairya')" class="flex-1 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-white/15 bg-white/5 text-sm sm:text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50">
+              <button id="memory-add-btn" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-purple-500/30 bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0" title="Add Fact">
+                <i class="fa-solid fa-plus"></i> <span>Add</span>
               </button>
             </div>
 
             <div id="memory-items-list" class="space-y-2"></div>
           </div>
 
-          <div class="px-5 py-3 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs">
-            <button id="memory-clear-btn" class="text-rose-400 hover:text-rose-300 hover:underline">Clear all memory</button>
-            <span class="text-gray-500 text-[11px]"><i class="fa-solid fa-sparkles text-purple-400 mr-1"></i>Auto-saved in chat</span>
+          <div class="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-[11px] sm:text-xs">
+            <button id="memory-clear-btn" class="text-rose-400 hover:text-rose-300 hover:underline cursor-pointer">Clear all memory</button>
+            <span class="text-gray-500 text-[10px] sm:text-[11px]"><i class="fa-solid fa-sparkles text-purple-400 mr-1"></i>Auto-saved</span>
           </div>
         </div>
       `;

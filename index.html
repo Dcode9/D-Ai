@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="D'Ai">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050505" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+    <meta name="format-detection" content="telephone=no">
     <title>D'Ai</title>
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico">
     <link href="/styles/tailwind.css" rel="stylesheet">
@@ -466,8 +473,14 @@
 
         .message-actions { display: flex; gap: 0.35rem; margin-top: 0.45rem; opacity: 0; transition: opacity 0.18s ease; }
         .msg-appear:hover .message-actions, .msg-appear:focus-within .message-actions { opacity: 1; }
-        .message-action { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--dai-border-soft); border-radius: 999px; color: #94a3b8; background: rgba(255,255,255,0.035); cursor: pointer; }
-        .message-action:hover { color: #f8fafc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); }
+        .message-action { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--dai-border-soft); border-radius: 999px; color: #94a3b8; background: rgba(255,255,255,0.035); cursor: pointer; transition: all 0.2s ease; }
+        .message-action:hover, .message-action:active { color: #f8fafc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); }
+
+        @media (hover: none), (pointer: coarse) {
+            .message-actions { opacity: 0.9 !important; }
+            .message-action { width: 34px; height: 34px; }
+            .code-action { width: 34px; height: 34px; }
+        }
 
         @media (min-width: 641px) {
             .history-backdrop { display: none !important; }
@@ -479,19 +492,49 @@
         }
 
         @media (max-width: 640px) {
-            body { height: 100dvh; overflow: hidden; }
-            html, body { width: 100%; min-height: 100dvh; overscroll-behavior: none; }
-            .history-panel { width: 280px; max-width: 85vw; height: 100dvh; padding: 0.75rem; transform: translateX(-105%); transition: transform 220ms ease; }
+            body { height: 100dvh; height: -webkit-fill-available; overflow: hidden; }
+            html, body { width: 100%; min-height: 100dvh; min-height: -webkit-fill-available; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+            header#main-header {
+                height: calc(3.5rem + env(safe-area-inset-top, 0px));
+                padding-top: env(safe-area-inset-top, 0px);
+            }
+            main {
+                padding-top: calc(3.5rem + env(safe-area-inset-top, 0px)) !important;
+                padding-left: 0 !important;
+            }
+            .history-panel {
+                width: 285px;
+                max-width: 86vw;
+                height: 100dvh;
+                height: -webkit-fill-available;
+                padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+                padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+                padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+                transform: translateX(-105%);
+                transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+                -webkit-overflow-scrolling: touch;
+            }
             .history-panel.open { transform: translateX(0); }
-            header, main, #composer-dock { padding-left: 0 !important; }
-            header { min-height: 3.5rem; }
-            #chat { padding: 0.75rem 0.75rem 12rem; gap: 1rem; width: 100% !important; max-width: 100% !important; }
-            .assistant-shell { border-radius: 22px; padding: 0.92rem; }
-            .user-bubble { max-width: 92%; border-radius: 20px 20px 5px 20px; font-size: 0.92rem; }
-            #composer-dock { padding: 0.75rem 0.72rem calc(0.75rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); }
+            #chat {
+                padding: 0.75rem 0.75rem calc(11.5rem + env(safe-area-inset-bottom, 0px));
+                gap: 0.85rem;
+                width: 100% !important;
+                max-width: 100% !important;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+            }
+            .assistant-shell { border-radius: 20px; padding: 0.85rem; font-size: 0.94rem; }
+            .user-bubble { max-width: 90%; border-radius: 18px 18px 4px 18px; font-size: 0.92rem; padding: 0.65rem 0.9rem; }
+            #composer-dock {
+                padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+                padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+                padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+                padding-top: 1.5rem;
+            }
             #composer-shell { border-radius: 24px; width: 100% !important; }
-            #in { font-size: 16px; max-height: 32dvh; }
-            #scroll-btn { right: 0.9rem; bottom: 8.7rem; }
+            #in { font-size: 16px !important; line-height: 1.4; max-height: 28dvh; }
+            #scroll-btn { right: 0.85rem; bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)); }
+            .hero-chip { padding: 0.75rem; border-radius: 14px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -767,13 +810,17 @@
                 </div>
             </div>
 
-            <div class="w-full flex items-end">
-                <button onclick="document.getElementById('file-input').click()" class="p-3.5 text-gray-500 hover:text-white transition-colors rounded-full text-lg" title="Attach file" aria-label="Attach file">＋</button>
+            <div class="w-full flex items-end gap-1.5 p-1">
+                <button type="button" onclick="document.getElementById('file-input').click()" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all rounded-full flex-shrink-0 cursor-pointer text-base" title="Attach file (Images, PDF, Docs)" aria-label="Attach file">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
                 <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.markdown,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleFile(this.files[0])">
 
-                <textarea id="in" rows="1" class="w-full bg-transparent text-white p-3.5 max-h-40 resize-none outline-none placeholder-gray-600 text-[15px]" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
+                <textarea id="in" rows="1" class="w-full bg-transparent text-white py-2.5 px-2 max-h-36 resize-none outline-none placeholder-gray-500 text-base leading-relaxed" placeholder="Ask D'Ai anything..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
 
-                <button id="btn" onclick="window.send()" class="p-3.5 text-gray-500 hover:text-brand disabled:opacity-50 transition-colors text-xl" title="Send" aria-label="Send">➜</button>
+                <button type="button" id="btn" onclick="window.send()" class="w-10 h-10 flex items-center justify-center rounded-full bg-sky-500 hover:bg-sky-400 active:scale-95 text-black font-bold disabled:opacity-40 disabled:hover:bg-sky-500 disabled:active:scale-100 transition-all flex-shrink-0 cursor-pointer shadow-md shadow-sky-500/20" title="Send message" aria-label="Send message">
+                    <i class="fa-solid fa-arrow-up text-sm"></i>
+                </button>
             </div>
         </div>
         <p class="max-w-3xl mx-auto mt-2 px-2 text-[11px] text-gray-500 text-center">D’Ai can make mistakes.</p>
@@ -1153,15 +1200,28 @@ ${safeJs}
             try { navigator.virtualKeyboard.overlaysContent = true; } catch (e) {}
         }
 
+        const inputEl = document.getElementById('in');
+
         const updateKeyboardInset = () => {
             const viewport = window.visualViewport;
-            const inputFocused = document.activeElement === document.getElementById('in');
-            const rawInset = viewport
-                ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
-                : 0;
-            const inset = inputFocused ? Math.min(rawInset, Math.round(window.innerHeight * 0.48)) : 0;
+            const inEl = document.getElementById('in');
+            const inputFocused = document.activeElement === inEl;
+            if (!viewport || !inputFocused) {
+                document.documentElement.style.setProperty('--keyboard-inset', '0px');
+                return;
+            }
+            const layoutHeight = window.innerHeight;
+            const visualHeight = viewport.height;
+            const offsetTop = viewport.offsetTop || 0;
+            const rawInset = layoutHeight - visualHeight - offsetTop;
+
+            const inset = (rawInset > 45) ? Math.min(rawInset, Math.round(layoutHeight * 0.55)) : 0;
             document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
-            if (inputFocused && inset > 0) requestAnimationFrame(() => window.scrollToBottom());
+            if (inset > 0) {
+                requestAnimationFrame(() => {
+                    if (window.scrollToBottom) window.scrollToBottom();
+                });
+            }
         };
 
         if (window.visualViewport) {
@@ -1170,9 +1230,16 @@ ${safeJs}
         }
         window.addEventListener('resize', updateKeyboardInset);
         window.addEventListener('orientationchange', () => setTimeout(updateKeyboardInset, 250));
+
+        inputEl.addEventListener('focus', () => {
+            setTimeout(updateKeyboardInset, 60);
+            setTimeout(updateKeyboardInset, 320);
+        });
+        inputEl.addEventListener('blur', () => {
+            document.documentElement.style.setProperty('--keyboard-inset', '0px');
+        });
         updateKeyboardInset();
 
-        const inputEl = document.getElementById('in');
         const isMobileTypingSurface = () => window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth <= 720;
         inputEl.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter' || event.shiftKey) return;
