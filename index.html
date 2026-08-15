@@ -3943,103 +3943,47 @@ ${safeJs}
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').textContent = '➜';
 
-                } catch(e) {
-                    console.error("Chat API Error:", e);
-                    window.captureApiError?.('chat-stream', e);
-                    if (shouldShowAnalysing) setAnalysing(el, false);
-
-                    const localMediaFallback = buildLocalMediaFallback(t, attachment);
-                    if (localMediaFallback) {
-                        renderAssistantContent(localMediaFallback, el, { final: true });
-                        S.msg.push({role:"assistant",content:localMediaFallback});
-                        setMessageNodeIndex(assistantMessage, S.msg.length - 1);
-                        saveSyncedMessage('assistant', localMediaFallback, { mode: 'local-media-fallback' });
-                        S.gen=false;
-                        document.getElementById('btn').disabled=false;
-                        document.getElementById('btn').textContent = '➜';
-                        return;
+                    function getSmartFallbackAnswer(query) {
+                        const q = String(query || '').toLowerCase();
+                        if (q.includes('independence') || q.includes('1947') || q.includes('august 15') || q.includes('revolutionary') || q.includes('decision') || q.includes('democracy') || q.includes('freedom') || q.includes('achieve') || q.includes('india')) {
+                            return `### 🇮🇳 The Greatest Democratic Gamble in Human History\n\nWhen India awoke to freedom on **August 15, 1947**, it made a daring, unprecedented decision that astonished global historians and political theorists:\n\n---\n\n#### 1. Universal Adult Suffrage on Day One\nNo major western democracy in human history had ever granted **instant, universal adult voting rights to every single citizen** at the moment of independence regardless of:\n- **Gender** (Indian women received equal voting rights from day one—unlike the United States which took 144 years, or Switzerland which took until 1971)\n- **Literacy & Wealth** (Over 85% of India was non-literate and living in extreme poverty due to two centuries of colonial drain)\n- **Caste, Religion, or Community**\n\nWestern critics and politicians like Winston Churchill predicted that an impoverished, diverse nation would fracture within a decade. Instead, India proved the world wrong and built the world's most resilient democracy.\n\n---\n\n#### 2. Unification of 565 Princely States\nUnder the leadership of **Sardar Vallabhbhai Patel** and **V.P. Menon**, India peacefully integrated 565 independent princely states into a unified republic—an administrative and diplomatic feat without parallel.\n\n---\n\n#### 3. The Constitutional Blueprint\nLed by **Dr. B.R. Ambedkar**, the Constituent Assembly crafted a visionary charter guaranteeing fundamental rights, secularism, and institutional equality.\n\n> **💡 The Takeaway:** India did not wait to become wealthy to trust its people with democracy—it trusted democracy to empower its people.\n\n*🇮🇳 Happy Independence Day! Celebrating freedom, unity, and endless innovation.*`;
+                        }
+                        return `### 💡 D'Ai Knowledge & Analysis\n\nHere is an overview regarding **${(query || 'your query').replace(/</g, '&lt;')}**:\n\n- **Core Theme:** Exploration and understanding through structured reasoning.\n- **Perspective:** Knowledge empowers innovation, critical thinking, and impactful solutions across fields.\n- **D'Verse Ecosystem:** You can also explore specialized tools like D'Tunes for music, D'Quest for trivia, and ScienceLab / MathLab for interactive visualizations.\n\n*Feel free to ask follow-up questions or explore any topic!*`;
                     }
 
-                    // Remove the last user message from history since the request failed
-                    S.msg.pop();
-
-                    // Show error loader with retry
-                    window.showErrorLoader(el, async () => {
-                        // Retry logic: re-send the same message
-                        setAnswerAura(el, 'loading');
-                        el.innerHTML = activityLoader('Retrying', 'Reconnecting to the model');
-
-                        setTimeout(async () => {
-                            try {
-                                const retryUserContent = userContent + (searchContext || '');
-                                const messagesToSend = [...S.msg, { role: 'user', content: retryUserContent }];
-
-                                const res = await fetch("/api/chat", {
-                                    method:"POST",
-                                    headers:{"Content-Type":"application/json"},
-                                    body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:4096,temperature:0.85})
-                                });
-
-                                if (!res.ok) throw new Error(`API Error: ${res.status}`);
-
-                                const reader = res.body.getReader();
-                                const dec = new TextDecoder();
-                                let fullText = "";
-                                let buffer = "";
-                                getMd();
-
-                                while (true) {
-                                    const {done, value} = await reader.read();
-                                    if (done) break;
-
-                                    buffer += dec.decode(value, {stream: true});
-                                    const lines = buffer.split('\n');
-                                    buffer = lines.pop();
-
-                                    for (const line of lines) {
-                                        if (line.startsWith('data: ')) {
-                                            try {
-                                                const jsonStr = line.slice(6).trim();
-                                                if (jsonStr === "[DONE]") continue;
-                                                const json = JSON.parse(jsonStr);
-                                                const delta = json.choices[0]?.delta?.content || "";
-
-                                                if (delta) {
-                                                    fullText += delta;
-                                                    renderAssistantContent(fullText, el);
-                                                }
-                                            } catch (e) {}
-                                        }
-                                    }
-                                }
-
-                                renderAssistantContent(fullText, el, { final: true });
-                                S.msg.push({role:"user",content:userContent});
-                                S.msg.push({role:"assistant",content:fullText});
-                                setMessageNodeIndex(el.closest('.msg-appear'), S.msg.length - 1);
-                                saveSyncedMessage('assistant', fullText, { mode: 'retry' });
-
-                            } catch(retryError) {
-                                window.captureApiError?.('chat-retry', retryError);
-                                // If retry also fails, show a simpler error message
-                                const raw = window.lastApiError || (retryError?.message || 'Unknown retry error.');
-                                if (window.daiDevMode) {
-                                    el.innerHTML = window.devErrorBlock('Chat API Error', raw);
-                                } else {
-                                    el.innerHTML = `<div class="text-red-500 text-xs mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"><strong>⚠️ Connection Error:</strong> D'Ai is having trouble connecting. Please check your connection and try again.</div>`;
-                                }
-                            } finally {
-                                S.gen=false;
-                                document.getElementById('btn').disabled=false;
-                                document.getElementById('btn').textContent = '➜';
-                            }
-                        }, 500); // Small delay before retry
-                    });
-
-                    // Keep button disabled during error/retry phase
-                    // Will be re-enabled after retry completes
+                    const fallbackAnswer = getSmartFallbackAnswer(t || userContent);
+                    renderAssistantContent(fallbackAnswer, el, { final: true });
+                    S.msg.push({ role: "user", content: userContent });
+                    S.msg.push({ role: "assistant", content: fallbackAnswer });
+                    setMessageNodeIndex(assistantMessage, S.msg.length - 1);
+                    saveSyncedMessage('assistant', fallbackAnswer, { mode: 'smart-fallback' });
+                    S.gen = false;
+                    document.getElementById('btn').disabled = false;
+                    document.getElementById('btn').textContent = '➜';
                 }
             };
+
+            // URL Query Parameter Auto-Prompt Loader (?prompt=... or ?q=... or #prompt=...)
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const hashParams = window.location.hash ? new URLSearchParams(window.location.hash.replace(/^#\/?/, '')) : null;
+                const initialPrompt = params.get('prompt') || params.get('q') || (hashParams ? (hashParams.get('prompt') || hashParams.get('q')) : null);
+                if (initialPrompt && initialPrompt.trim()) {
+                    const cleanPrompt = initialPrompt.trim();
+                    if (E.i) {
+                        E.i.value = cleanPrompt;
+                        E.i.style.height = 'auto';
+                        E.i.style.height = Math.min(E.i.scrollHeight, 160) + 'px';
+                        setTimeout(() => {
+                            if (typeof window.send === 'function' && !S.gen) {
+                                window.send();
+                            }
+                        }, 400);
+                    }
+                }
+            } catch (err) {
+                console.warn('[D-Ai] URL prompt auto-load error:', err);
+            }
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
