@@ -3942,6 +3942,9 @@ ${safeJs}
                     S.gen=false;
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').textContent = '➜';
+                } catch (err) {
+                    console.error('[D-Ai Stream Error]', err);
+                    if (shouldShowAnalysing) setAnalysing(el, false);
 
                     function getSmartFallbackAnswer(query) {
                         const q = String(query || '').toLowerCase();
@@ -3953,7 +3956,6 @@ ${safeJs}
 
                     const fallbackAnswer = getSmartFallbackAnswer(t || userContent);
                     renderAssistantContent(fallbackAnswer, el, { final: true });
-                    S.msg.push({ role: "user", content: userContent });
                     S.msg.push({ role: "assistant", content: fallbackAnswer });
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                     saveSyncedMessage('assistant', fallbackAnswer, { mode: 'smart-fallback' });
@@ -3963,31 +3965,44 @@ ${safeJs}
                 }
             };
 
-            // URL Query Parameter Auto-Prompt Loader (?prompt=... or ?q=... or #prompt=...)
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const hashParams = window.location.hash ? new URLSearchParams(window.location.hash.replace(/^#\/?/, '')) : null;
-                const initialPrompt = params.get('prompt') || params.get('q') || (hashParams ? (hashParams.get('prompt') || hashParams.get('q')) : null);
-                if (initialPrompt && initialPrompt.trim()) {
-                    let cleanPrompt = initialPrompt.trim();
-                    const lower = cleanPrompt.toLowerCase();
-                    if (lower === '1947' || lower === 'independence' || lower === 'ind' || lower === 'august15' || lower === 'independence-day') {
-                        cleanPrompt = 'What is the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, and why did it change world history?';
+            // URL Query Parameter Auto-Prompt Loader (?prompt=... or ?q=... or #prompt=... or ?1947)
+            (function initAutoPrompt() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const hashStr = window.location.hash ? window.location.hash.replace(/^#\/?/, '') : '';
+                    const hashParams = hashStr ? new URLSearchParams(hashStr) : null;
+                    let initialPrompt = params.get('prompt') || params.get('q') || (hashParams ? (hashParams.get('prompt') || hashParams.get('q')) : null);
+                    
+                    if (!initialPrompt && window.location.search) {
+                        const raw = window.location.search.replace(/^\?/, '').trim();
+                        if (raw && !raw.includes('=')) initialPrompt = decodeURIComponent(raw);
                     }
-                    if (E.i) {
-                        E.i.value = cleanPrompt;
-                        E.i.style.height = 'auto';
-                        E.i.style.height = Math.min(E.i.scrollHeight, 160) + 'px';
-                        setTimeout(() => {
-                            if (typeof window.send === 'function' && !S.gen) {
+
+                    if (initialPrompt && initialPrompt.trim()) {
+                        let cleanPrompt = decodeURIComponent(initialPrompt.trim());
+                        const lower = cleanPrompt.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        if (lower === '1947' || lower === 'independence' || lower === 'ind' || lower === 'august15' || lower === 'independenceday') {
+                            cleanPrompt = 'What is the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, and why did it change world history?';
+                        }
+                        
+                        let attempts = 0;
+                        const pollAndSend = setInterval(() => {
+                            attempts++;
+                            const inputEl = document.getElementById('i') || (typeof E !== 'undefined' && E.i);
+                            if (inputEl && typeof window.send === 'function' && !(typeof S !== 'undefined' && S.gen)) {
+                                clearInterval(pollAndSend);
+                                inputEl.value = cleanPrompt;
+                                inputEl.style.height = 'auto';
+                                inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
                                 window.send();
                             }
-                        }, 400);
+                            if (attempts > 25) clearInterval(pollAndSend);
+                        }, 200);
                     }
+                } catch (err) {
+                    console.warn('[D-Ai] URL prompt auto-load error:', err);
                 }
-            } catch (err) {
-                console.warn('[D-Ai] URL prompt auto-load error:', err);
-            }
+            })();
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
