@@ -3,6 +3,12 @@ const UPLOADED_IMAGE_TAG = '[UPLOADED_IMAGE:';
 const UPLOADED_IMAGE_ASPECT_TAG = '[UPLOADED_IMAGE_ASPECT_RATIO:';
 const DEFAULT_INCEPTION_MODEL = 'mercury-2';
 const DEFAULT_CEREBRAS_MODEL = 'gemma-4-31b';
+const getInceptionApiKey = () => (
+  process.env.INCEPTION_API_KEY ||
+  process.env.INCEPTION_API ||
+  process.env['INCEPTION _API'] ||
+  ''
+);
 
 function getTextContent(content) {
   if (typeof content === 'string') return content;
@@ -349,8 +355,9 @@ async function callCerebras(cerebrasBody) {
 }
 
 async function callInception(incomingBody, controls = {}) {
-  if (!process.env.INCEPTION_API_KEY) {
-    throw new Error('Missing INCEPTION_API_KEY env var');
+  const inceptionApiKey = getInceptionApiKey();
+  if (!inceptionApiKey) {
+    throw new Error('Missing INCEPTION_API_KEY (or INCEPTION_API / INCEPTION _API) env var');
   }
 
   const body = {
@@ -369,7 +376,7 @@ async function callInception(incomingBody, controls = {}) {
   const response = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': 'Bearer ' + process.env.INCEPTION_API_KEY,
+      'Authorization': 'Bearer ' + inceptionApiKey,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
@@ -421,7 +428,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: 'Online',
       env_check: {
-        inception: !!process.env.INCEPTION_API_KEY,
+        inception: !!getInceptionApiKey(),
         cerebras: !!process.env.CEREBRAS_API_KEY
       }
     });

@@ -105,6 +105,19 @@
             background-color: #f8fafc !important;
             color: #0f172a !important;
         }
+        body.light-theme .harness-chip { border-color: rgba(0,0,0,0.12); background: rgba(2,6,23,0.02); color: #64748b; }
+        body.light-theme .harness-chip:hover { color: #0f172a; border-color: rgba(2,132,199,0.34); background: rgba(2,132,199,0.1); }
+        body.light-theme .harness-chip.is-active { color: #0c4a6e; border-color: rgba(2,132,199,0.4); background: rgba(2,132,199,0.16); }
+        body.light-theme .harness-state { color: #64748b; }
+        body.light-theme .harness-state.is-active { color: #334155; }
+        body.light-theme .slash-panel { background: rgba(255,255,255,0.98); border-color: rgba(0,0,0,0.1); box-shadow: 0 8px 24px rgba(15,23,42,0.12); }
+        body.light-theme .slash-option { color: #1e293b; }
+        body.light-theme .slash-option:hover, body.light-theme .slash-option.is-active { background: rgba(2,132,199,0.12); color: #0f172a; }
+        body.light-theme .slash-help { color: #64748b; }
+        body.light-theme .assistant-citations { background: #f8fafc; border-color: rgba(2,6,23,0.08); }
+        body.light-theme .assistant-citations-title { color: #64748b; }
+        body.light-theme .assistant-citation-list li { color: #334155; }
+        body.light-theme .assistant-citation-link { color: #0369a1; border-bottom-color: rgba(3,105,161,0.35); }
         body.light-theme .chat-viewport,
         body.light-theme main,
         body.light-theme #chat {
@@ -447,6 +460,26 @@
         .status-label { font-size: 0.74rem; font-weight: 760; letter-spacing: 0.12em; text-transform: uppercase; }
         .status-detail { font-size: 0.78rem; color: rgba(209,213,219,0.78); letter-spacing: 0; }
         .thinking-fade { opacity: 0.34; filter: blur(0.4px); transition: opacity 0.3s ease, filter 0.3s ease; }
+        .harness-bar { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.35rem 0.35rem 0; }
+        .harness-chip-row { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+        .harness-chip { border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); color: #a8b0bb; border-radius: 999px; padding: 0.3rem 0.62rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.01em; display: inline-flex; align-items: center; gap: 0.34rem; cursor: pointer; transition: all 0.2s ease; }
+        .harness-chip:hover { color: #f4f6f8; border-color: rgba(125,211,252,0.42); background: rgba(56,189,248,0.09); }
+        .harness-chip.is-active { color: #e0f2fe; border-color: rgba(125,211,252,0.5); background: rgba(56,189,248,0.17); }
+        .harness-state { font-size: 0.66rem; color: #7d8896; text-align: right; line-height: 1.2; min-height: 1.15rem; }
+        .harness-state.is-active { color: #cbd5e1; }
+        .slash-suggestions { width: 100%; margin-top: 0.1rem; padding: 0 0.55rem 0.25rem; display: none; }
+        .slash-suggestions.open { display: block; }
+        .slash-panel { border: 1px solid rgba(255,255,255,0.12); background: rgba(8,12,18,0.94); border-radius: 14px; padding: 0.35rem; box-shadow: 0 10px 30px rgba(0,0,0,0.32); }
+        .slash-option { width: 100%; border: 0; background: transparent; color: #d7dce3; border-radius: 10px; padding: 0.48rem 0.56rem; text-align: left; display: flex; align-items: baseline; justify-content: space-between; gap: 0.7rem; cursor: pointer; transition: background 0.18s ease, color 0.18s ease; }
+        .slash-option:hover, .slash-option.is-active { background: rgba(56,189,248,0.16); color: #f8fafc; }
+        .slash-command { font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; }
+        .slash-help { font-size: 0.67rem; color: #94a3b8; }
+        .assistant-citations { margin-top: 0.75rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); border-radius: 14px; padding: 0.62rem 0.68rem; }
+        .assistant-citations-title { font-size: 0.67rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #a8b0bb; margin-bottom: 0.35rem; }
+        .assistant-citation-list { display: grid; gap: 0.4rem; margin: 0; padding: 0 0 0 1.1rem; }
+        .assistant-citation-list li { color: #d7dce3; font-size: 0.79rem; line-height: 1.45; }
+        .assistant-citation-link { color: #7dd3fc; text-decoration: none; border-bottom: 1px solid rgba(125,211,252,0.35); }
+        .assistant-citation-link:hover { color: #bae6fd; border-bottom-color: rgba(186,230,253,0.65); }
         @keyframes gradientSlide { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
         @keyframes hoverSpot { 0% { left: -44px; opacity: 0; } 16% { opacity: 0.95; } 78% { opacity: 0.95; } 100% { left: calc(100% + 8px); opacity: 0; } }
 
@@ -906,6 +939,14 @@
                     </div>
                 </div>
 
+                <div class="harness-bar">
+                    <div class="harness-chip-row">
+                        <button type="button" id="harness-thinking" class="harness-chip" aria-pressed="false" title="Toggle deeper thinking"><i class="fa-solid fa-brain"></i><span>Thinking</span></button>
+                        <button type="button" id="harness-search" class="harness-chip is-active" aria-pressed="true" title="Toggle web search"><i class="fa-solid fa-globe"></i><span>Web search</span></button>
+                    </div>
+                    <div id="harness-state" class="harness-state is-active">Ready</div>
+                </div>
+
                 <div class="w-full flex items-end gap-1.5 p-1">
                     <button type="button" onclick="document.getElementById('file-input').click()" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all rounded-full flex-shrink-0 cursor-pointer text-base" title="Attach file (Images, PDF, Docs)" aria-label="Attach file">
                         <i class="fa-solid fa-paperclip"></i>
@@ -918,6 +959,7 @@
                         <i class="fa-solid fa-arrow-up text-sm"></i>
                     </button>
                 </div>
+                <div id="slash-suggestions" class="slash-suggestions" aria-live="polite"></div>
             </div>
             <p class="max-w-3xl mx-auto mt-2 px-2 text-[11px] text-gray-500 text-center">D’Ai can make mistakes.</p>
         </div>
@@ -1467,16 +1509,38 @@ ${safeJs}
         });
         inputEl.addEventListener('blur', () => {
             document.documentElement.style.setProperty('--keyboard-inset', '0px');
+            setTimeout(() => closeSlashSuggestions(), 100);
         });
         inputEl.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 140) + 'px';
             updateKeyboardInset();
+            renderSlashSuggestions();
         });
         updateKeyboardInset();
 
         const isMobileTypingSurface = () => window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth <= 720;
         inputEl.addEventListener('keydown', (event) => {
+            const slashOpen = harnessControls.slashBox?.classList.contains('open');
+            const options = slashOpen ? harnessControls.slashBox.querySelectorAll('.slash-option') : [];
+            if (slashOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                event.preventDefault();
+                const total = options.length || 1;
+                const next = event.key === 'ArrowDown' ? 1 : -1;
+                harnessState.slashSelection = (harnessState.slashSelection + next + total) % total;
+                renderSlashSuggestions();
+                return;
+            }
+            if (slashOpen && (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey))) {
+                event.preventDefault();
+                const picked = options[harnessState.slashSelection];
+                picked?.click();
+                return;
+            }
+            if (slashOpen && event.key === 'Escape') {
+                closeSlashSuggestions();
+                return;
+            }
             if (event.key !== 'Enter' || event.shiftKey) return;
             if (isMobileTypingSurface()) return;
             event.preventDefault();
@@ -2860,15 +2924,139 @@ ${safeJs}
                     if (data.answer) {
                         formatted += `Direct Search Summary: ${data.answer}\n\n`;
                     }
-                    if (data.results && data.results.length) {
-                        formatted += data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n');
+                    const sources = Array.isArray(data.results) ? data.results.filter(item => item && item.url).slice(0, 6) : [];
+                    if (sources.length) {
+                        formatted += sources.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n');
                     }
-                    return formatted || null;
+                    return {
+                        query: data.query || query,
+                        summary: data.answer || '',
+                        sources,
+                        context: formatted || null
+                    };
                 } catch (e) { return null; }
             };
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             window.hasVisionContext = false;
+            const harnessState = {
+                thinkingEnabled: false,
+                webSearchEnabled: true,
+                slashSelection: 0,
+                lastSearchPacket: null
+            };
+            const harnessControls = {
+                thinkingBtn: document.getElementById('harness-thinking'),
+                searchBtn: document.getElementById('harness-search'),
+                stateLabel: document.getElementById('harness-state'),
+                slashBox: document.getElementById('slash-suggestions')
+            };
+
+            const slashActionCatalog = [
+                { command: '//thinking on', help: 'Enable deeper reasoning mode', apply: () => { harnessState.thinkingEnabled = true; } },
+                { command: '//thinking off', help: 'Disable deeper reasoning mode', apply: () => { harnessState.thinkingEnabled = false; } },
+                { command: '//web-search', help: 'Force web search for this prompt', apply: () => { harnessState.webSearchEnabled = true; } },
+                { command: '//search', help: 'Alias for web search', apply: () => { harnessState.webSearchEnabled = true; } },
+                { command: '//web-search off', help: 'Disable web search', apply: () => { harnessState.webSearchEnabled = false; } }
+            ];
+
+            const updateHarnessStateLabel = (text = '') => {
+                if (!harnessControls.stateLabel) return;
+                const chips = [];
+                chips.push(harnessState.thinkingEnabled ? 'Thinking on' : 'Thinking off');
+                chips.push(harnessState.webSearchEnabled ? 'Web search on' : 'Web search off');
+                harnessControls.stateLabel.textContent = text || chips.join(' • ');
+                harnessControls.stateLabel.classList.toggle('is-active', Boolean(text) || harnessState.thinkingEnabled || harnessState.webSearchEnabled);
+            };
+
+            const syncHarnessButtons = () => {
+                const { thinkingBtn, searchBtn } = harnessControls;
+                if (thinkingBtn) {
+                    thinkingBtn.classList.toggle('is-active', harnessState.thinkingEnabled);
+                    thinkingBtn.setAttribute('aria-pressed', harnessState.thinkingEnabled ? 'true' : 'false');
+                }
+                if (searchBtn) {
+                    searchBtn.classList.toggle('is-active', harnessState.webSearchEnabled);
+                    searchBtn.setAttribute('aria-pressed', harnessState.webSearchEnabled ? 'true' : 'false');
+                }
+                updateHarnessStateLabel();
+            };
+
+            const getCurrentLineContext = (textarea) => {
+                const value = textarea?.value || '';
+                const cursor = Number.isFinite(textarea?.selectionStart) ? textarea.selectionStart : value.length;
+                const lineStart = value.lastIndexOf('\n', Math.max(0, cursor - 1)) + 1;
+                const lineEndAt = value.indexOf('\n', cursor);
+                const lineEnd = lineEndAt === -1 ? value.length : lineEndAt;
+                const line = value.slice(lineStart, lineEnd);
+                return { line, lineStart, lineEnd, cursor };
+            };
+
+            const closeSlashSuggestions = () => {
+                if (!harnessControls.slashBox) return;
+                harnessControls.slashBox.classList.remove('open');
+                harnessControls.slashBox.innerHTML = '';
+            };
+
+            const applySlashSuggestion = (command, action) => {
+                const input = E.i;
+                if (!input) return;
+                const { lineStart, lineEnd } = getCurrentLineContext(input);
+                const before = input.value.slice(0, lineStart);
+                const after = input.value.slice(lineEnd);
+                const nextLine = /( on| off)$/.test(command) ? command : `${command} `;
+                input.value = `${before}${nextLine}${after}`;
+                const nextCursor = (before + nextLine).length;
+                input.selectionStart = input.selectionEnd = nextCursor;
+                input.focus();
+                action?.();
+                syncHarnessButtons();
+                closeSlashSuggestions();
+            };
+
+            const renderSlashSuggestions = () => {
+                const input = E.i;
+                if (!input || !harnessControls.slashBox) return;
+                const { line } = getCurrentLineContext(input);
+                const trimmed = line.trimStart();
+                if (!trimmed.startsWith('//')) {
+                    closeSlashSuggestions();
+                    return;
+                }
+                const query = trimmed.toLowerCase();
+                const matched = slashActionCatalog.filter(item => item.command.includes(query)).slice(0, 5);
+                if (!matched.length) {
+                    closeSlashSuggestions();
+                    return;
+                }
+                harnessState.slashSelection = Math.min(harnessState.slashSelection, matched.length - 1);
+                const html = matched.map((item, idx) => `
+                    <button type="button" class="slash-option ${idx === harnessState.slashSelection ? 'is-active' : ''}" data-slash-index="${idx}">
+                        <span class="slash-command">${escapeHtml(item.command)}</span>
+                        <span class="slash-help">${escapeHtml(item.help)}</span>
+                    </button>
+                `).join('');
+                harnessControls.slashBox.innerHTML = `<div class="slash-panel">${html}</div>`;
+                harnessControls.slashBox.classList.add('open');
+                harnessControls.slashBox.querySelectorAll('.slash-option').forEach((option) => {
+                    option.addEventListener('click', () => {
+                        const idx = Number(option.getAttribute('data-slash-index'));
+                        const picked = matched[idx];
+                        if (!picked) return;
+                        applySlashSuggestion(picked.command, picked.apply);
+                    });
+                });
+            };
+
+            harnessControls.thinkingBtn?.addEventListener('click', () => {
+                harnessState.thinkingEnabled = !harnessState.thinkingEnabled;
+                syncHarnessButtons();
+            });
+            harnessControls.searchBtn?.addEventListener('click', () => {
+                harnessState.webSearchEnabled = !harnessState.webSearchEnabled;
+                syncHarnessButtons();
+            });
+            syncHarnessButtons();
 
             const visualQueryRe = /\b(image|photo|picture|pic|screenshot|uploaded|attachment|visual|look|see|describe|what is this|what's this|in it|about it)\b/i;
 
@@ -2905,6 +3093,24 @@ ${safeJs}
                 return `<div class="message-actions" data-message-index="${safeIndex}"><button class="message-action" title="Copy message" data-message-action="copy"><i class="fa-regular fa-copy"></i></button>${editButton}${responseButton}</div>`;
             };
 
+            const renderSearchCitations = (messageNode, searchPacket) => {
+                const holder = messageNode?.querySelector?.('.assistant-citations');
+                if (!holder) return;
+                const sources = Array.isArray(searchPacket?.sources) ? searchPacket.sources.slice(0, 5) : [];
+                if (!sources.length) {
+                    holder.classList.add('hidden');
+                    holder.innerHTML = '';
+                    return;
+                }
+                const list = sources.map((source, idx) => {
+                    const title = escapeHtml(source.title || `Source ${idx + 1}`);
+                    const url = escapeHtml(source.url || '#');
+                    return `<li><a class="assistant-citation-link" href="${url}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
+                }).join('');
+                holder.innerHTML = `<div class="assistant-citations-title">Sources</div><ol class="assistant-citation-list">${list}</ol>`;
+                holder.classList.remove('hidden');
+            };
+
             const add = (r,t,index = '') => {
                 const d=document.createElement('div');
                 d.className=`flex w-full ${r==='user'?'justify-end':'justify-start'} msg-appear`;
@@ -2912,7 +3118,7 @@ ${safeJs}
                 if (index !== '') d.dataset.messageIndex = String(index);
                 d.innerHTML=r==='user'
                     ? `<div class="flex flex-col items-end max-w-full"><div class="user-bubble">${t}</div>${messageActions(r, index)}</div>`
-                    : `<div class="assistant-shell is-loading"><div class="markdown-body"></div>${messageActions(r, index)}</div>`;
+                    : `<div class="assistant-shell is-loading"><div class="markdown-body"></div><div class="assistant-citations hidden"></div>${messageActions(r, index)}</div>`;
                 E.c.appendChild(d);
 
                 if (r === 'user') {
@@ -3922,10 +4128,20 @@ ${safeJs}
             if (window.dverse) initDverseUi();
             else window.addEventListener('dverse:ready', initDverseUi, { once: true });
 
-            const shouldSearch = (text) => {
-                const lower = String(text || '').toLowerCase();
-                const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update', 'search', 'find', 'google', 'where is', 'how much', 'score', 'stock', 'winner', 'released', 'upcoming', 'matches'];
-                return keywords.some(k => lower.includes(k));
+            const applyHarnessToMessages = (messages, prompt, searchContext = '') => {
+                if (!Array.isArray(messages) || !messages.length) return messages;
+                const query = String(prompt || '').trim();
+                const directives = [`//thinking ${harnessState.thinkingEnabled ? 'on' : 'off'}`];
+                if (harnessState.webSearchEnabled && query) directives.push(`//web-search: ${query}`);
+                const lastIdx = messages.length - 1;
+                const last = messages[lastIdx];
+                if (!last || last.role !== 'user') return messages;
+                const base = typeof last.content === 'string' ? last.content : String(last.content || '');
+                const context = searchContext ? `\n\n[SYSTEM: Web Results]\n${searchContext}` : '';
+                const next = `${directives.join('\n')}\n${base}${context}`.trim();
+                const clone = [...messages];
+                clone[lastIdx] = { ...last, content: next };
+                return clone;
             };
 
             const generativeInterfaceRe = /\b(graph|chart|plot|visuali[sz]e|dashboard|interactive demo|mini demo|simulation|diagram|draw|geometry|vector|function|parabola|slope|derivative|integral|calculus|probability|pythagorean|pythagoras|hypotenuse)\b/i;
@@ -4031,6 +4247,7 @@ ${safeJs}
                 const t=E.i.value.trim();
                 const attachment = window.pendingAttachment;
                 if((!t && !attachment) ||S.gen || window.isUploading) return;
+                closeSlashSuggestions();
                 if (t === '/dev' && !attachment) {
                     const userIndex = S.msg.push({ role: 'user', content: t }) - 1;
                     add('user', '/dev', userIndex);
@@ -4048,6 +4265,7 @@ ${safeJs}
                     return;
                 }
                 const shouldShowAnalysing = !!attachment || (window.hasVisionContext && visualQueryRe.test(t));
+                updateHarnessStateLabel(harnessState.webSearchEnabled ? 'Preparing request' : 'Preparing response');
 
                 if(!getMd()){
                     const btn = document.getElementById('btn');
@@ -4169,11 +4387,14 @@ ${safeJs}
                 }
 
                 let searchContext = "";
-                if(shouldSearch(t)) {
+                let searchPacket = null;
+                if(harnessState.webSearchEnabled && t) {
                     setAnswerAura(el, 'loading');
                     el.innerHTML = activityLoader('Searching web', 'Finding current context');
-                    const results = await searchTavily(t);
-                    if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
+                    updateHarnessStateLabel('Searching web…');
+                    searchPacket = await searchTavily(t);
+                    if(searchPacket?.context) searchContext = searchPacket.context;
+                    harnessState.lastSearchPacket = searchPacket;
                     if (shouldShowAnalysing) {
                         setAnswerAura(el, 'loading');
                         el.innerHTML = activityLoader('Analysing', 'Preparing the final answer');
@@ -4193,13 +4414,8 @@ ${safeJs}
                         ? [{ role: 'system', content: memoryPrompt }, ...S.msg] 
                         : [...S.msg];
 
-                    if(searchContext) {
-                        const lastIdx = messagesToSend.length - 1;
-                        messagesToSend[lastIdx] = {
-                            role: messagesToSend[lastIdx].role,
-                            content: messagesToSend[lastIdx].content + searchContext
-                        };
-                    }
+                    messagesToSend = applyHarnessToMessages(messagesToSend, t, searchContext);
+                    updateHarnessStateLabel(harnessState.thinkingEnabled ? 'Thinking…' : 'Generating…');
 
                     const res = await fetch("/api/chat", {
                         method:"POST",
@@ -4244,12 +4460,14 @@ ${safeJs}
                     renderAssistantContent(fullText, el, { final: true });
                     S.msg.push({role:"assistant",content:fullText});
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
-                    saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat' });
+                    renderSearchCitations(assistantMessage, searchPacket);
+                    saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat', citations: searchPacket?.sources || [] });
                     if (window.processTextForFacts) window.processTextForFacts(t, fullText);
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen=false;
                     document.getElementById('btn').disabled=false;
                     document.getElementById('btn').textContent = '➜';
+                    updateHarnessStateLabel();
                 } catch (err) {
                     console.error('[D-Ai Stream Error]', err);
                     if (shouldShowAnalysing) setAnalysing(el, false);
@@ -4270,6 +4488,7 @@ ${safeJs}
                     S.gen = false;
                     document.getElementById('btn').disabled = false;
                     document.getElementById('btn').textContent = '➜';
+                    updateHarnessStateLabel('Request failed');
                 }
             };
 
