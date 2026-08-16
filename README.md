@@ -15,6 +15,10 @@ View your app in AI Studio: https://ai.studio/apps/a35be330-d7dd-4fb3-bded-8b365
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set required keys in `.env.local` (see `.env.example`), especially:
+   - `INCEPTION_API_KEY` (primary chat model: `mercury-2`)
+   - `CEREBRAS_API_KEY` (fallback + image-attached chat requests)
+   - `WEB_SEARCH_API` (optional `//web-search` action)
+   - `DEV_MODEL_CONTROL_SECRET` (optional dev-only `//` model controls)
 3. Run the app:
    `npm run dev`
