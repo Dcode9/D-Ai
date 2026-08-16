@@ -1,8 +1,6 @@
 // Standard Node.js Serverless Function (Bypasses Edge WAF rules)
-const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/gi;
-const UPLOADED_IMAGE_MARKER_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/i;
-const UPLOADED_IMAGE_ASPECT_RE = /\[UPLOADED_IMAGE_ASPECT_RATIO:\s*([^\]]+)\]/gi;
-const CONTROL_LINE_RE = /^\s*\/\/([a-z0-9_-]+)\s*:?\s*(.*)$/i;
+const UPLOADED_IMAGE_TAG = '[UPLOADED_IMAGE:';
+const UPLOADED_IMAGE_ASPECT_TAG = '[UPLOADED_IMAGE_ASPECT_RATIO:';
 const DEFAULT_INCEPTION_MODEL = 'mercury-2';
 const DEFAULT_CEREBRAS_MODEL = 'gemma-4-31b';
 
@@ -18,10 +16,54 @@ function getTextContent(content) {
   return '';
 }
 
+function extractTaggedValues(text, tag, limit = Infinity) {
+  const source = String(text || '');
+  const values = [];
+  let cursor = 0;
+
+  while (values.length < limit) {
+    const start = source.indexOf(tag, cursor);
+    if (start === -1) break;
+    const end = source.indexOf(']', start + tag.length);
+    if (end === -1) break;
+    values.push(source.slice(start + tag.length, end).trim());
+    cursor = end + 1;
+  }
+
+  return values;
+}
+
+function replaceTaggedSegments(text, tag, replacement) {
+  const source = String(text || '');
+  let cursor = 0;
+  let out = '';
+
+  while (cursor < source.length) {
+    const start = source.indexOf(tag, cursor);
+    if (start === -1) {
+      out += source.slice(cursor);
+      break;
+    }
+
+    const end = source.indexOf(']', start + tag.length);
+    if (end === -1) {
+      out += source.slice(cursor);
+      break;
+    }
+
+    out += source.slice(cursor, start) + replacement;
+    cursor = end + 1;
+  }
+
+  return out;
+}
+
 function stripUploadedImageMarkers(text) {
-  return String(text || '')
-    .replace(UPLOADED_IMAGE_RE, '[image attached]')
-    .replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]')
+  return replaceTaggedSegments(
+    replaceTaggedSegments(String(text || ''), UPLOADED_IMAGE_TAG, '[image attached]'),
+    UPLOADED_IMAGE_ASPECT_TAG,
+    '[image aspect ratio attached]'
+  )
     .trim();
 }
 
@@ -33,21 +75,17 @@ function contentToCerebrasParts(content) {
     parts.push({ type: 'text', text: cleanedText });
   }
 
-  const imageMatches = [];
-  let match;
-  UPLOADED_IMAGE_RE.lastIndex = 0;
-  while ((match = UPLOADED_IMAGE_RE.exec(text)) && imageMatches.length < 5) {
-    const url = match[1].trim();
+  const imageMatches = extractTaggedValues(text, UPLOADED_IMAGE_TAG, 5).filter(Boolean);
+  let validImageCount = 0;
+
+  for (const url of imageMatches) {
     if (/^data:image\/(png|jpe?g);base64,/i.test(url)) {
-      imageMatches.push(url);
+      parts.push({ type: 'image_url', image_url: { url } });
+      validImageCount += 1;
     }
   }
 
-  for (const url of imageMatches) {
-    parts.push({ type: 'image_url', image_url: { url } });
-  }
-
-  return imageMatches.length ? parts : cleanedText;
+  return validImageCount ? parts : cleanedText;
 }
 
 function normalizeMessageForCerebras(message) {
@@ -79,7 +117,7 @@ function normalizeChatModel(model) {
 function hasInlineImage(content) {
   if (typeof content === 'string') {
     return (
-      UPLOADED_IMAGE_MARKER_RE.test(content) ||
+      content.includes(UPLOADED_IMAGE_TAG) ||
       /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(content)
     );
   }
@@ -106,7 +144,7 @@ function sanitizeUserContent(content) {
   if (typeof content === 'string') {
     return content
       .split('\n')
-      .filter((line) => !CONTROL_LINE_RE.test(line))
+      .filter((line) => !parseControlLine(line))
       .join('\n')
       .trim();
   }
@@ -117,6 +155,36 @@ function sanitizeUserContent(content) {
     if (part?.type === 'text') return { ...part, text: sanitizeUserContent(part.text || '') };
     return part;
   });
+}
+
+function parseControlLine(line) {
+  const raw = String(line || '').trimStart();
+  if (!raw.startsWith('//')) return null;
+  const body = raw.slice(2).trim();
+  if (!body) return null;
+
+  const spaceAt = body.indexOf(' ');
+  const colonAt = body.indexOf(':');
+  const splitAt = (colonAt !== -1 && (spaceAt === -1 || colonAt < spaceAt)) ? colonAt : spaceAt;
+
+  if (splitAt === -1) {
+    return { key: body.toLowerCase(), value: '' };
+  }
+
+  return {
+    key: body.slice(0, splitAt).trim().toLowerCase(),
+    value: body.slice(splitAt + 1).trim()
+  };
+}
+
+function isEnabledWord(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return v === 'on' || v === 'true' || v === '1' || v === 'yes';
+}
+
+function isDisabledWord(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return v === 'off' || v === 'false' || v === '0' || v === 'no';
 }
 
 function parseControls(messages) {
@@ -136,11 +204,9 @@ function parseControls(messages) {
   const expectedSecret = process.env.DEV_MODEL_CONTROL_SECRET;
 
   for (const rawLine of text.split('\n')) {
-    const match = rawLine.match(CONTROL_LINE_RE);
-    if (!match) continue;
-
-    const key = String(match[1] || '').toLowerCase();
-    const value = String(match[2] || '').trim();
+    const parsed = parseControlLine(rawLine);
+    if (!parsed) continue;
+    const { key, value } = parsed;
     if (key === 'dev-secret' && expectedSecret && value && value === expectedSecret) {
       controls.hasDevSecret = true;
       continue;
@@ -160,13 +226,13 @@ function parseControls(messages) {
     }
 
     if (key === 'fallback') {
-      if (/^(off|false|0|no)$/i.test(value)) controls.fallbackEnabled = false;
-      if (/^(on|true|1|yes)$/i.test(value)) controls.fallbackEnabled = true;
+      if (isDisabledWord(value)) controls.fallbackEnabled = false;
+      if (isEnabledWord(value)) controls.fallbackEnabled = true;
     }
 
     if (key === 'thinking') {
-      if (/^(on|true|1|yes)$/i.test(value)) controls.thinkingEnabled = true;
-      if (/^(off|false|0|no)$/i.test(value)) controls.thinkingEnabled = false;
+      if (isEnabledWord(value)) controls.thinkingEnabled = true;
+      if (isDisabledWord(value)) controls.thinkingEnabled = false;
     }
   }
 
@@ -269,7 +335,7 @@ async function callCerebras(cerebrasBody) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `******
+      'Authorization': 'Bearer ' + process.env.CEREBRAS_API_KEY
     },
     body: JSON.stringify(cerebrasBody)
   });
@@ -303,7 +369,7 @@ async function callInception(incomingBody, controls = {}) {
   const response = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `******
+      'Authorization': 'Bearer ' + process.env.INCEPTION_API_KEY,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
