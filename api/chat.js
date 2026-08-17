@@ -143,13 +143,16 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Missing API keys. Configure INCEPTION_API or CEREBRAS_API_KEY in environment variables.' });
       }
 
-      // Sequence: Try Inception first if configured, then Cerebras
+      // Sequence: Order providers according to requested preference (or default)
+      const requestedProvider = req.body?.provider === 'inception' ? 'inception' : (req.body?.provider === 'cerebras' ? 'cerebras' : (inceptionKey ? 'inception' : 'cerebras'));
+
       const providersToTry = [];
-      if (inceptionKey) {
-        providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
-      }
-      if (cerebrasKey) {
-        providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
+      if (requestedProvider === 'inception') {
+        if (inceptionKey) providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
+        if (cerebrasKey) providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
+      } else {
+        if (cerebrasKey) providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
+        if (inceptionKey) providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
       }
 
       let activeResponse = null;
