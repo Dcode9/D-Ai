@@ -744,8 +744,8 @@
         @keyframes auraFade { to { opacity: 0; transform: scale(1.04); } }
         @keyframes loadingBlob { 0%, 100% { transform: translate3d(-3%, 0, 0) scale(0.92, 1.04) rotate(0deg); } 50% { transform: translate3d(4%, -2%, 0) scale(1.08, 0.94) rotate(4deg); } }
         .assistant-shell { position: relative; width: 100%; min-width: 0; padding: clamp(1rem, 2.4vw, 1.35rem); border: 0; border-radius: 28px; background: transparent; box-shadow: none; overflow: visible; isolation: isolate; animation: auraBloom 0.5s cubic-bezier(.2,.8,.2,1) both; }
-        .assistant-shell::before { content: ''; position: absolute; inset: -34px -46px; border-radius: 34px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 34%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 31%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 32%); filter: blur(26px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; }
-        .assistant-shell.is-streaming::before { inset: -30px -42px; border-radius: 30px; animation: auroraDrift 5.5s ease-in-out infinite; }
+        .assistant-shell::before { content: ''; position: absolute; inset: -4px -6px; border-radius: 26px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 40%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 36%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 36%); filter: blur(16px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; }
+        .assistant-shell.is-streaming::before { inset: -4px -6px; border-radius: 26px; animation: auroraDrift 5.5s ease-in-out infinite; }
         .assistant-shell.is-settled::before { animation: auraFade 1.25s ease forwards; }
         .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 99999 !important; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; overflow: visible; }
 
@@ -996,15 +996,15 @@
                 transform: translate3d(calc(100vw - 36px), 0, 0) scale(0.95);
                 border-radius: 24px;
                 box-shadow: -15px 0 45px rgba(0, 0, 0, 0.75);
-                pointer-events: none;
+                cursor: pointer;
             }
 
             .history-backdrop {
-                position: absolute !important;
+                position: fixed !important;
                 inset: 0 !important;
-                z-index: 28 !important;
-                background: rgba(0, 0, 0, 0.35) !important;
-                backdrop-filter: blur(1.5px) !important;
+                z-index: 25 !important;
+                background: rgba(0, 0, 0, 0.4) !important;
+                backdrop-filter: blur(2px) !important;
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 260ms ease;
@@ -1013,6 +1013,7 @@
             body.sidebar-shifted .history-backdrop {
                 opacity: 1 !important;
                 pointer-events: auto !important;
+                cursor: pointer;
             }
 
             header#main-header {
@@ -1500,11 +1501,31 @@
             }
         };
 
-        // Initialize dev button visibility and provider state
-        document.addEventListener('DOMContentLoaded', () => {
+        window.updateDevUIState = () => {
+            const btn = document.getElementById('dev-inspector-btn');
+            const input = document.getElementById('in');
             if (window.devUnlocked) {
-                document.getElementById('dev-inspector-btn')?.classList.remove('hidden');
+                if (btn) {
+                    btn.classList.remove('hidden');
+                    btn.style.display = 'flex';
+                }
+                if (input && (!input.value || input.placeholder === 'Ask anything...')) {
+                    input.placeholder = "Message D'Ai (Type // for dev actions)...";
+                }
+            } else {
+                if (btn) {
+                    btn.classList.add('hidden');
+                    btn.style.display = 'none';
+                }
+                if (input && input.placeholder.includes('//')) {
+                    input.placeholder = 'Ask anything...';
+                }
             }
+        };
+
+        // Initialize dev button visibility, hints, and provider state
+        document.addEventListener('DOMContentLoaded', () => {
+            window.updateDevUIState();
             window.setDevProvider(window.activeDevProvider);
         });
 
@@ -1935,12 +1956,30 @@ ${safeJs}
         inputEl.addEventListener('blur', () => {
             document.documentElement.style.setProperty('--keyboard-inset', '0px');
         });
+        const syncComposerAndChat = () => {
+            const dock = document.getElementById('composer-dock');
+            const chat = document.getElementById('chat');
+            if (!dock || !chat) return;
+            const dockHeight = dock.offsetHeight || 120;
+            document.documentElement.style.setProperty('--composer-height', `${dockHeight}px`);
+            chat.style.paddingBottom = `${dockHeight + 20}px`;
+        };
+
         inputEl.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+            this.style.height = Math.min(this.scrollHeight, 180) + 'px';
+            syncComposerAndChat();
             updateKeyboardInset();
         });
         updateKeyboardInset();
+        syncComposerAndChat();
+
+        try {
+            const dock = document.getElementById('composer-dock');
+            if (dock && window.ResizeObserver) {
+                new ResizeObserver(syncComposerAndChat).observe(dock);
+            }
+        } catch (e) {}
 
         const isMobileTypingSurface = () => window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth <= 720;
         inputEl.addEventListener('keydown', (event) => {
@@ -4754,11 +4793,12 @@ ${safeJs}
                 if (t === '/dev' || t === '//dev') {
                     window.devUnlocked = true;
                     try { localStorage.setItem('dai_dev_unlocked', 'true'); } catch (e) {}
-                    document.getElementById('dev-inspector-btn')?.classList.remove('hidden');
+                    window.updateDevUIState?.();
                     window.toggleDevInspector(true);
                     window.showToast?.('⚡ Developer Mode Unlocked', 'fa-solid fa-terminal text-sky-400');
                     E.i.value = '';
                     E.i.style.height = 'auto';
+                    syncComposerAndChat?.();
                     return;
                 } else if (t === '//clear' || t === '/clear') {
                     E.i.value = '';
