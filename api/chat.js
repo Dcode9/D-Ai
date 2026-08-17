@@ -66,20 +66,8 @@ function normalizeMessageForProvider(message) {
   return message;
 }
 
-function normalizeChatModel(model) {
-  const value = typeof model === 'string' ? model.trim() : '';
-  if (!value || value === 'llama3.1-8b' || value === 'gpt-oss-120b') {
-    return process.env.INCEPTION_API ? 'mercury' : 'gemma-4-31b';
-  }
-  return value;
-}
-
-async function prepareRequestBody(incomingBody) {
-  let messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
-  
+function buildSystemPrompt(messages) {
   const systemMessages = messages.filter(m => m && m.role === 'system');
-  const otherMessages = messages.filter(m => m && m.role !== 'system');
-
   const baseSystemPrompt = `You are D'Ai, a scary-fast, helpful, unbiased AI assistant created by Dhairya Shah.
 Key Guidelines:
 1. Provide concise, clear, accurate, and direct answers in well-formatted Markdown.
@@ -96,17 +84,39 @@ Key Guidelines:
    - Image: <<GENERATE_IMAGE: prompt | 16:9 | 1024x1024>>
    - Video: <<GENERATE_VIDEO: prompt | 16:9 | 4>>
    - Music: <<GENERATE_MUSIC: prompt | 15>>
-   - Interactive UI: \`\`\`dai-ui chart\`\`\`
+   - Interactive UI: \`\`\`dai-ui chart\`\`\` or \`\`\`dai-ui demo\`\`\` or \`\`\`dai-ui pythagoras\`\`\`
 7. If the user explicitly shares personal facts, you may optionally append:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
 8. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
-  const fullSystemPrompt = `${baseSystemPrompt}\n\n${extraSystem}`.trim();
+  return `${baseSystemPrompt}\n\n${extraSystem}`.trim();
+}
 
-  const model = normalizeChatModel(incomingBody.model);
+async function callProviderAPI({ provider, apiKey, incomingBody }) {
+  const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
+  const otherMessages = messages.filter(m => m && m.role !== 'system');
+  const fullSystemPrompt = buildSystemPrompt(messages);
+
+  let endpoint = '';
+  let modelName = '';
+
+  if (provider === 'inception') {
+    endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
+    modelName = incomingBody.model && incomingBody.model.includes('mercury') ? incomingBody.model : 'mercury';
+  } else {
+    endpoint = 'https://api.cerebras.ai/v1/chat/completions';
+    // Cerebras models: llama-3.3-70b, llama3.1-8b
+    const requested = typeof incomingBody.model === 'string' ? incomingBody.model.trim() : '';
+    if (requested && (requested.includes('llama') || requested.includes('cerebras'))) {
+      modelName = requested;
+    } else {
+      modelName = 'llama-3.3-70b';
+    }
+  }
+
   const payload = {
-    model,
+    model: modelName,
     messages: [
       { role: 'system', content: fullSystemPrompt },
       ...otherMessages.map(normalizeMessageForProvider)
@@ -116,88 +126,108 @@ Key Guidelines:
     temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
   };
 
-  // Only pass reasoning_effort if provider is Inception
-  if (incomingBody.reasoning_effort && process.env.INCEPTION_API) {
-    payload.reasoning_effort = incomingBody.reasoning_effort;
-  }
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
 
-  return payload;
+  return { response, provider, model: modelName };
 }
 
 export default async function handler(req, res) {
-  // 1. Set Robust CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // 2. Handle Preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // 3. Health Check
-  const apiKey = process.env.INCEPTION_API || process.env.CEREBRAS_API_KEY;
+  const inceptionKey = process.env.INCEPTION_API;
+  const cerebrasKey = process.env.CEREBRAS_API_KEY;
+
   if (req.method === 'GET') {
     return res.status(200).json({ 
       status: 'Online', 
-      env_check: !!apiKey,
-      provider: process.env.INCEPTION_API ? 'Inception (Mercury)' : 'Cerebras'
+      has_inception: !!inceptionKey,
+      has_cerebras: !!cerebrasKey,
+      primary_provider: inceptionKey ? 'Inception (Mercury)' : (cerebrasKey ? 'Cerebras (Llama 3.3 70B)' : 'None')
     });
   }
 
-  // 4. Main Logic
   if (req.method === 'POST') {
     try {
-      if (!apiKey) {
-        return res.status(500).json({ error: 'Missing INCEPTION_API or CEREBRAS_API_KEY env var' });
+      if (!inceptionKey && !cerebrasKey) {
+        return res.status(500).json({ error: 'Missing API keys. Configure INCEPTION_API or CEREBRAS_API_KEY.' });
       }
 
-      const requestBody = await prepareRequestBody(req.body || {});
-      
-      // Determine provider endpoint: Inception API for Mercury model or Cerebras API
-      const endpoint = process.env.INCEPTION_API
-        ? (process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions')
-        : 'https://api.cerebras.ai/v1/chat/completions';
-
-      // Call Model API
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[API Provider Error]', response.status, errorText);
-        return res.status(response.status).json({ error: errorText });
+      // Build provider sequence (Primary + Automatic Fallback)
+      const providersToTry = [];
+      if (inceptionKey) {
+        providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
+      }
+      if (cerebrasKey) {
+        providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
       }
 
-      // Stream the response back
+      let activeResponse = null;
+      let lastError = null;
+
+      for (const p of providersToTry) {
+        try {
+          console.log(`[API Call] Trying provider: ${p.provider}...`);
+          const result = await callProviderAPI({
+            provider: p.provider,
+            apiKey: p.apiKey,
+            incomingBody: req.body || {}
+          });
+
+          if (result.response.ok) {
+            activeResponse = result.response;
+            console.log(`[API Call] Provider ${p.provider} responded successfully (200 OK) using ${result.model}`);
+            break;
+          } else {
+            const errBody = await result.response.text();
+            lastError = `Provider ${p.provider} (${result.response.status}): ${errBody}`;
+            console.warn(`[API Call] ${p.provider} failed: ${lastError}. Attempting fallback...`);
+          }
+        } catch (callErr) {
+          lastError = `Provider ${p.provider} exception: ${callErr.message}`;
+          console.warn(`[API Call] Exception with ${p.provider}:`, callErr);
+        }
+      }
+
+      if (!activeResponse) {
+        console.error('[API All Providers Failed]:', lastError);
+        return res.status(502).json({ error: lastError || 'All AI model providers failed to respond.' });
+      }
+
+      // Stream response to client
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
       });
 
-      const reader = response.body.getReader();
-      
+      const reader = activeResponse.body.getReader();
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          res.write(value); // Write chunks directly
+          res.write(value);
         }
       } catch (streamError) {
-        console.error('Stream Error:', streamError);
+        console.error('Stream Transfer Error:', streamError);
       } finally {
         res.end();
       }
 
     } catch (e) {
-      console.error('[Handler Error]', e);
+      console.error('[Handler Critical Error]', e);
       return res.status(500).json({ error: e.message });
     }
   } else {
