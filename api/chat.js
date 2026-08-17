@@ -69,11 +69,10 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
 
   if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
-    candidateModels = ['mercury', 'mercury-coder'];
+    candidateModels = ['mercury-2', 'mercury-2-coder', 'mercury'];
   } else {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
-    // Cerebras models: llama3.1-8b is standard on all Cerebras accounts, with llama-3.3-70b and llama3.1-70b
-    candidateModels = ['llama3.1-8b', 'llama-3.3-70b', 'llama3.1-70b'];
+    candidateModels = ['gemma-4-31b', 'gemma-2-9b-it', 'gemma-2-27b-it', 'gemma-3-27b-it', 'llama3.1-8b'];
   }
 
   let lastRes = null;
@@ -134,7 +133,7 @@ export default async function handler(req, res) {
       status: 'Online', 
       has_inception: !!inceptionKey,
       has_cerebras: !!cerebrasKey,
-      primary_provider: inceptionKey ? 'Inception (Mercury)' : (cerebrasKey ? 'Cerebras (Llama 3.1 8B)' : 'None')
+      primary_provider: inceptionKey ? 'Inception (Mercury-2)' : (cerebrasKey ? 'Cerebras (Gemma)' : 'None')
     });
   }
 
