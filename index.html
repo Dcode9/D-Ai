@@ -1768,6 +1768,12 @@ ${safeJs}
         const isMobileTypingSurface = () => window.matchMedia('(hover: none), (pointer: coarse)').matches || window.innerWidth <= 720;
         inputEl.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter' || event.shiftKey) return;
+            const suggestions = document.getElementById('action-suggestions');
+            if (suggestions && !suggestions.classList.contains('hidden')) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
             if (isMobileTypingSurface()) return;
             event.preventDefault();
             window.send();
@@ -3346,12 +3352,12 @@ ${safeJs}
 
                 input.addEventListener('input', () => {
                     const val = input.value;
-                    if (val.startsWith('//') || val.startsWith('/')) {
-                        const searchKey = val.toLowerCase();
+                    if (val.startsWith('//')) {
+                        const searchKey = val.slice(2).toLowerCase();
                         const matches = ACTION_COMMANDS.filter(a => 
-                            a.cmd.toLowerCase().startsWith(searchKey) || 
-                            a.cmd.slice(1).startsWith(searchKey) || 
-                            a.label.toLowerCase().includes(searchKey.replace(/^\/+/, ''))
+                            a.cmd.toLowerCase().startsWith('//' + searchKey) || 
+                            a.label.toLowerCase().includes(searchKey) || 
+                            a.desc.toLowerCase().includes(searchKey)
                         );
                         renderSuggestions(matches);
                     } else {
@@ -3364,20 +3370,25 @@ ${safeJs}
 
                     if (e.key === 'ArrowDown') {
                         e.preventDefault();
+                        e.stopPropagation();
                         activeSuggestionIndex = (activeSuggestionIndex + 1) % currentFilteredActions.length;
                         renderSuggestions(currentFilteredActions);
                     } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
+                        e.stopPropagation();
                         activeSuggestionIndex = (activeSuggestionIndex - 1 + currentFilteredActions.length) % currentFilteredActions.length;
                         renderSuggestions(currentFilteredActions);
                     } else if (e.key === 'Enter' || e.key === 'Tab') {
                         e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
                         selectAction(activeSuggestionIndex);
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
+                        e.stopPropagation();
                         menu.classList.add('hidden');
                     }
-                });
+                }, true);
 
                 document.addEventListener('click', (e) => {
                     if (!menu.contains(e.target) && e.target !== input) {
@@ -4744,11 +4755,11 @@ ${safeJs}
                 let currentSources = [];
                 if (forceSearch || shouldSearch(t)) {
                     setAnswerAura(el, 'loading');
-                    el.innerHTML = activityLoader('Searching web', 'Finding live citations');
+                    el.innerHTML = activityLoader('Searching web', `Searching for: "${t.slice(0, 45)}"...`);
                     const searchRes = await searchTavily(t);
                     if (searchRes && searchRes.formatted) {
                         searchContext = `\n\n[SYSTEM: Web Results with Sources]\n${searchRes.formatted}`;
-                        currentSources = searchRes.results || [];
+                        currentSources.push(...(searchRes.results || []));
                     }
                     if (shouldShowAnalysing) {
                         setAnswerAura(el, 'loading');
@@ -4769,13 +4780,6 @@ ${safeJs}
                         ? [{ role: 'system', content: memoryPrompt }, ...S.msg] 
                         : [...S.msg];
 
-                    if (forceThink) {
-                        messagesToSend.push({
-                            role: 'system',
-                            content: 'Think through this carefully and express your detailed step-by-step reasoning within <thought>...</thought> tags before providing the final answer.'
-                        });
-                    }
-
                     if (searchContext) {
                         const lastIdx = messagesToSend.length - 1;
                         messagesToSend[lastIdx] = {
@@ -4784,51 +4788,118 @@ ${safeJs}
                         };
                     }
 
-                    const res = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ model: "gemma-4-31b", messages: messagesToSend, stream: true, max_completion_tokens: 8192, temperature: 0.85 })
-                    });
-
-                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
-
-                    const reader = res.body.getReader();
-                    const dec = new TextDecoder();
+                    let iteration = 0;
+                    let streamFinished = false;
                     let fullText = "";
-                    let buffer = "";
-                    getMd();
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                    while (iteration < 3 && !streamFinished) {
+                        iteration++;
 
-                        buffer += dec.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop();
+                        if (forceThink) {
+                            setAnswerAura(el, 'loading');
+                            el.innerHTML = activityLoader('Thinking', 'Reasoning step-by-step...');
+                        } else if (iteration > 1) {
+                            setAnswerAura(el, 'loading');
+                            el.innerHTML = activityLoader('Analysing', 'Synthesizing verified findings...');
+                        }
 
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const jsonStr = line.slice(6).trim();
-                                    if (jsonStr === "[DONE]") continue;
-                                    const json = JSON.parse(jsonStr);
-                                    const delta = json.choices[0]?.delta?.content || "";
+                        const requestPayload = {
+                            model: "gemma-4-31b",
+                            messages: messagesToSend,
+                            stream: true,
+                            max_completion_tokens: 8192,
+                            temperature: 0.75
+                        };
 
-                                    if (delta) {
-                                        if (shouldShowAnalysing) setAnalysing(el, false);
-                                        fullText += delta;
-                                        renderAssistantContent(fullText, el, { final: false, sources: currentSources });
-                                    }
-                                } catch (e) {}
+                        if (forceThink) {
+                            requestPayload.thinking = true;
+                            requestPayload.reasoning_effort = "medium";
+                        }
+
+                        const res = await fetch("/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(requestPayload)
+                        });
+
+                        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+
+                        const reader = res.body.getReader();
+                        const dec = new TextDecoder();
+                        fullText = "";
+                        let buffer = "";
+                        let isFirstChunk = true;
+                        getMd();
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += dec.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop();
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const jsonStr = line.slice(6).trim();
+                                        if (jsonStr === "[DONE]") continue;
+                                        const json = JSON.parse(jsonStr);
+                                        const delta = json.choices[0]?.delta?.content || "";
+
+                                        if (delta) {
+                                            fullText += delta;
+                                            if (isFirstChunk) {
+                                                isFirstChunk = false;
+                                                if (shouldShowAnalysing) setAnalysing(el, false);
+                                            }
+                                            if (!fullText.includes('<<SEARCH:')) {
+                                                renderAssistantContent(fullText, el, { final: false, sources: currentSources });
+                                            }
+                                        }
+                                    } catch (e) {}
+                                }
                             }
                         }
+
+                        // Multi-step Search Directive Detection: <<SEARCH: query>>
+                        const searchMatch = fullText.match(/<<SEARCH:\s*([^>]+)>>/i);
+                        if (searchMatch && iteration < 3) {
+                            const nextSearchQuery = searchMatch[1].trim();
+                            setAnswerAura(el, 'loading');
+                            el.innerHTML = activityLoader('Searching web', `Looking up "${nextSearchQuery.slice(0, 45)}"...`);
+
+                            const searchRes = await searchTavily(nextSearchQuery);
+                            if (searchRes && searchRes.results && searchRes.results.length) {
+                                currentSources.push(...searchRes.results);
+                                const seenUrls = new Set();
+                                currentSources = currentSources.filter(s => {
+                                    if (!s.url || seenUrls.has(s.url)) return false;
+                                    seenUrls.add(s.url);
+                                    return true;
+                                });
+
+                                messagesToSend.push({
+                                    role: 'assistant',
+                                    content: fullText
+                                });
+                                messagesToSend.push({
+                                    role: 'user',
+                                    content: `[SYSTEM: Follow-up Web Search Results for "${nextSearchQuery}"]\n${searchRes.formatted}\nNow continue answering the user's question directly with comprehensive context and citations.`
+                                });
+                                continue;
+                            }
+                        }
+
+                        streamFinished = true;
                     }
 
-                    renderAssistantContent(fullText, el, { final: true, sources: currentSources });
-                    S.msg.push({ role: "assistant", content: fullText });
+                    const cleanFinalText = fullText.replace(/<<SEARCH:\s*[^>]+>>/gi, '').trim();
+                    renderAssistantContent(cleanFinalText, el, { final: true, sources: currentSources });
+                    S.msg.push({ role: "assistant", content: cleanFinalText });
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
-                    saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat' });
-                    if (window.processTextForFacts) window.processTextForFacts(t, fullText);
+                    saveSyncedMessage('assistant', cleanFinalText, { mode: currentSources.length ? 'search' : 'chat' });
+                    if (window.processTextForFacts) window.processTextForFacts(t, cleanFinalText);
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen = false;
                     document.getElementById('btn').disabled = false;

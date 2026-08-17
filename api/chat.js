@@ -83,7 +83,9 @@ async function prepareRequestBody(incomingBody) {
   const baseSystemPrompt = `You are D'Ai, a scary-fast, helpful, unbiased AI assistant created by Dhairya Shah.
 Key Guidelines:
 1. Provide concise, clear, accurate, and direct answers in well-formatted Markdown.
-2. When thinking or reasoning through complex problems, you may express your thought process within <thought>...</thought> tags before providing the final answer.
+2. Multi-step Web Search: When you need up-to-date facts, current real-world data, verification, or multi-faceted information across topics, you can search the web by emitting:
+   <<SEARCH: specific search query>>
+   You can search multiple times if needed (e.g. searching for background info, then searching for recent updates or specific sub-topics). Formulate concise, high-signal search queries. Once you have enough context, synthesize a comprehensive response citing sources with [1], [2], etc.
 3. Adapt naturally to the user's personal context or instructions without over-explaining.
 4. Accurate Historical Knowledge:
    - When asked about the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, the definitive answer is **Universal Adult Suffrage (Universal Adult Franchise)** on Day One.
@@ -94,14 +96,14 @@ Key Guidelines:
    - Video: <<GENERATE_VIDEO: prompt | 16:9 | 4>>
    - Music: <<GENERATE_MUSIC: prompt | 15>>
    - Interactive UI: \`\`\`dai-ui chart\`\`\`
-6. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append a directive on its own final line:
+6. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
 7. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
   const fullSystemPrompt = `${baseSystemPrompt}\n\n${extraSystem}`.trim();
 
-  return {
+  const payload = {
     ...incomingBody,
     model: normalizeChatModel(incomingBody.model),
     messages: [
@@ -109,6 +111,14 @@ Key Guidelines:
       ...otherMessages.map(normalizeMessageForProvider)
     ]
   };
+
+  // API-level thinking / reasoning parameters (for Cerebras and Inception / OpenAI-compatible APIs)
+  if (incomingBody.thinking) {
+    payload.reasoning_effort = incomingBody.reasoning_effort || 'medium';
+    payload.thinking = { type: 'enabled', budget_tokens: incomingBody.budget_tokens || 2048 };
+  }
+
+  return payload;
 }
 
 export default async function handler(req, res) {
