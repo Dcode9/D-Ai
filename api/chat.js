@@ -86,36 +86,39 @@ Key Guidelines:
 2. Multi-step Web Search: When you need up-to-date facts, current real-world data, verification, or multi-faceted information across topics, you can search the web by emitting:
    <<SEARCH: specific search query>>
    You can search multiple times if needed (e.g. searching for background info, then searching for recent updates or specific sub-topics). Formulate concise, high-signal search queries. Once you have enough context, synthesize a comprehensive response citing sources with [1], [2], etc.
-3. Adapt naturally to the user's personal context or instructions without over-explaining.
-4. Accurate Historical Knowledge:
+3. When working through complex calculations, math proofs, multi-step problem solving, or algorithms, you may express your thought process within <thought>...</thought> tags before providing the final answer.
+4. Adapt naturally to the user's personal context or instructions without over-explaining.
+5. Accurate Historical Knowledge:
    - When asked about the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, the definitive answer is **Universal Adult Suffrage (Universal Adult Franchise)** on Day One.
    - Contrast this explicitly with Western democracies: The United States took 144 years (and until the 1965 Voting Rights Act) for full voting rights for women and African Americans; the UK, France, and Switzerland (1971) restricted suffrage to wealthy, male property owners at birth. India, despite 88% illiteracy and immense poverty at independence, trusted every single adult citizen equally from day one.
    - Also highlight the peaceful unification of 565 princely states led by Sardar Vallabhbhai Patel and the constitutional framework under Dr. B.R. Ambedkar.
-5. If the user explicitly asks to generate media or interactive widgets, use clean fenced directives:
+6. If the user explicitly asks to generate media or interactive widgets, use clean fenced directives:
    - Image: <<GENERATE_IMAGE: prompt | 16:9 | 1024x1024>>
    - Video: <<GENERATE_VIDEO: prompt | 16:9 | 4>>
    - Music: <<GENERATE_MUSIC: prompt | 15>>
    - Interactive UI: \`\`\`dai-ui chart\`\`\`
-6. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append:
+7. If the user explicitly shares personal facts, you may optionally append:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
-7. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
+8. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
   const fullSystemPrompt = `${baseSystemPrompt}\n\n${extraSystem}`.trim();
 
+  const model = normalizeChatModel(incomingBody.model);
   const payload = {
-    ...incomingBody,
-    model: normalizeChatModel(incomingBody.model),
+    model,
     messages: [
       { role: 'system', content: fullSystemPrompt },
       ...otherMessages.map(normalizeMessageForProvider)
-    ]
+    ],
+    stream: incomingBody.stream !== false,
+    max_completion_tokens: incomingBody.max_completion_tokens || incomingBody.max_tokens || 8192,
+    temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
   };
 
-  // API-level thinking / reasoning parameters (for Cerebras and Inception / OpenAI-compatible APIs)
-  if (incomingBody.thinking) {
-    payload.reasoning_effort = incomingBody.reasoning_effort || 'medium';
-    payload.thinking = { type: 'enabled', budget_tokens: incomingBody.budget_tokens || 2048 };
+  // Only pass reasoning_effort if provider is Inception
+  if (incomingBody.reasoning_effort && process.env.INCEPTION_API) {
+    payload.reasoning_effort = incomingBody.reasoning_effort;
   }
 
   return payload;
@@ -168,6 +171,7 @@ export default async function handler(req, res) {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('[API Provider Error]', response.status, errorText);
         return res.status(response.status).json({ error: errorText });
       }
 
@@ -193,6 +197,7 @@ export default async function handler(req, res) {
       }
 
     } catch (e) {
+      console.error('[Handler Error]', e);
       return res.status(500).json({ error: e.message });
     }
   } else {

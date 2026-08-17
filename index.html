@@ -747,9 +747,31 @@
         .assistant-shell::before { content: ''; position: absolute; inset: -34px -46px; border-radius: 34px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 34%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 31%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 32%); filter: blur(26px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; }
         .assistant-shell.is-streaming::before { inset: -30px -42px; border-radius: 30px; animation: auroraDrift 5.5s ease-in-out infinite; }
         .assistant-shell.is-settled::before { animation: auraFade 1.25s ease forwards; }
-        .assistant-shell .markdown-body { animation: textUnveil 0.9s cubic-bezier(.2,.8,.2,1) both; }
-        .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 80; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; }
-        .user-bubble { position: relative; max-width: min(85%, 680px); border: 1px solid rgba(255,255,255,0.10); border-radius: 22px 22px 6px 22px; padding: 0.78rem 1rem; background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)); color: #f8fafc; line-height: 1.6; font-size: 0.94rem; box-shadow: 0 14px 40px rgba(0,0,0,0.20); overflow-wrap: anywhere; }
+        .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 99999 !important; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; overflow: visible; }
+
+        /* Developer Mode Inspector Drawer */
+        .dev-inspector-panel {
+            box-shadow: -15px 0 45px rgba(0, 0, 0, 0.7);
+        }
+        body.light-theme .dev-inspector-panel {
+            background: rgba(255, 255, 255, 0.98) !important;
+            border-left-color: rgba(0, 0, 0, 0.12) !important;
+            box-shadow: -15px 0 45px rgba(0, 0, 0, 0.15) !important;
+        }
+        body.light-theme .dev-inspector-panel h3 {
+            color: #0f172a !important;
+        }
+        body.light-theme .dev-inspector-panel .bg-white\/\[0\.02\] {
+            background-color: #f8fafc !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        body.light-theme .dev-inspector-panel span.text-white {
+            color: #0f172a !important;
+        }
+        body.light-theme .dev-inspector-panel pre {
+            background: #f1f5f9 !important;
+            color: #334155 !important;
+        }
         .user-bubble::before { content: ''; position: absolute; right: 10px; bottom: -10px; width: 46px; height: 24px; border-radius: 999px; background: radial-gradient(circle, rgba(125,211,252,0.32), transparent 65%); filter: blur(10px); opacity: 0.7; pointer-events: none; }
 
         /* Scroll Button */
@@ -1116,8 +1138,11 @@
                     </div>
                 </div>
 
-                <!-- Right: Quick Action Controls (New Chat, Settings, Theme) -->
+                <!-- Right: Quick Action Controls (Dev Inspector, New Chat, Settings, Theme) -->
                 <div class="flex items-center gap-1.5 z-30">
+                    <button onclick="window.toggleDevInspector()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-gray-300 hover:text-emerald-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="Dev Telemetry Inspector (/dev)" aria-label="Dev Inspector">
+                        <i class="fa-solid fa-terminal"></i>
+                    </button>
                     <button onclick="window.resetConversation()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-sky-500/20 hover:border-sky-500/40 text-gray-300 hover:text-sky-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="New Chat (Ctrl+K)" aria-label="New Chat">
                         <i class="fa-solid fa-plus"></i>
                     </button>
@@ -1323,9 +1348,82 @@
                     </div>
                     <i class="fa-solid fa-repeat text-xs text-gray-500 group-hover:text-amber-400"></i>
                 </button>
+
+                <button onclick="window.closeSettingsModal(); window.toggleDevInspector(true);" class="w-full flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 text-left transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-terminal"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-white group-hover:text-sky-300">Developer Inspector</div>
+                            <div class="text-[10px] text-gray-400">Latency, TPS, Tokens, Model Telemetry</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-500 group-hover:text-sky-400"></i>
+                </button>
             </div>
         </div>
     </div>
+
+    <!-- Developer Mode Inspector Sidebar -->
+    <aside id="dev-inspector-panel" class="dev-inspector-panel fixed top-0 right-0 bottom-0 w-80 max-w-[90vw] z-50 bg-[#0c0e14]/95 border-l border-white/15 backdrop-blur-xl shadow-2xl flex flex-col transition-transform duration-300 translate-x-full">
+        <div class="px-4 py-3.5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <h3 class="text-xs font-bold text-white tracking-wider uppercase">Dev Inspector</h3>
+            </div>
+            <button onclick="window.toggleDevInspector(false)" class="w-7 h-7 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer" title="Close Inspector">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+            <!-- Live Metrics Grid -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <div class="text-[10px] text-gray-400">Total Latency (TTFT)</div>
+                    <div id="dev-metric-latency" class="text-sm font-bold text-sky-400 font-mono mt-0.5">0ms (0ms)</div>
+                </div>
+                <div class="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <div class="text-[10px] text-gray-400">Throughput (TPS)</div>
+                    <div id="dev-metric-tps" class="text-sm font-bold text-emerald-400 font-mono mt-0.5">0.0 tps</div>
+                </div>
+                <div class="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <div class="text-[10px] text-gray-400">Output Tokens</div>
+                    <div id="dev-metric-tokens" class="text-sm font-bold text-purple-400 font-mono mt-0.5">0</div>
+                </div>
+                <div class="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <div class="text-[10px] text-gray-400">Search Steps</div>
+                    <div id="dev-metric-searches" class="text-sm font-bold text-amber-400 font-mono mt-0.5">0</div>
+                </div>
+            </div>
+
+            <!-- Model & API Specs -->
+            <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-400">Active Model</span>
+                    <span id="dev-metric-model" class="font-mono text-white font-semibold">gemma-4-31b</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-400">API Provider</span>
+                    <span id="dev-metric-provider" class="font-mono text-white">Inception / Cerebras</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-400">Context Length</span>
+                    <span id="dev-metric-context" class="font-mono text-white">0 chars</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-400">Max Tokens</span>
+                    <span class="font-mono text-white">8192</span>
+                </div>
+            </div>
+
+            <!-- Raw Log / Error Trace -->
+            <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-1.5">
+                <div class="text-[10px] font-bold text-gray-400 tracking-wide uppercase">Telemetry & Diagnostics</div>
+                <pre id="dev-metric-raw" class="p-2 rounded-lg bg-black/40 text-[10px] font-mono text-gray-300 max-h-48 overflow-y-auto whitespace-pre-wrap">Dev telemetry active...</pre>
+            </div>
+        </div>
+    </aside>
 
     <!-- Floating Toast Notification System -->
     <div id="dai-toast" class="fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-dark-surface/95 border border-white/15 text-xs text-white shadow-2xl backdrop-blur-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px]">
@@ -1353,10 +1451,48 @@
         window.daiWidgetPayloads = new Map();
         window.daiDevMode = false;
         window.lastApiError = null;
+
+        window.toggleDevInspector = (force) => {
+            const panel = document.getElementById('dev-inspector-panel');
+            if (!panel) return;
+            const willOpen = typeof force === 'boolean' ? force : panel.classList.contains('translate-x-full');
+            window.daiDevMode = willOpen;
+            if (willOpen) {
+                panel.classList.remove('translate-x-full');
+                panel.classList.add('translate-x-0');
+            } else {
+                panel.classList.add('translate-x-full');
+                panel.classList.remove('translate-x-0');
+            }
+            window.showToast?.(willOpen ? '⚡ Developer Inspector enabled' : '⚡ Developer Inspector closed', 'fa-solid fa-terminal text-sky-400');
+        };
+
+        window.updateDevTelemetry = ({ latency = 0, ttft = 0, tokens = 0, tps = 0, model = 'gemma-4-31b', provider = 'Cerebras', context = 0, searches = 0, raw = '' }) => {
+            const latEl = document.getElementById('dev-metric-latency');
+            const tpsEl = document.getElementById('dev-metric-tps');
+            const tokEl = document.getElementById('dev-metric-tokens');
+            const srcEl = document.getElementById('dev-metric-searches');
+            const modEl = document.getElementById('dev-metric-model');
+            const prvEl = document.getElementById('dev-metric-provider');
+            const ctxEl = document.getElementById('dev-metric-context');
+            const rawEl = document.getElementById('dev-metric-raw');
+
+            if (latEl) latEl.textContent = `${latency}ms (${ttft}ms)`;
+            if (tpsEl) tpsEl.textContent = `${Number(tps).toFixed(1)} tps`;
+            if (tokEl) tokEl.textContent = String(tokens);
+            if (srcEl) srcEl.textContent = String(searches);
+            if (modEl) modEl.textContent = model;
+            if (prvEl) prvEl.textContent = provider;
+            if (ctxEl) ctxEl.textContent = `${context} chars`;
+            if (rawEl && raw) rawEl.textContent = String(raw).slice(0, 1000);
+        };
+
         window.captureApiError = (scope, error) => {
             const detail = error?.message || String(error || 'Unknown error');
             const stamped = `[${new Date().toISOString()}] ${scope}: ${detail}`;
             window.lastApiError = stamped;
+            const rawEl = document.getElementById('dev-metric-raw');
+            if (rawEl) rawEl.textContent = stamped;
             return stamped;
         };
         window.devErrorBlock = (title, message) => `<div class="text-red-300 p-4 text-xs border border-red-900/40 rounded-lg bg-black/70 font-mono leading-relaxed"><strong>${escapeHtml(title || 'Error')}</strong><br>${escapeHtml(message || 'Unknown error')}</div>`;
@@ -3109,13 +3245,14 @@ ${safeJs}
 
                 // 2. Render Thinking Accordion if thought process exists
                 if (thought) {
-                    const isOpen = isThinking || target.__thinkingOpen || (!options.final && isThinking);
+                    const isOpen = target.__thinkingOpen === true;
                     const thoughtHtml = sanitizeRenderedHtml(mdRenderer.render(normalizeMathDelimiters(thought)));
                     htmlOutput += `
                         <details class="thinking-shell" ${isOpen ? 'open' : ''}>
-                            <summary class="thinking-summary" onclick="this.closest('.thinking-shell').hasAttribute('open') ? (target.__thinkingOpen = false) : (target.__thinkingOpen = true)">
+                            <summary class="thinking-summary" onclick="setTimeout(() => { target.__thinkingOpen = this.closest('.thinking-shell')?.hasAttribute('open'); }, 10)">
                                 <div class="thinking-label">
-                                    ${isThinking ? '<span class="thinking-spinner"></span> <span>Thinking...</span>' : '<i class="fa-solid fa-brain text-purple-400"></i> <span>Thought Process</span>'}
+                                    <i class="fa-solid fa-brain text-purple-400"></i>
+                                    <span>Thought Process</span>
                                 </div>
                                 <i class="fa-solid fa-chevron-down thinking-chevron"></i>
                             </summary>
@@ -4574,19 +4711,7 @@ ${safeJs}
                 let forceSearch = false;
 
                 if (t === '/dev' || t === '//dev') {
-                    const userIndex = S.msg.push({ role: 'user', content: t }) - 1;
-                    add('user', t, userIndex);
-                    saveSyncedMessage('user', t, { mode: 'dev' });
-                    window.daiDevMode = !window.daiDevMode;
-                    const devText = window.lastApiError
-                        ? `Developer mode ${window.daiDevMode ? 'enabled' : 'disabled'}.\n\nLast API error:\n\n\`\`\`text\n${window.lastApiError}\n\`\`\``
-                        : `Developer mode ${window.daiDevMode ? 'enabled' : 'disabled'}. No captured API errors yet.`;
-                    const msgNode = add('assistant', '', S.msg.length);
-                    const body = msgNode.querySelector('.markdown-body');
-                    renderAssistantContent(devText, body, { final: true });
-                    S.msg.push({ role: 'assistant', content: devText });
-                    setMessageNodeIndex(msgNode, S.msg.length - 1);
-                    saveSyncedMessage('assistant', devText, { mode: 'dev' });
+                    window.toggleDevInspector(true);
                     E.i.value = '';
                     E.i.style.height = 'auto';
                     return;
@@ -4753,9 +4878,12 @@ ${safeJs}
 
                 let searchContext = "";
                 let currentSources = [];
+                let searchCount = 0;
+
                 if (forceSearch || shouldSearch(t)) {
+                    searchCount++;
                     setAnswerAura(el, 'loading');
-                    el.innerHTML = activityLoader('Searching web', `Searching for: "${t.slice(0, 45)}"...`);
+                    el.innerHTML = activityLoader('Searching web', 'Finding live information...');
                     const searchRes = await searchTavily(t);
                     if (searchRes && searchRes.formatted) {
                         searchContext = `\n\n[SYSTEM: Web Results with Sources]\n${searchRes.formatted}`;
@@ -4770,6 +4898,10 @@ ${safeJs}
                 }
 
                 try {
+                    const streamStartTime = performance.now();
+                    let ttft = 0;
+                    let tokenCount = 0;
+
                     const memoryFacts = window.getPersonalContext ? window.getPersonalContext() : [];
                     let memoryPrompt = '';
                     if (memoryFacts.length > 0) {
@@ -4811,11 +4943,6 @@ ${safeJs}
                             temperature: 0.75
                         };
 
-                        if (forceThink) {
-                            requestPayload.thinking = true;
-                            requestPayload.reasoning_effort = "medium";
-                        }
-
                         const res = await fetch("/api/chat", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -4849,10 +4976,28 @@ ${safeJs}
 
                                         if (delta) {
                                             fullText += delta;
+                                            tokenCount += Math.max(1, Math.round(delta.length / 4));
+
                                             if (isFirstChunk) {
                                                 isFirstChunk = false;
+                                                ttft = Math.round(performance.now() - streamStartTime);
                                                 if (shouldShowAnalysing) setAnalysing(el, false);
                                             }
+
+                                            const elapsedSec = (performance.now() - streamStartTime) / 1000;
+                                            const currentTps = elapsedSec > 0 ? (tokenCount / elapsedSec) : 0;
+                                            window.updateDevTelemetry?.({
+                                                latency: Math.round(performance.now() - streamStartTime),
+                                                ttft,
+                                                tokens: tokenCount,
+                                                tps: currentTps,
+                                                model: 'gemma-4-31b',
+                                                provider: 'Inception / Cerebras',
+                                                context: JSON.stringify(messagesToSend).length,
+                                                searches: searchCount,
+                                                raw: fullText.slice(-200)
+                                            });
+
                                             if (!fullText.includes('<<SEARCH:')) {
                                                 renderAssistantContent(fullText, el, { final: false, sources: currentSources });
                                             }
@@ -4865,9 +5010,10 @@ ${safeJs}
                         // Multi-step Search Directive Detection: <<SEARCH: query>>
                         const searchMatch = fullText.match(/<<SEARCH:\s*([^>]+)>>/i);
                         if (searchMatch && iteration < 3) {
+                            searchCount++;
                             const nextSearchQuery = searchMatch[1].trim();
                             setAnswerAura(el, 'loading');
-                            el.innerHTML = activityLoader('Searching web', `Looking up "${nextSearchQuery.slice(0, 45)}"...`);
+                            el.innerHTML = activityLoader('Searching web', 'Gathering additional sources...');
 
                             const searchRes = await searchTavily(nextSearchQuery);
                             if (searchRes && searchRes.results && searchRes.results.length) {
@@ -4885,7 +5031,7 @@ ${safeJs}
                                 });
                                 messagesToSend.push({
                                     role: 'user',
-                                    content: `[SYSTEM: Follow-up Web Search Results for "${nextSearchQuery}"]\n${searchRes.formatted}\nNow continue answering the user's question directly with comprehensive context and citations.`
+                                    content: `[SYSTEM: Follow-up Web Search Results]\n${searchRes.formatted}\nNow continue answering the user's question directly with comprehensive context and citations.`
                                 });
                                 continue;
                             }
@@ -4893,6 +5039,20 @@ ${safeJs}
 
                         streamFinished = true;
                     }
+
+                    const totalElapsed = Math.round(performance.now() - streamStartTime);
+                    const totalTps = totalElapsed > 0 ? ((tokenCount / (totalElapsed / 1000))) : 0;
+                    window.updateDevTelemetry?.({
+                        latency: totalElapsed,
+                        ttft,
+                        tokens: tokenCount,
+                        tps: totalTps,
+                        model: 'gemma-4-31b',
+                        provider: 'Inception / Cerebras',
+                        context: JSON.stringify(messagesToSend).length,
+                        searches: searchCount,
+                        raw: `Complete: ${tokenCount} tokens in ${totalElapsed}ms`
+                    });
 
                     const cleanFinalText = fullText.replace(/<<SEARCH:\s*[^>]+>>/gi, '').trim();
                     renderAssistantContent(cleanFinalText, el, { final: true, sources: currentSources });
@@ -4906,6 +5066,7 @@ ${safeJs}
                     document.getElementById('btn').textContent = '➜';
                 } catch (err) {
                     console.error('[D-Ai Stream Error]', err);
+                    window.captureApiError?.('Stream Error', err);
                     if (shouldShowAnalysing) setAnalysing(el, false);
 
                     function getSmartFallbackAnswer(query) {
