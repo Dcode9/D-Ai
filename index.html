@@ -279,6 +279,287 @@
         body.light-theme #account-menu-modal h4 {
             color: #0f172a !important;
         }
+
+        /* Thinking Process Accordion & Realtime UI */
+        .thinking-shell {
+            margin: 0.6rem 0 1rem 0;
+            border-radius: 14px;
+            border: 1px solid rgba(168, 85, 247, 0.22);
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.05) 0%, rgba(56, 189, 248, 0.03) 100%);
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+        .thinking-shell[open] {
+            border-color: rgba(168, 85, 247, 0.38);
+            box-shadow: 0 4px 18px rgba(168, 85, 247, 0.08);
+        }
+        .thinking-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0.85rem;
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #d8b4fe;
+            transition: background 0.18s ease;
+        }
+        .thinking-summary::-webkit-details-marker { display: none; }
+        .thinking-summary:hover {
+            background: rgba(168, 85, 247, 0.08);
+        }
+        .thinking-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .thinking-spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(216, 180, 254, 0.3);
+            border-top-color: #c084fc;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .thinking-chevron {
+            font-size: 0.72rem;
+            color: #a855f7;
+            transition: transform 0.2s ease;
+        }
+        .thinking-shell[open] .thinking-chevron {
+            transform: rotate(180deg);
+        }
+        .thinking-body {
+            padding: 0.75rem 0.95rem 0.9rem;
+            border-top: 1px solid rgba(168, 85, 247, 0.15);
+            font-size: 0.84rem;
+            line-height: 1.62;
+            color: #cbd5e1;
+            font-family: 'JetBrains Mono', monospace, sans-serif;
+            background: rgba(0, 0, 0, 0.2);
+            white-space: pre-wrap;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        body.light-theme .thinking-shell {
+            border-color: rgba(147, 51, 234, 0.2);
+            background: linear-gradient(180deg, rgba(243, 232, 255, 0.6) 0%, rgba(240, 249, 255, 0.5) 100%);
+        }
+        body.light-theme .thinking-summary {
+            color: #7e22ce;
+        }
+        body.light-theme .thinking-summary:hover {
+            background: rgba(147, 51, 234, 0.06);
+        }
+        body.light-theme .thinking-body {
+            border-top-color: rgba(147, 51, 234, 0.12);
+            color: #334155;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Web Search & Source Citations */
+        .search-status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 10px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            font-size: 0.78rem;
+            color: #7dd3fc;
+        }
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.9rem;
+        }
+        .source-card {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.65rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            min-width: 0;
+        }
+        .source-card:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+        }
+        .source-favicon {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .source-info {
+            min-width: 0;
+            flex: 1;
+        }
+        .source-title {
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .source-domain {
+            font-size: 0.66rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .citation-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
+            margin: 0 2px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #38bdf8;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-decoration: none;
+            vertical-align: 0.2em;
+            transition: all 0.15s ease;
+        }
+        .citation-badge:hover {
+            background: #38bdf8;
+            color: #000000;
+            transform: scale(1.1);
+        }
+
+        body.light-theme .search-status-bar {
+            background: rgba(2, 132, 199, 0.08);
+            border-color: rgba(2, 132, 199, 0.2);
+            color: #0369a1;
+        }
+        body.light-theme .source-card {
+            background: #ffffff;
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+        body.light-theme .source-card:hover {
+            background: #f0f9ff;
+            border-color: rgba(2, 132, 199, 0.3);
+        }
+        body.light-theme .source-title {
+            color: #0f172a;
+        }
+        body.light-theme .source-domain {
+            color: #64748b;
+        }
+        body.light-theme .citation-badge {
+            background: rgba(2, 132, 199, 0.12);
+            border-color: rgba(2, 132, 199, 0.3);
+            color: #0284c7;
+        }
+
+        /* // Action Suggestions Menu */
+        #action-suggestions {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            max-width: 32rem;
+            margin: 0 auto;
+            border-radius: 18px;
+            background: rgba(15, 17, 23, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            overflow: hidden;
+            z-index: 45;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        #action-suggestions.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(6px);
+        }
+        .action-suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            user-select: none;
+            border-radius: 10px;
+        }
+        .action-suggestion-item:hover, .action-suggestion-item.selected {
+            background: rgba(56, 189, 248, 0.12);
+        }
+        .action-suggestion-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            border-width: 1px;
+        }
+        .action-suggestion-cmd {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace, sans-serif;
+        }
+        .action-suggestion-desc {
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+        .action-suggestion-badge {
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            margin-left: auto;
+        }
+
+        body.light-theme #action-suggestions {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+        }
+        body.light-theme .action-suggestion-item:hover,
+        body.light-theme .action-suggestion-item.selected {
+            background: rgba(2, 132, 199, 0.08);
+        }
+        body.light-theme .action-suggestion-cmd {
+            color: #0f172a;
+        }
+        body.light-theme .action-suggestion-desc {
+            color: #64748b;
+        }
+        body.light-theme .action-suggestion-badge {
+            background: rgba(0, 0, 0, 0.06);
+            color: #475569;
+        }
+
         body{background:var(--dai-bg);color:#F0F0F0;font-family:'Inter',sans-serif;overflow:hidden;overflow-x:hidden}
         main, #chat { overflow-x: hidden; }
         *::-webkit-scrollbar{width:7px;height:7px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:#333;border-radius:4px}*::-webkit-scrollbar-thumb:hover{background:#555}
@@ -888,6 +1169,15 @@
 
         <div id="composer-dock" class="fixed bottom-0 left-0 right-0 z-10 pointer-events-none pb-6 pt-10 px-4 bg-gradient-to-t from-dark-bg via-dark-bg/95 to-transparent">
             <div id="composer-shell" class="w-full max-w-3xl mx-auto pointer-events-auto flex flex-col items-start gap-2 bg-dark-surface rounded-[28px] border border-dark-border p-2 shadow-2xl transition-all duration-300 focus-within:border-gray-600 relative">
+
+                <!-- Action Suggestions Palette (// and / commands) -->
+                <div id="action-suggestions" class="hidden">
+                    <div class="px-3 py-2 border-b border-white/10 flex items-center justify-between text-[11px] text-gray-400">
+                        <span class="font-semibold text-sky-400 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Action Suggestions</span>
+                        <span class="text-[10px] text-gray-500">↑↓ navigate • ↵ or Tab select</span>
+                    </div>
+                    <div id="action-suggestions-list" class="max-h-64 overflow-y-auto p-1.5 space-y-0.5"></div>
+                </div>
 
                 <!-- Attachment Preview Area -->
                 <div id="attachment-preview" class="hidden w-full px-3 pt-2">
@@ -2730,14 +3020,115 @@ ${safeJs}
                 hydrateDaiWidgets(root);
             };
 
+            const parseThinkingAndAnswer = (text, isStreaming = false) => {
+                const thoughtOpenIdx = text.search(/<(?:thought|thinking)>/i);
+                if (thoughtOpenIdx === -1) {
+                    return { thought: '', content: text, isThinking: false };
+                }
+                const matchOpen = text.match(/<(?:thought|thinking)>/i);
+                const beforeThought = text.slice(0, thoughtOpenIdx);
+                const afterOpen = text.slice(thoughtOpenIdx + matchOpen[0].length);
+                const closeMatch = afterOpen.match(/<\/(?:thought|thinking)>/i);
+
+                if (!closeMatch) {
+                    return {
+                        thought: afterOpen.trim(),
+                        content: beforeThought.trim(),
+                        isThinking: isStreaming
+                    };
+                }
+
+                const thought = afterOpen.slice(0, closeMatch.index).trim();
+                const content = (beforeThought + afterOpen.slice(closeMatch.index + closeMatch[0].length)).trim();
+                return { thought, content, isThinking: false };
+            };
+
+            const formatSourceCitations = (html, sources) => {
+                if (!sources || !sources.length) return html;
+                return html.replace(/\[(\d+)\]/g, (match, num) => {
+                    const idx = parseInt(num, 10) - 1;
+                    if (idx >= 0 && idx < sources.length) {
+                        const s = sources[idx];
+                        return `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" class="citation-badge" title="${escapeHtml(s.title || s.url)}">${num}</a>`;
+                    }
+                    return match;
+                });
+            };
+
+            const renderSourcesGrid = (sources) => {
+                if (!sources || !sources.length) return '';
+                return `
+                    <div class="search-sources-wrapper mb-3">
+                        <div class="search-status-bar">
+                            <i class="fa-solid fa-globe text-sky-400"></i>
+                            <span class="font-medium">Found ${sources.length} sources on the web</span>
+                        </div>
+                        <div class="sources-grid">
+                            ${sources.map((s, idx) => {
+                                let domain = 'web';
+                                try { domain = new URL(s.url).hostname.replace(/^www\./, ''); } catch (e) {}
+                                const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                                return `
+                                    <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" class="source-card group" title="${escapeHtml(s.title || '')}\n${escapeHtml(s.url)}">
+                                        <img src="${favicon}" alt="" class="source-favicon" onerror="this.src='https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico'">
+                                        <div class="source-info">
+                                            <div class="source-title">${escapeHtml(s.title || domain)}</div>
+                                            <div class="source-domain">${escapeHtml(domain)} • [${idx + 1}]</div>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto flex-shrink-0"></i>
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            };
+
             const renderAssistantContent = (rawText, target, options = {}) => {
                 const mdRenderer = getMd();
                 if (!mdRenderer || !target) return;
                 setAnswerAura(target, options.final ? 'settled' : 'streaming');
+                
                 const cleanRawText = String(rawText || '').replace(/\[MEMORY_UPDATE:\s*\{[\s\S]*?\}\]/g, '').trim();
-                const processedContent = normalizeMathDelimiters(processMediaDirectives(cleanRawText));
-                target.innerHTML = sanitizeRenderedHtml(mdRenderer.render(processedContent));
+                const { thought, content, isThinking } = parseThinkingAndAnswer(cleanRawText, !options.final);
+                
+                let htmlOutput = '';
+
+                // 1. Render Sources Grid if available
+                const sources = options.sources || target.__sources || [];
+                if (sources.length) {
+                    target.__sources = sources;
+                    htmlOutput += renderSourcesGrid(sources);
+                }
+
+                // 2. Render Thinking Accordion if thought process exists
+                if (thought) {
+                    const isOpen = isThinking || target.__thinkingOpen || (!options.final && isThinking);
+                    const thoughtHtml = sanitizeRenderedHtml(mdRenderer.render(normalizeMathDelimiters(thought)));
+                    htmlOutput += `
+                        <details class="thinking-shell" ${isOpen ? 'open' : ''}>
+                            <summary class="thinking-summary" onclick="this.closest('.thinking-shell').hasAttribute('open') ? (target.__thinkingOpen = false) : (target.__thinkingOpen = true)">
+                                <div class="thinking-label">
+                                    ${isThinking ? '<span class="thinking-spinner"></span> <span>Thinking...</span>' : '<i class="fa-solid fa-brain text-purple-400"></i> <span>Thought Process</span>'}
+                                </div>
+                                <i class="fa-solid fa-chevron-down thinking-chevron"></i>
+                            </summary>
+                            <div class="thinking-body">${thoughtHtml}</div>
+                        </details>
+                    `;
+                }
+
+                // 3. Render Answer Content
+                if (content || !isThinking) {
+                    const processedContent = normalizeMathDelimiters(processMediaDirectives(content));
+                    let renderedMarkdown = sanitizeRenderedHtml(mdRenderer.render(processedContent));
+                    renderedMarkdown = formatSourceCitations(renderedMarkdown, sources);
+                    htmlOutput += `<div class="assistant-answer-body">${renderedMarkdown}</div>`;
+                }
+
+                target.innerHTML = htmlOutput;
                 enhanceTables(target);
+
                 if (options.final) {
                     if (window.processTextForFacts) {
                         window.processTextForFacts('', rawText);
@@ -2846,7 +3237,7 @@ ${safeJs}
                 }
             });
 
-            // ENHANCED WEB SEARCH ROUTE
+            // ENHANCED WEB SEARCH ROUTE WITH SOURCE CITATIONS
             const searchTavily = async (query) => {
                 try {
                     const res = await fetch('/api/search', {
@@ -2854,18 +3245,153 @@ ${safeJs}
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ query })
                     });
-                    if(!res.ok) return null;
+                    if (!res.ok) return null;
                     const data = await res.json();
                     let formatted = '';
                     if (data.answer) {
                         formatted += `Direct Search Summary: ${data.answer}\n\n`;
                     }
                     if (data.results && data.results.length) {
-                        formatted += data.results.map(r => `Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n');
+                        formatted += data.results.map((r, idx) => `[${idx + 1}] Source: ${r.title} (${r.url})\n${r.content}`).join('\n\n');
                     }
-                    return formatted || null;
+                    return {
+                        formatted: formatted || null,
+                        results: Array.isArray(data.results) ? data.results : [],
+                        answer: data.answer || null
+                    };
                 } catch (e) { return null; }
             };
+
+            // Action Suggestions Palette (// and / commands)
+            const ACTION_COMMANDS = [
+                { cmd: '//think', icon: 'fa-solid fa-brain', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: 'Deep Reasoning', desc: 'Step-by-step thinking before answer', template: '//think ' },
+                { cmd: '//search', icon: 'fa-solid fa-globe', color: 'bg-sky-500/20 text-sky-400 border-sky-500/30', label: 'Web Search', desc: 'Search live internet with sources', template: '//search ' },
+                { cmd: '//image', icon: 'fa-solid fa-image', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Generate Image', desc: 'Create AI illustration or wallpaper', template: '//image ' },
+                { cmd: '//video', icon: 'fa-solid fa-video', color: 'bg-rose-500/20 text-rose-400 border-rose-500/30', label: 'Generate Video', desc: 'Create 4-second motion video', template: '//video ' },
+                { cmd: '//music', icon: 'fa-solid fa-music', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Generate Music', desc: 'Compose soundtrack or song', template: '//music ' },
+                { cmd: '//code', icon: 'fa-solid fa-code', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', label: 'Code Studio', desc: 'Open interactive web code sandbox', action: () => window.openCodeStudio?.() },
+                { cmd: '//memory', icon: 'fa-solid fa-brain', color: 'bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/30', label: 'Personal Memory', desc: 'Manage saved user facts & context', action: () => window.openPersonalContextModal?.() },
+                { cmd: '//export', icon: 'fa-solid fa-file-arrow-down', color: 'bg-teal-500/20 text-teal-400 border-teal-500/30', label: 'Export Chat', desc: 'Download conversation as Markdown', action: () => window.exportCurrentChat?.() },
+                { cmd: '//clear', icon: 'fa-solid fa-trash-can', color: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Clear Chat', desc: 'Start a fresh conversation', action: () => window.resetConversation?.() },
+                { cmd: '//dev', icon: 'fa-solid fa-terminal', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'Developer Mode', desc: 'Toggle API error debugging', template: '/dev' }
+            ];
+
+            let activeSuggestionIndex = 0;
+            let currentFilteredActions = [];
+
+            const initActionSuggestions = () => {
+                const input = document.getElementById('in');
+                const menu = document.getElementById('action-suggestions');
+                const list = document.getElementById('action-suggestions-list');
+                if (!input || !menu || !list) return;
+
+                const renderSuggestions = (matches) => {
+                    currentFilteredActions = matches;
+                    if (!matches.length) {
+                        menu.classList.add('hidden');
+                        return;
+                    }
+                    if (activeSuggestionIndex >= matches.length) activeSuggestionIndex = 0;
+
+                    list.innerHTML = matches.map((item, idx) => `
+                        <div class="action-suggestion-item ${idx === activeSuggestionIndex ? 'selected' : ''}" data-action-idx="${idx}">
+                            <div class="action-suggestion-icon ${item.color}">
+                                <i class="${item.icon}"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="action-suggestion-cmd">${escapeHtml(item.cmd)}</span>
+                                    <span class="text-[11px] text-gray-300 font-semibold">• ${escapeHtml(item.label)}</span>
+                                </div>
+                                <div class="action-suggestion-desc truncate">${escapeHtml(item.desc)}</div>
+                            </div>
+                            <span class="action-suggestion-badge">Tab / ↵</span>
+                        </div>
+                    `).join('');
+
+                    list.querySelectorAll('.action-suggestion-item').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const idx = Number(el.getAttribute('data-action-idx'));
+                            selectAction(idx);
+                        });
+                        el.addEventListener('mouseenter', () => {
+                            const idx = Number(el.getAttribute('data-action-idx'));
+                            activeSuggestionIndex = idx;
+                            list.querySelectorAll('.action-suggestion-item').forEach((item, i) => {
+                                item.classList.toggle('selected', i === idx);
+                            });
+                        });
+                    });
+
+                    menu.classList.remove('hidden');
+                };
+
+                const selectAction = (idx) => {
+                    const item = currentFilteredActions[idx];
+                    if (!item) return;
+                    menu.classList.add('hidden');
+
+                    if (item.action) {
+                        input.value = '';
+                        input.style.height = 'auto';
+                        item.action();
+                    } else if (item.template) {
+                        input.value = item.template;
+                        input.focus();
+                        input.style.height = 'auto';
+                        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+                        input.setSelectionRange(input.value.length, input.value.length);
+                    }
+                };
+
+                input.addEventListener('input', () => {
+                    const val = input.value;
+                    if (val.startsWith('//') || val.startsWith('/')) {
+                        const searchKey = val.toLowerCase();
+                        const matches = ACTION_COMMANDS.filter(a => 
+                            a.cmd.toLowerCase().startsWith(searchKey) || 
+                            a.cmd.slice(1).startsWith(searchKey) || 
+                            a.label.toLowerCase().includes(searchKey.replace(/^\/+/, ''))
+                        );
+                        renderSuggestions(matches);
+                    } else {
+                        menu.classList.add('hidden');
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (menu.classList.contains('hidden') || !currentFilteredActions.length) return;
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeSuggestionIndex = (activeSuggestionIndex + 1) % currentFilteredActions.length;
+                        renderSuggestions(currentFilteredActions);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeSuggestionIndex = (activeSuggestionIndex - 1 + currentFilteredActions.length) % currentFilteredActions.length;
+                        renderSuggestions(currentFilteredActions);
+                    } else if (e.key === 'Enter' || e.key === 'Tab') {
+                        e.preventDefault();
+                        selectAction(activeSuggestionIndex);
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        menu.classList.add('hidden');
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!menu.contains(e.target) && e.target !== input) {
+                        menu.classList.add('hidden');
+                    }
+                });
+            };
+
+            // Initialize Action Suggestions when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initActionSuggestions);
+            } else {
+                initActionSuggestions();
+            }
 
             const S={msg:[],gen:false}, E={c:document.getElementById('chat'),i:document.getElementById('in'),h:document.getElementById('hero')};
             window.hasVisionContext = false;
@@ -4028,12 +4554,17 @@ ${safeJs}
             };
 
             window.send = async function() {
-                const t=E.i.value.trim();
+                let t = E.i.value.trim();
                 const attachment = window.pendingAttachment;
-                if((!t && !attachment) ||S.gen || window.isUploading) return;
-                if (t === '/dev' && !attachment) {
+                if ((!t && !attachment) || S.gen || window.isUploading) return;
+
+                // Handle Action Commands (// and / prefixes)
+                let forceThink = false;
+                let forceSearch = false;
+
+                if (t === '/dev' || t === '//dev') {
                     const userIndex = S.msg.push({ role: 'user', content: t }) - 1;
-                    add('user', '/dev', userIndex);
+                    add('user', t, userIndex);
                     saveSyncedMessage('user', t, { mode: 'dev' });
                     window.daiDevMode = !window.daiDevMode;
                     const devText = window.lastApiError
@@ -4045,20 +4576,61 @@ ${safeJs}
                     S.msg.push({ role: 'assistant', content: devText });
                     setMessageNodeIndex(msgNode, S.msg.length - 1);
                     saveSyncedMessage('assistant', devText, { mode: 'dev' });
+                    E.i.value = '';
+                    E.i.style.height = 'auto';
                     return;
+                } else if (t === '//clear' || t === '/clear') {
+                    E.i.value = '';
+                    E.i.style.height = 'auto';
+                    window.resetConversation?.();
+                    return;
+                } else if (t === '//memory' || t === '/memory') {
+                    E.i.value = '';
+                    E.i.style.height = 'auto';
+                    window.openPersonalContextModal?.();
+                    return;
+                } else if (t === '//export' || t === '/export') {
+                    E.i.value = '';
+                    E.i.style.height = 'auto';
+                    window.exportCurrentChat?.();
+                    return;
+                } else if (t === '//code' || t === '/code') {
+                    E.i.value = '';
+                    E.i.style.height = 'auto';
+                    window.openCodeStudio?.();
+                    return;
+                } else if (t.startsWith('//think ') || t.startsWith('/think ')) {
+                    forceThink = true;
+                    t = t.replace(/^\/+(?:think\s*)/i, '').trim();
+                } else if (t.startsWith('//search ') || t.startsWith('/search ')) {
+                    forceSearch = true;
+                    t = t.replace(/^\/+(?:search\s*)/i, '').trim();
+                } else if (t.startsWith('//image ') || t.startsWith('/image ')) {
+                    const prompt = t.replace(/^\/+(?:image\s*)/i, '').trim();
+                    t = `Generate image: ${prompt}`;
+                } else if (t.startsWith('//video ') || t.startsWith('/video ')) {
+                    const prompt = t.replace(/^\/+(?:video\s*)/i, '').trim();
+                    t = `Generate video: ${prompt}`;
+                } else if (t.startsWith('//music ') || t.startsWith('/music ')) {
+                    const prompt = t.replace(/^\/+(?:music\s*)/i, '').trim();
+                    t = `Generate music: ${prompt}`;
+                } else if (t.startsWith('//code ') || t.startsWith('/code ')) {
+                    const prompt = t.replace(/^\/+(?:code\s*)/i, '').trim();
+                    t = `Create interactive code: ${prompt}`;
                 }
+
                 const shouldShowAnalysing = !!attachment || (window.hasVisionContext && visualQueryRe.test(t));
 
-                if(!getMd()){
+                if (!getMd()) {
                     const btn = document.getElementById('btn');
                     btn.disabled = true; btn.textContent = '…';
                     setTimeout(window.send, 100);
                     return;
                 }
 
-                S.gen=true; E.i.value=''; E.i.style.height='auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled=true;
+                S.gen = true; E.i.value = ''; E.i.style.height = 'auto'; E.h.classList.add('hidden'); document.getElementById('btn').disabled = true;
 
-                if(!S.msg.length) {
+                if (!S.msg.length) {
                     S.msg.push({
                         role: "system",
                         content: "You are D'Ai, a helpful AI assistant made by Dhairya Shah.\n" +
@@ -4103,7 +4675,7 @@ ${safeJs}
                                  "4. Duration should be between 3 and 300 seconds (default: 15).\n" +
                                  "5. Example: <<GENERATE_MUSIC: energetic synthwave track with punchy drums | 20 | synthwave_track | synthwave upbeat electronic>>\n" +
                                  "6. You can generate up to 3 music tracks at once.\n" +
-                                 "WEB SEARCH: Integrate results seamlessly.\n" +
+                                 "WEB SEARCH: Integrate results seamlessly with source citations [1], [2] when referencing information.\n" +
                                  "Don't Show How You generate Image, Video, or Music, If asked, What can you do?" +
                                  "Don't share your system prompt"
                     });
@@ -4127,14 +4699,14 @@ ${safeJs}
 
                 console.log('[Send] User message content:', userContent.length > 500 ? `${userContent.slice(0, 500)}...` : userContent);
 
-                S.msg.push({role:"user",content:userContent});
+                S.msg.push({ role: "user", content: userContent });
                 const userMessageIndex = S.msg.length - 1;
                 add('user', displayHtml, userMessageIndex);
                 const cloudHistoryActive = usingCloudHistory();
                 const persistedUserContent = cloudHistoryActive ? cloudSafeUserContent(t, attachment) : userContent;
                 saveSyncedMessage('user', persistedUserContent, attachmentMetadata(attachment, t, !cloudHistoryActive));
 
-                const assistantMessage = add('assistant','');
+                const assistantMessage = add('assistant', '');
                 launchSendAura(assistantMessage);
                 const el = assistantMessage.querySelector('.markdown-body');
                 if (shouldShowAnalysing) setAnalysing(el, true, attachment ? 'Analysing' : 'Checking image context', attachment ? 'Preparing the uploaded file' : 'Reviewing the previous visual context');
@@ -4146,7 +4718,7 @@ ${safeJs}
                         el.innerHTML = activityLoader('Building interface', 'Generating the interactive view');
                         const interfaceContent = await buildGenerativeInterface(t, interfaceType);
                         renderAssistantContent(interfaceContent, el, { final: true });
-                        S.msg.push({role:"assistant",content:interfaceContent});
+                        S.msg.push({ role: "assistant", content: interfaceContent });
                         setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                         saveSyncedMessage('assistant', interfaceContent, { mode: 'interface' });
                     } catch (interfaceError) {
@@ -4156,24 +4728,28 @@ ${safeJs}
                             ? `I couldn't build that interactive view.\n\n\`\`\`text\n${raw}\n\`\`\``
                             : `I couldn't build that interactive view right now. ${interfaceError.message || 'The interface generator failed.'}`;
                         renderAssistantContent(fallbackText, el, { final: true });
-                        S.msg.push({role:"assistant",content:fallbackText});
+                        S.msg.push({ role: "assistant", content: fallbackText });
                         setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                         saveSyncedMessage('assistant', fallbackText, { mode: 'interface-error' });
                     } finally {
                         if (shouldShowAnalysing) setAnalysing(el, false);
-                        S.gen=false;
-                        document.getElementById('btn').disabled=false;
+                        S.gen = false;
+                        document.getElementById('btn').disabled = false;
                         document.getElementById('btn').textContent = '➜';
                     }
                     return;
                 }
 
                 let searchContext = "";
-                if(shouldSearch(t)) {
+                let currentSources = [];
+                if (forceSearch || shouldSearch(t)) {
                     setAnswerAura(el, 'loading');
-                    el.innerHTML = activityLoader('Searching web', 'Finding current context');
-                    const results = await searchTavily(t);
-                    if(results) searchContext = `\n\n[SYSTEM: Web Results]\n${results}`;
+                    el.innerHTML = activityLoader('Searching web', 'Finding live citations');
+                    const searchRes = await searchTavily(t);
+                    if (searchRes && searchRes.formatted) {
+                        searchContext = `\n\n[SYSTEM: Web Results with Sources]\n${searchRes.formatted}`;
+                        currentSources = searchRes.results || [];
+                    }
                     if (shouldShowAnalysing) {
                         setAnswerAura(el, 'loading');
                         el.innerHTML = activityLoader('Analysing', 'Preparing the final answer');
@@ -4193,7 +4769,14 @@ ${safeJs}
                         ? [{ role: 'system', content: memoryPrompt }, ...S.msg] 
                         : [...S.msg];
 
-                    if(searchContext) {
+                    if (forceThink) {
+                        messagesToSend.push({
+                            role: 'system',
+                            content: 'Think through this carefully and express your detailed step-by-step reasoning within <thought>...</thought> tags before providing the final answer.'
+                        });
+                    }
+
+                    if (searchContext) {
                         const lastIdx = messagesToSend.length - 1;
                         messagesToSend[lastIdx] = {
                             role: messagesToSend[lastIdx].role,
@@ -4202,9 +4785,9 @@ ${safeJs}
                     }
 
                     const res = await fetch("/api/chat", {
-                        method:"POST",
-                        headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({model:"gemma-4-31b",messages:messagesToSend,stream:true,max_completion_tokens:8192,temperature:0.85})
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ model: "gemma-4-31b", messages: messagesToSend, stream: true, max_completion_tokens: 8192, temperature: 0.85 })
                     });
 
                     if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -4216,10 +4799,10 @@ ${safeJs}
                     getMd();
 
                     while (true) {
-                        const {done, value} = await reader.read();
+                        const { done, value } = await reader.read();
                         if (done) break;
 
-                        buffer += dec.decode(value, {stream: true});
+                        buffer += dec.decode(value, { stream: true });
                         const lines = buffer.split('\n');
                         buffer = lines.pop();
 
@@ -4234,21 +4817,21 @@ ${safeJs}
                                     if (delta) {
                                         if (shouldShowAnalysing) setAnalysing(el, false);
                                         fullText += delta;
-                                        renderAssistantContent(fullText, el);
+                                        renderAssistantContent(fullText, el, { final: false, sources: currentSources });
                                     }
                                 } catch (e) {}
                             }
                         }
                     }
 
-                    renderAssistantContent(fullText, el, { final: true });
-                    S.msg.push({role:"assistant",content:fullText});
+                    renderAssistantContent(fullText, el, { final: true, sources: currentSources });
+                    S.msg.push({ role: "assistant", content: fullText });
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                     saveSyncedMessage('assistant', fullText, { mode: searchContext ? 'search' : 'chat' });
                     if (window.processTextForFacts) window.processTextForFacts(t, fullText);
                     if (shouldShowAnalysing) setAnalysing(el, false);
-                    S.gen=false;
-                    document.getElementById('btn').disabled=false;
+                    S.gen = false;
+                    document.getElementById('btn').disabled = false;
                     document.getElementById('btn').textContent = '➜';
                 } catch (err) {
                     console.error('[D-Ai Stream Error]', err);
