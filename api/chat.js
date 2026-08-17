@@ -65,43 +65,56 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
   const fullSystemPrompt = buildSystemPrompt(messages);
 
   let endpoint = '';
-  let modelName = '';
+  let candidateModels = [];
 
   if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
-    modelName = (typeof incomingBody.model === 'string' && incomingBody.model.includes('mercury')) ? incomingBody.model : 'mercury';
+    candidateModels = ['mercury', 'mercury-coder'];
   } else {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
-    // Cerebras models: llama-3.3-70b, llama3.1-8b
-    const requested = typeof incomingBody.model === 'string' ? incomingBody.model.trim() : '';
-    if (requested && (requested.includes('llama') || requested.includes('cerebras'))) {
-      modelName = requested;
+    // Cerebras models: llama3.1-8b is standard on all Cerebras accounts, with llama-3.3-70b and llama3.1-70b
+    candidateModels = ['llama3.1-8b', 'llama-3.3-70b', 'llama3.1-70b'];
+  }
+
+  let lastRes = null;
+  let lastModelUsed = '';
+
+  for (const model of candidateModels) {
+    lastModelUsed = model;
+    const payload = {
+      model,
+      messages: [
+        { role: 'system', content: fullSystemPrompt },
+        ...otherMessages.map(normalizeMessageForProvider)
+      ],
+      stream: incomingBody.stream !== false,
+      max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
+      temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      return { response, provider, model };
+    }
+
+    if (response.status === 404) {
+      console.warn(`[D-Ai API] Model ${model} returned 404 on ${provider}. Trying fallback candidate...`);
+      lastRes = response;
+      continue;
     } else {
-      modelName = 'llama-3.3-70b';
+      return { response, provider, model };
     }
   }
 
-  const payload = {
-    model: modelName,
-    messages: [
-      { role: 'system', content: fullSystemPrompt },
-      ...otherMessages.map(normalizeMessageForProvider)
-    ],
-    stream: incomingBody.stream !== false,
-    max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
-    temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
-  };
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  return { response, provider, model: modelName };
+  return { response: lastRes, provider, model: lastModelUsed };
 }
 
 export default async function handler(req, res) {
@@ -121,7 +134,7 @@ export default async function handler(req, res) {
       status: 'Online', 
       has_inception: !!inceptionKey,
       has_cerebras: !!cerebrasKey,
-      primary_provider: inceptionKey ? 'Inception (Mercury)' : (cerebrasKey ? 'Cerebras (Llama 3.3 70B)' : 'None')
+      primary_provider: inceptionKey ? 'Inception (Mercury)' : (cerebrasKey ? 'Cerebras (Llama 3.1 8B)' : 'None')
     });
   }
 
@@ -152,11 +165,11 @@ export default async function handler(req, res) {
             incomingBody: req.body || {}
           });
 
-          if (result.response.ok) {
+          if (result.response && result.response.ok) {
             activeResponse = result.response;
             console.log(`[D-Ai API] Provider ${p.provider} OK (200) using ${result.model}`);
             break;
-          } else {
+          } else if (result.response) {
             const errBody = await result.response.text();
             lastError = `Provider ${p.provider} (${result.response.status}): ${errBody}`;
             console.warn(`[D-Ai API] Provider ${p.provider} failed (${result.response.status}). Trying fallback...`);
