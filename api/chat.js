@@ -11,6 +11,9 @@ function getTextContent(content) {
       return '';
     }).join(' ');
   }
+  if (content && typeof content === 'object') {
+    return content.text || content.content || JSON.stringify(content);
+  }
   return '';
 }
 
@@ -21,49 +24,12 @@ function stripUploadedImageMarkers(text) {
     .trim();
 }
 
-function contentToProviderParts(content) {
-  const text = getTextContent(content);
-  const parts = [];
-  const cleanedText = stripUploadedImageMarkers(text);
-  if (cleanedText) {
-    parts.push({ type: 'text', text: cleanedText });
-  }
-
-  const imageMatches = [];
-  let match;
-  UPLOADED_IMAGE_RE.lastIndex = 0;
-  while ((match = UPLOADED_IMAGE_RE.exec(text)) && imageMatches.length < 5) {
-    const url = match[1].trim();
-    if (/^data:image\/(png|jpe?g);base64,/i.test(url)) {
-      imageMatches.push(url);
-    }
-  }
-
-  for (const url of imageMatches) {
-    parts.push({ type: 'image_url', image_url: { url } });
-  }
-
-  return imageMatches.length ? parts : cleanedText;
-}
-
 function normalizeMessageForProvider(message) {
-  if (!message || typeof message !== 'object') return message;
-  if (message.role === 'user') {
-    return { ...message, content: contentToProviderParts(message.content) };
-  }
-  if (typeof message.content === 'string') {
-    return { ...message, content: stripUploadedImageMarkers(message.content) };
-  }
-  if (Array.isArray(message.content)) {
-    return {
-      ...message,
-      content: message.content.map((part) => {
-        if (part?.type === 'text') return { ...part, text: stripUploadedImageMarkers(part.text) };
-        return part;
-      })
-    };
-  }
-  return message;
+  if (!message || typeof message !== 'object') return { role: 'user', content: '' };
+  const role = message.role === 'assistant' ? 'assistant' : (message.role === 'system' ? 'system' : 'user');
+  const rawText = getTextContent(message.content);
+  const cleanText = stripUploadedImageMarkers(rawText);
+  return { role, content: cleanText };
 }
 
 function buildSystemPrompt(messages) {
@@ -103,7 +69,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
 
   if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
-    modelName = incomingBody.model && incomingBody.model.includes('mercury') ? incomingBody.model : 'mercury';
+    modelName = (typeof incomingBody.model === 'string' && incomingBody.model.includes('mercury')) ? incomingBody.model : 'mercury';
   } else {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
     // Cerebras models: llama-3.3-70b, llama3.1-8b
@@ -122,7 +88,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
       ...otherMessages.map(normalizeMessageForProvider)
     ],
     stream: incomingBody.stream !== false,
-    max_completion_tokens: incomingBody.max_completion_tokens || incomingBody.max_tokens || 8192,
+    max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
     temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
   };
 
@@ -162,10 +128,10 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       if (!inceptionKey && !cerebrasKey) {
-        return res.status(500).json({ error: 'Missing API keys. Configure INCEPTION_API or CEREBRAS_API_KEY.' });
+        return res.status(500).json({ error: 'Missing API keys. Configure INCEPTION_API or CEREBRAS_API_KEY in environment variables.' });
       }
 
-      // Build provider sequence (Primary + Automatic Fallback)
+      // Sequence: Try Inception first if configured, then Cerebras
       const providersToTry = [];
       if (inceptionKey) {
         providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
@@ -179,7 +145,7 @@ export default async function handler(req, res) {
 
       for (const p of providersToTry) {
         try {
-          console.log(`[API Call] Trying provider: ${p.provider}...`);
+          console.log(`[D-Ai API] Attempting provider: ${p.provider}...`);
           const result = await callProviderAPI({
             provider: p.provider,
             apiKey: p.apiKey,
@@ -188,25 +154,25 @@ export default async function handler(req, res) {
 
           if (result.response.ok) {
             activeResponse = result.response;
-            console.log(`[API Call] Provider ${p.provider} responded successfully (200 OK) using ${result.model}`);
+            console.log(`[D-Ai API] Provider ${p.provider} OK (200) using ${result.model}`);
             break;
           } else {
             const errBody = await result.response.text();
             lastError = `Provider ${p.provider} (${result.response.status}): ${errBody}`;
-            console.warn(`[API Call] ${p.provider} failed: ${lastError}. Attempting fallback...`);
+            console.warn(`[D-Ai API] Provider ${p.provider} failed (${result.response.status}). Trying fallback...`);
           }
         } catch (callErr) {
           lastError = `Provider ${p.provider} exception: ${callErr.message}`;
-          console.warn(`[API Call] Exception with ${p.provider}:`, callErr);
+          console.warn(`[D-Ai API] Provider ${p.provider} network error:`, callErr);
         }
       }
 
       if (!activeResponse) {
-        console.error('[API All Providers Failed]:', lastError);
+        console.error('[D-Ai API Critical] All providers failed:', lastError);
         return res.status(502).json({ error: lastError || 'All AI model providers failed to respond.' });
       }
 
-      // Stream response to client
+      // Stream SSE chunks to client
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
@@ -221,13 +187,13 @@ export default async function handler(req, res) {
           res.write(value);
         }
       } catch (streamError) {
-        console.error('Stream Transfer Error:', streamError);
+        console.error('[D-Ai API] Stream transfer error:', streamError);
       } finally {
         res.end();
       }
 
     } catch (e) {
-      console.error('[Handler Critical Error]', e);
+      console.error('[D-Ai API Critical Error]', e);
       return res.status(500).json({ error: e.message });
     }
   } else {

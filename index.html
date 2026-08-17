@@ -4936,11 +4936,10 @@ ${safeJs}
                         }
 
                         const requestPayload = {
-                            model: "gemma-4-31b",
                             messages: messagesToSend,
                             stream: true,
-                            max_completion_tokens: 8192,
-                            temperature: 0.75
+                            max_tokens: 4096,
+                            temperature: 0.7
                         };
 
                         const res = await fetch("/api/chat", {
@@ -4949,7 +4948,14 @@ ${safeJs}
                             body: JSON.stringify(requestPayload)
                         });
 
-                        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                        if (!res.ok) {
+                            let errDetail = `API Error: ${res.status}`;
+                            try {
+                                const errJson = await res.json();
+                                if (errJson?.error) errDetail += ` - ${typeof errJson.error === 'object' ? JSON.stringify(errJson.error) : errJson.error}`;
+                            } catch (_) {}
+                            throw new Error(errDetail);
+                        }
 
                         const reader = res.body.getReader();
                         const dec = new TextDecoder();
