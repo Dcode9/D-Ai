@@ -21,7 +21,7 @@ function stripUploadedImageMarkers(text) {
     .trim();
 }
 
-function contentToCerebrasParts(content) {
+function contentToProviderParts(content) {
   const text = getTextContent(content);
   const parts = [];
   const cleanedText = stripUploadedImageMarkers(text);
@@ -46,10 +46,10 @@ function contentToCerebrasParts(content) {
   return imageMatches.length ? parts : cleanedText;
 }
 
-function normalizeMessageForCerebras(message) {
+function normalizeMessageForProvider(message) {
   if (!message || typeof message !== 'object') return message;
   if (message.role === 'user') {
-    return { ...message, content: contentToCerebrasParts(message.content) };
+    return { ...message, content: contentToProviderParts(message.content) };
   }
   if (typeof message.content === 'string') {
     return { ...message, content: stripUploadedImageMarkers(message.content) };
@@ -68,11 +68,13 @@ function normalizeMessageForCerebras(message) {
 
 function normalizeChatModel(model) {
   const value = typeof model === 'string' ? model.trim() : '';
-  if (!value || value === 'llama3.1-8b' || value === 'gpt-oss-120b') return 'gemma-4-31b';
+  if (!value || value === 'llama3.1-8b' || value === 'gpt-oss-120b') {
+    return process.env.INCEPTION_API ? 'mercury' : 'gemma-4-31b';
+  }
   return value;
 }
 
-async function prepareCerebrasBody(incomingBody) {
+async function prepareRequestBody(incomingBody) {
   let messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
   
   const systemMessages = messages.filter(m => m && m.role === 'system');
@@ -81,19 +83,20 @@ async function prepareCerebrasBody(incomingBody) {
   const baseSystemPrompt = `You are D'Ai, a scary-fast, helpful, unbiased AI assistant created by Dhairya Shah.
 Key Guidelines:
 1. Provide concise, clear, accurate, and direct answers in well-formatted Markdown.
-2. Adapt naturally to the user's personal context or instructions without over-explaining.
-3. Accurate Historical Knowledge:
+2. When thinking or reasoning through complex problems, you may express your thought process within <thought>...</thought> tags before providing the final answer.
+3. Adapt naturally to the user's personal context or instructions without over-explaining.
+4. Accurate Historical Knowledge:
    - When asked about the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, the definitive answer is **Universal Adult Suffrage (Universal Adult Franchise)** on Day One.
    - Contrast this explicitly with Western democracies: The United States took 144 years (and until the 1965 Voting Rights Act) for full voting rights for women and African Americans; the UK, France, and Switzerland (1971) restricted suffrage to wealthy, male property owners at birth. India, despite 88% illiteracy and immense poverty at independence, trusted every single adult citizen equally from day one.
    - Also highlight the peaceful unification of 565 princely states led by Sardar Vallabhbhai Patel and the constitutional framework under Dr. B.R. Ambedkar.
-4. If the user explicitly asks to generate media or interactive widgets, use clean fenced directives:
+5. If the user explicitly asks to generate media or interactive widgets, use clean fenced directives:
    - Image: <<GENERATE_IMAGE: prompt | 16:9 | 1024x1024>>
    - Video: <<GENERATE_VIDEO: prompt | 16:9 | 4>>
    - Music: <<GENERATE_MUSIC: prompt | 15>>
    - Interactive UI: \`\`\`dai-ui chart\`\`\`
-5. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append a directive on its own final line:
+6. If the user explicitly shares personal facts (e.g. name, grade/standard, occupation, interests), you may optionally append a directive on its own final line:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
-6. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
+7. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
   const fullSystemPrompt = `${baseSystemPrompt}\n\n${extraSystem}`.trim();
@@ -103,7 +106,7 @@ Key Guidelines:
     model: normalizeChatModel(incomingBody.model),
     messages: [
       { role: 'system', content: fullSystemPrompt },
-      ...otherMessages.map(normalizeMessageForCerebras)
+      ...otherMessages.map(normalizeMessageForProvider)
     ]
   };
 }
@@ -120,30 +123,37 @@ export default async function handler(req, res) {
   }
 
   // 3. Health Check
+  const apiKey = process.env.INCEPTION_API || process.env.CEREBRAS_API_KEY;
   if (req.method === 'GET') {
     return res.status(200).json({ 
       status: 'Online', 
-      env_check: !!process.env.CEREBRAS_API_KEY 
+      env_check: !!apiKey,
+      provider: process.env.INCEPTION_API ? 'Inception (Mercury)' : 'Cerebras'
     });
   }
 
   // 4. Main Logic
   if (req.method === 'POST') {
     try {
-      if (!process.env.CEREBRAS_API_KEY) {
-        return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY env var' });
+      if (!apiKey) {
+        return res.status(500).json({ error: 'Missing INCEPTION_API or CEREBRAS_API_KEY env var' });
       }
 
-      const cerebrasBody = await prepareCerebrasBody(req.body || {});
+      const requestBody = await prepareRequestBody(req.body || {});
+      
+      // Determine provider endpoint: Inception API for Mercury model or Cerebras API
+      const endpoint = process.env.INCEPTION_API
+        ? (process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions')
+        : 'https://api.cerebras.ai/v1/chat/completions';
 
-      // Call Cerebras
-      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      // Call Model API
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(cerebrasBody),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
