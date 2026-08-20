@@ -1558,7 +1558,7 @@
             return stamped;
         };
         window.devErrorBlock = (title, message) => `<div class="text-red-300 p-4 text-xs border border-red-900/40 rounded-lg bg-black/70 font-mono leading-relaxed"><strong>${escapeHtml(title || 'Error')}</strong><br>${escapeHtml(message || 'Unknown error')}</div>`;
-        const MEDIA_LIMITS = { image: 5, video: 2 };
+        const MEDIA_LIMITS = { image: 10, video: 2 };
 
         const buildSandboxSrcdoc = ({ html = '', css = '', js = '', title = 'Preview' }) => {
             const safeHtml = String(html || '').slice(0, 18000);
@@ -3243,14 +3243,14 @@ ${safeJs}
             };
 
             const parseThinkingAndAnswer = (text, isStreaming = false) => {
-                const thoughtOpenIdx = text.search(/<(?:thought|thinking)>/i);
+                const thoughtOpenIdx = text.search(/<(?:thought|thinking|think)>/i);
                 if (thoughtOpenIdx === -1) {
                     return { thought: '', content: text, isThinking: false };
                 }
-                const matchOpen = text.match(/<(?:thought|thinking)>/i);
+                const matchOpen = text.match(/<(?:thought|thinking|think)>/i);
                 const beforeThought = text.slice(0, thoughtOpenIdx);
                 const afterOpen = text.slice(thoughtOpenIdx + matchOpen[0].length);
-                const closeMatch = afterOpen.match(/<\/(?:thought|thinking)>/i);
+                const closeMatch = afterOpen.match(/<\/(?:thought|thinking|think)>/i);
 
                 if (!closeMatch) {
                     return {
