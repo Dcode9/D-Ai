@@ -5,7 +5,7 @@ export const config = {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
 };
 
 function jsonResponse(payload, status = 200) {
@@ -41,7 +41,7 @@ function toSeed(value, fallback = 0) {
 }
 
 function base64ToUint8Array(base64) {
-  const cleanBase64 = base64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '').replace(/\s+/g, '');
+  const cleanBase64 = String(base64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '').replace(/\s+/g, '');
   const binary = atob(cleanBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -53,12 +53,12 @@ function base64ToUint8Array(base64) {
 // ----------------------------------------------------
 // Provider 1: Cloudflare Workers AI
 // ----------------------------------------------------
-async function generateWithCloudflare({ prompt, model = '@cf/black-forest-labs/flux-1-schnell', num_steps = 4 }) {
-  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
-  const apiToken = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
+async function generateWithCloudflare({ prompt, accountId, apiToken, model = '@cf/black-forest-labs/flux-1-schnell', num_steps = 4 }) {
+  const cfAccount = (accountId || process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+  const cfToken = (apiToken || process.env.CLOUDFLARE_API_TOKEN || '').trim();
 
-  if (!accountId || !apiToken) {
-    throw new Error('Cloudflare credentials not configured');
+  if (!cfAccount || !cfToken) {
+    throw new Error('Cloudflare credentials not provided');
   }
 
   const cleanModel = model.startsWith('@cf/') ? model.trim() : `@cf/${model.trim()}`;
@@ -69,11 +69,11 @@ async function generateWithCloudflare({ prompt, model = '@cf/black-forest-labs/f
     payload.num_steps = Math.min(Math.max(Number(num_steps) || 20, 1), 50);
   }
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${cleanModel}`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/ai/run/${cleanModel}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiToken}`,
+      'Authorization': `Bearer ${cfToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
@@ -102,10 +102,10 @@ async function generateWithCloudflare({ prompt, model = '@cf/black-forest-labs/f
 // ----------------------------------------------------
 // Provider 2: Hugging Face Serverless API
 // ----------------------------------------------------
-async function generateWithHuggingFace({ prompt, model = 'runwayml/stable-diffusion-v1-5', seed }) {
-  const token = (process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || '').trim();
-  if (!token) {
-    throw new Error('Hugging Face token not configured');
+async function generateWithHuggingFace({ prompt, token, model = 'runwayml/stable-diffusion-v1-5', seed }) {
+  const hfToken = (token || process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || '').trim();
+  if (!hfToken) {
+    throw new Error('Hugging Face token not provided');
   }
 
   const cleanModel = model.trim();
@@ -120,7 +120,7 @@ async function generateWithHuggingFace({ prompt, model = 'runwayml/stable-diffus
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${hfToken}`,
           'Content-Type': 'application/json',
           'Accept': 'image/png, image/jpeg, image/*',
         },
@@ -148,53 +148,52 @@ async function generateWithHuggingFace({ prompt, model = 'runwayml/stable-diffus
 }
 
 // ----------------------------------------------------
-// Provider 3: Free Fallback Engine (Pollinations FLUX / Turbo)
+// Provider 3: Free High-Definition Engine (Pollinations FLUX / Turbo)
 // ----------------------------------------------------
 async function generateWithPollinations({ prompt, width, height, seed, model = 'flux', image }) {
-  const apiKey = (process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API || '').trim();
-
   // If image editing is requested (image-to-image)
   if (image) {
-    const editUrl = 'https://gen.pollinations.ai/v1/images/edits';
-    const requestBody = {
-      prompt,
-      model: model || 'kontext',
-      image: Array.isArray(image) ? image : [image],
-      size: `${width}x${height}`,
-      n: 1,
-      response_format: 'b64_json',
-    };
+    try {
+      const editUrl = 'https://gen.pollinations.ai/v1/images/edits';
+      const requestBody = {
+        prompt,
+        model: model || 'kontext',
+        image: Array.isArray(image) ? image : [image],
+        size: `${width}x${height}`,
+        n: 1,
+        response_format: 'b64_json',
+      };
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+      const res = await fetch(editUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000),
+      });
 
-    const res = await fetch(editUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(60000),
-    });
-
-    if (res.ok) {
-      const payload = await res.json();
-      const b64 = payload.data?.[0]?.b64_json || payload.b64_json;
-      if (b64) {
-        return { bytes: base64ToUint8Array(b64), mimeType: 'image/png', provider: 'pollinations' };
+      if (res.ok) {
+        const payload = await res.json();
+        const b64 = payload.data?.[0]?.b64_json || payload.b64_json;
+        if (b64) {
+          return { bytes: base64ToUint8Array(b64), mimeType: 'image/png', provider: 'pollinations' };
+        }
+        const imgUrl = payload.data?.[0]?.url || payload.url;
+        if (imgUrl) {
+          const imgRes = await fetch(imgUrl);
+          const arrayBuffer = await imgRes.arrayBuffer();
+          return { bytes: new Uint8Array(arrayBuffer), mimeType: imgRes.headers.get('content-type') || 'image/jpeg', provider: 'pollinations' };
+        }
       }
-      const imgUrl = payload.data?.[0]?.url || payload.url;
-      if (imgUrl) {
-        const imgRes = await fetch(imgUrl);
-        const arrayBuffer = await imgRes.arrayBuffer();
-        return { bytes: new Uint8Array(arrayBuffer), mimeType: imgRes.headers.get('content-type') || 'image/jpeg', provider: 'pollinations' };
-      }
+    } catch (e) {
+      console.warn('[D-Ai Image] Image edit endpoint error:', e.message);
     }
   }
 
-  // Standard text-to-image generation
-  const modelsToTry = [model || 'flux', 'turbo'];
+  // Standard text-to-image generation with ZERO token requirement (avoids 402 payment errors)
+  const modelsToTry = [model === 'flux' || model === 'turbo' ? model : 'flux', 'turbo'];
   let lastErr = null;
 
   for (const m of modelsToTry) {
@@ -208,15 +207,12 @@ async function generateWithPollinations({ prompt, width, height, seed, model = '
 
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
       
-      const headers = {
-        'Accept': 'image/*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) D-Ai/2.0',
-      };
-      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-
       const res = await fetch(url, {
         method: 'GET',
-        headers,
+        headers: {
+          'Accept': 'image/*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) D-Ai/2.0',
+        },
         signal: AbortSignal.timeout(60000),
       });
 
@@ -233,7 +229,7 @@ async function generateWithPollinations({ prompt, width, height, seed, model = '
     }
   }
 
-  throw lastErr || new Error('Pollinations image generation failed');
+  throw lastErr || new Error('Free engine image generation failed');
 }
 
 // ----------------------------------------------------
@@ -250,28 +246,46 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { prompt, width, height, seed, image, model, provider } = body;
+    const { 
+      prompt, 
+      width, 
+      height, 
+      seed, 
+      image, 
+      model, 
+      provider,
+      cfAccountId,
+      cfApiToken,
+      hfToken,
+      cfModel,
+      hfModel
+    } = body;
 
     const finalWidth = toPositiveInt(width, 1024);
     const finalHeight = toPositiveInt(height, 1024);
     const finalSeed = toSeed(seed, Math.floor(Math.random() * 2147483647));
     const finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'masterpiece digital art';
 
-    console.log(`[D-Ai Image] Generating: "${finalPrompt.slice(0, 60)}..." (${finalWidth}x${finalHeight})`);
+    const accountId = (cfAccountId || process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+    const apiToken = (cfApiToken || process.env.CLOUDFLARE_API_TOKEN || '').trim();
+    const token = (hfToken || process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || '').trim();
 
-    const hasCloudflare = Boolean(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN);
-    const hasHuggingFace = Boolean(process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY);
+    const hasCloudflare = Boolean(accountId && apiToken);
+    const hasHuggingFace = Boolean(token);
 
-    // Build execution sequence
+    console.log(`[D-Ai Image] Generating: "${finalPrompt.slice(0, 60)}..." (${finalWidth}x${finalHeight}) [CF: ${hasCloudflare}, HF: ${hasHuggingFace}]`);
+
     const attempts = [];
     let imageResult = null;
 
-    // 1. If Cloudflare is requested or available (and not an image edit), try Cloudflare
+    // 1. Try Cloudflare Workers AI if configured or requested
     if (!image && (provider === 'cloudflare' || (hasCloudflare && provider !== 'huggingface' && provider !== 'pollinations'))) {
       try {
         imageResult = await generateWithCloudflare({
           prompt: finalPrompt,
-          model: model?.startsWith('@cf/') ? model : '@cf/black-forest-labs/flux-1-schnell',
+          accountId,
+          apiToken,
+          model: cfModel || model || '@cf/black-forest-labs/flux-1-schnell',
         });
       } catch (err) {
         console.warn('[D-Ai Image] Cloudflare attempt failed:', err.message);
@@ -279,12 +293,13 @@ export default async function handler(req) {
       }
     }
 
-    // 2. If Hugging Face is requested or available, try Hugging Face
+    // 2. Try Hugging Face if configured or requested
     if (!imageResult && !image && (provider === 'huggingface' || (hasHuggingFace && provider !== 'cloudflare' && provider !== 'pollinations'))) {
       try {
         imageResult = await generateWithHuggingFace({
           prompt: finalPrompt,
-          model: model || 'runwayml/stable-diffusion-v1-5',
+          token,
+          model: hfModel || model || 'runwayml/stable-diffusion-v1-5',
           seed: finalSeed,
         });
       } catch (err) {
@@ -293,7 +308,7 @@ export default async function handler(req) {
       }
     }
 
-    // 3. Fallback to Free High-Definition Engine (Pollinations FLUX / Turbo)
+    // 3. Fallback to Free Engine (Zero-Key, zero-balance required)
     if (!imageResult) {
       try {
         imageResult = await generateWithPollinations({
@@ -305,21 +320,21 @@ export default async function handler(req) {
           image,
         });
       } catch (err) {
-        console.error('[D-Ai Image] Pollinations attempt failed:', err.message);
-        attempts.push({ provider: 'pollinations', error: err.message });
+        console.error('[D-Ai Image] Free engine attempt failed:', err.message);
+        attempts.push({ provider: 'free-fallback', error: err.message });
       }
     }
 
     if (!imageResult || !imageResult.bytes) {
       const allErrors = attempts.map(a => `${a.provider}: ${a.error}`).join(' | ');
-      return jsonResponse({ error: `Image generation failed across all providers: ${allErrors}` }, 500);
+      return jsonResponse({ error: `Image generation failed: ${allErrors}` }, 500);
     }
 
-    console.log(`[D-Ai Image] Successfully generated via ${imageResult.provider}! Size: ${imageResult.bytes.length} bytes`);
+    console.log(`[D-Ai Image] Generated successfully via ${imageResult.provider}! Size: ${imageResult.bytes.length} bytes`);
     return imageResponse(imageResult.bytes, imageResult.mimeType);
 
   } catch (error) {
-    console.error('[D-Ai Image] Top-level handler error:', error);
+    console.error('[D-Ai Image Critical Error]', error);
     return jsonResponse({ error: error.message || 'Internal Server Error' }, 500);
   }
 }

@@ -1438,6 +1438,43 @@
                 </div>
             </div>
 
+            <!-- Image Generation API Keys Settings -->
+            <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2.5">
+                <div class="text-[10px] font-bold text-gray-400 tracking-wide uppercase flex items-center justify-between">
+                    <span>Image Generator APIs</span>
+                    <span class="text-[9px] text-emerald-400">Multi-Engine Active</span>
+                </div>
+                
+                <div class="space-y-1">
+                    <label class="text-[10px] text-gray-400">Cloudflare Account ID</label>
+                    <input id="dai-cf-account" type="text" placeholder="e.g. 41e7b0f4..." class="w-full px-2 py-1 rounded bg-black/50 border border-white/10 text-[11px] font-mono text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] text-gray-400">Cloudflare API Token</label>
+                    <input id="dai-cf-token" type="password" placeholder="Workers AI Token" class="w-full px-2 py-1 rounded bg-black/50 border border-white/10 text-[11px] font-mono text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] text-gray-400">Hugging Face Token</label>
+                    <input id="dai-hf-token" type="password" placeholder="hf_..." class="w-full px-2 py-1 rounded bg-black/50 border border-white/10 text-[11px] font-mono text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] text-gray-400">Primary Provider</label>
+                    <select id="dai-img-provider" class="w-full px-2 py-1 rounded bg-black/50 border border-white/10 text-[11px] text-white focus:outline-none focus:border-indigo-500">
+                        <option value="auto">Auto-Cascade (Recommended)</option>
+                        <option value="cloudflare">Cloudflare Workers AI (FLUX / SDXL)</option>
+                        <option value="huggingface">Hugging Face API</option>
+                        <option value="pollinations">Free High-Definition Engine</option>
+                    </select>
+                </div>
+
+                <button id="dai-save-img-keys" type="button" class="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold transition-all">
+                    Save Image API Settings
+                </button>
+            </div>
+
             <!-- Raw Log / Error Trace -->
             <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-1.5">
                 <div class="text-[10px] font-bold text-gray-400 tracking-wide uppercase">Telemetry & Diagnostics</div>
@@ -1521,9 +1558,45 @@
             }
         };
 
+        window.loadImageApiSettings = () => {
+            try {
+                const s = JSON.parse(localStorage.getItem('dai_image_settings') || localStorage.getItem('ai_img_gen_settings') || '{}');
+                const cfAcc = document.getElementById('dai-cf-account');
+                const cfTok = document.getElementById('dai-cf-token');
+                const hfTok = document.getElementById('dai-hf-token');
+                const prov = document.getElementById('dai-img-provider');
+                if (cfAcc && s.cfAccountId) cfAcc.value = s.cfAccountId;
+                if (cfTok && s.cfApiToken) cfTok.value = s.cfApiToken;
+                if (hfTok && s.hfToken) hfTok.value = s.hfToken;
+                if (prov && s.provider) prov.value = s.provider;
+            } catch (e) {}
+        };
+
+        window.saveImageApiSettings = () => {
+            const cfAcc = document.getElementById('dai-cf-account')?.value?.trim() || '';
+            const cfTok = document.getElementById('dai-cf-token')?.value?.trim() || '';
+            const hfTok = document.getElementById('dai-hf-token')?.value?.trim() || '';
+            const prov = document.getElementById('dai-img-provider')?.value || 'auto';
+
+            const settings = {
+                cfAccountId: cfAcc,
+                cfApiToken: cfTok,
+                hfToken: hfTok,
+                provider: prov,
+            };
+
+            try {
+                localStorage.setItem('dai_image_settings', JSON.stringify(settings));
+                localStorage.setItem('ai_img_gen_settings', JSON.stringify(settings));
+            } catch (e) {}
+
+            window.showToast?.('💾 Image API Settings Saved!', 'fa-solid fa-check text-emerald-400');
+        };
+
         window.updateDevUIState = () => {
             const btn = document.getElementById('dev-inspector-btn');
             const input = document.getElementById('in');
+            window.loadImageApiSettings?.();
             if (window.devUnlocked) {
                 if (btn) {
                     btn.classList.remove('hidden');
@@ -2342,10 +2415,25 @@ ${safeJs}
             }
 
             try {
-                const body = { prompt, width, height, seed, model: sourceImage ? 'p-image-edit' : 'flux' };
+                let savedSettings = {};
+                try {
+                    savedSettings = JSON.parse(localStorage.getItem('dai_image_settings') || localStorage.getItem('ai_img_gen_settings') || '{}');
+                } catch (e) {}
+
+                const body = { 
+                    prompt, 
+                    width, 
+                    height, 
+                    seed, 
+                    model: sourceImage ? 'p-image-edit' : (savedSettings.provider === 'cloudflare' ? (savedSettings.cfModel || '@cf/black-forest-labs/flux-1-schnell') : 'flux'),
+                    provider: savedSettings.provider || 'auto',
+                    cfAccountId: savedSettings.cfAccountId || '',
+                    cfApiToken: savedSettings.cfApiToken || '',
+                    hfToken: savedSettings.hfToken || '',
+                };
                 if (sourceImage) body.image = sourceImage;
 
-                console.log('[fetchServerImage] Sending to /api/image:', body);
+                console.log('[fetchServerImage] Sending to /api/image:', { prompt, width, height, provider: body.provider });
 
                 let res;
                 let lastImageError;
@@ -2356,12 +2444,12 @@ ${safeJs}
                         body: JSON.stringify(body)
                     });
 
-                    console.log('[fetchServerImage] Response status:', res.status, res.statusText, 'attempt', attempt);
-                    console.log('[fetchServerImage] Response headers:', Object.fromEntries(res.headers.entries()));
-
                     if (res.ok) break;
                     let detail = res.statusText;
-                    try { const j = await res.json(); if(j.error) detail = j.error; } catch(e){}
+                    try { 
+                        const j = await res.json(); 
+                        if (j.error) detail = typeof j.error === 'object' ? (j.error.message || JSON.stringify(j.error)) : j.error; 
+                    } catch(e){}
                     console.error('[fetchServerImage] API Error:', { status: res.status, detail, attempt });
                     if (detail.includes("400") || detail.includes("Bad Request") || detail.includes("unsafe")) {
                         lastImageError = new Error("Generation Failed: Prompt flagged as unsafe or invalid request.");
@@ -2369,7 +2457,7 @@ ${safeJs}
                     }
                     lastImageError = detail.includes("429") || detail.includes("Resource exhausted")
                         ? new Error("High Traffic: Image API is overloaded. Please wait a moment.")
-                        : new Error(`Server Error (${res.status}): ${detail}`);
+                        : new Error(`Image Generation Error (${res.status}): ${detail}`);
                     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 900));
                 }
 
