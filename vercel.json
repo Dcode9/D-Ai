@@ -12,16 +12,13 @@
         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
       ]
-    }
-  ],
-  "redirects": [
+    },
     {
-      "source": "/:path*",
-      "has": [
-        { "type": "host", "value": "ai.dverse.fun" }
-      ],
-      "destination": "https://ai.d-verse.in/:path*",
-      "permanent": true
+      "source": "/styles/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Content-Type", "value": "text/css" }
+      ]
     }
   ]
 }

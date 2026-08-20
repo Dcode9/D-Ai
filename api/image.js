@@ -3,307 +3,323 @@ export const config = {
 };
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*'
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-function jsonResponse(payload, status) {
+function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...CORS_HEADERS
-    }
+      ...CORS_HEADERS,
+    },
   });
 }
 
-function imageResponse(stream, contentType) {
-  return new Response(stream, {
+function imageResponse(bytes, contentType = 'image/jpeg') {
+  return new Response(bytes, {
     headers: {
-      'Content-Type': contentType || 'image/jpeg',
+      'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000, immutable',
-      ...CORS_HEADERS
-    }
+      ...CORS_HEADERS,
+    },
   });
 }
 
-function toPositiveInt(value, fallback) {
+function toPositiveInt(value, fallback = 1024) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return Math.floor(parsed);
 }
 
-function toSeed(value, fallback) {
+function toSeed(value, fallback = 0) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
+  if (!Number.isFinite(parsed)) return fallback;
   return Math.trunc(parsed);
 }
 
-function decodeBase64Image(rawValue) {
-  if (typeof rawValue !== 'string' || !rawValue.trim()) {
-    return null;
+function base64ToUint8Array(base64) {
+  const cleanBase64 = base64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '').replace(/\s+/g, '');
+  const binary = atob(cleanBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
-
-  const trimmed = rawValue.trim();
-  let mimeType = 'image/png';
-  let base64Payload = trimmed;
-
-  const dataUrlMatch = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-  if (dataUrlMatch) {
-    mimeType = dataUrlMatch[1];
-    base64Payload = dataUrlMatch[2];
-  }
-
-  try {
-    const binary = atob(base64Payload.replace(/\s+/g, ''));
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return { bytes, mimeType };
-  } catch (e) {
-    return null;
-  }
+  return bytes;
 }
 
-function extractImageData(payload) {
-  const firstDataItem = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
+// ----------------------------------------------------
+// Provider 1: Cloudflare Workers AI
+// ----------------------------------------------------
+async function generateWithCloudflare({ prompt, model = '@cf/black-forest-labs/flux-1-schnell', num_steps = 4 }) {
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+  const apiToken = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
 
-  const urlCandidates = [
-    payload?.url,
-    payload?.image,
-    payload?.result?.url,
-    payload?.output?.url,
-    payload?.output?.[0]?.url,
-    payload?.images?.[0]?.url,
-    firstDataItem?.url,
-    firstDataItem?.image,
+  if (!accountId || !apiToken) {
+    throw new Error('Cloudflare credentials not configured');
+  }
+
+  const cleanModel = model.startsWith('@cf/') ? model.trim() : `@cf/${model.trim()}`;
+  
+  // Strict schema: FLUX on Cloudflare accepts ONLY prompt
+  let payload = { prompt: prompt.trim() };
+  if (cleanModel.includes('stable-diffusion-xl-base-1.0')) {
+    payload.num_steps = Math.min(Math.max(Number(num_steps) || 20, 1), 50);
+  }
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${cleanModel}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Cloudflare error (${res.status}): ${errText.slice(0, 150)}`);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const json = await res.json();
+    const base64 = json.result?.image || (typeof json.result === 'string' ? json.result : null) || json.image;
+    if (!base64) throw new Error('Cloudflare response missing image data');
+    return { bytes: base64ToUint8Array(base64), mimeType: 'image/png', provider: 'cloudflare' };
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const mimeType = contentType.split(';')[0].trim() || 'image/png';
+  return { bytes, mimeType, provider: 'cloudflare' };
+}
+
+// ----------------------------------------------------
+// Provider 2: Hugging Face Serverless API
+// ----------------------------------------------------
+async function generateWithHuggingFace({ prompt, model = 'runwayml/stable-diffusion-v1-5', seed }) {
+  const token = (process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || '').trim();
+  if (!token) {
+    throw new Error('Hugging Face token not configured');
+  }
+
+  const cleanModel = model.trim();
+  const endpoints = [
+    `https://router.huggingface.co/models/${cleanModel}`,
+    `https://router.huggingface.co/hf-inference/models/${cleanModel}`,
   ];
 
-  const imageUrl = urlCandidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value));
+  let lastError = null;
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'image/png, image/jpeg, image/*',
+        },
+        body: JSON.stringify({
+          inputs: prompt.trim(),
+          parameters: { seed: seed || Math.floor(Math.random() * 2147483647) }
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
 
-  const base64Candidates = [
-    firstDataItem?.b64_json,
-    payload?.b64_json,
-    payload?.image_base64,
-    payload?.result?.b64_json,
-    payload?.output?.[0]?.b64_json,
-  ];
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await res.arrayBuffer();
+        return { bytes: new Uint8Array(arrayBuffer), mimeType: contentType, provider: 'huggingface' };
+      }
 
-  let decodedBase64 = null;
-  for (const candidate of base64Candidates) {
-    decodedBase64 = decodeBase64Image(candidate);
-    if (decodedBase64) {
-      break;
+      const errText = await res.text().catch(() => '');
+      lastError = new Error(`HF error (${res.status}): ${errText.slice(0, 150)}`);
+    } catch (e) {
+      lastError = e;
     }
   }
 
-  return {
-    imageUrl,
-    decodedBase64,
-    debug: {
-      topLevelKeys: payload && typeof payload === 'object' ? Object.keys(payload).slice(0, 20) : [],
-      firstDataKeys: firstDataItem && typeof firstDataItem === 'object' ? Object.keys(firstDataItem).slice(0, 20) : []
+  throw lastError || new Error('Hugging Face generation failed');
+}
+
+// ----------------------------------------------------
+// Provider 3: Free Fallback Engine (Pollinations FLUX / Turbo)
+// ----------------------------------------------------
+async function generateWithPollinations({ prompt, width, height, seed, model = 'flux', image }) {
+  const apiKey = (process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API || '').trim();
+
+  // If image editing is requested (image-to-image)
+  if (image) {
+    const editUrl = 'https://gen.pollinations.ai/v1/images/edits';
+    const requestBody = {
+      prompt,
+      model: model || 'kontext',
+      image: Array.isArray(image) ? image : [image],
+      size: `${width}x${height}`,
+      n: 1,
+      response_format: 'b64_json',
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const res = await fetch(editUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(60000),
+    });
+
+    if (res.ok) {
+      const payload = await res.json();
+      const b64 = payload.data?.[0]?.b64_json || payload.b64_json;
+      if (b64) {
+        return { bytes: base64ToUint8Array(b64), mimeType: 'image/png', provider: 'pollinations' };
+      }
+      const imgUrl = payload.data?.[0]?.url || payload.url;
+      if (imgUrl) {
+        const imgRes = await fetch(imgUrl);
+        const arrayBuffer = await imgRes.arrayBuffer();
+        return { bytes: new Uint8Array(arrayBuffer), mimeType: imgRes.headers.get('content-type') || 'image/jpeg', provider: 'pollinations' };
+      }
     }
-  };
+  }
+
+  // Standard text-to-image generation
+  const modelsToTry = [model || 'flux', 'turbo'];
+  let lastErr = null;
+
+  for (const m of modelsToTry) {
+    try {
+      const params = new URLSearchParams();
+      params.append('width', String(width));
+      params.append('height', String(height));
+      params.append('seed', String(seed));
+      params.append('model', m);
+      params.append('nologo', 'true');
+
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+      
+      const headers = {
+        'Accept': 'image/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) D-Ai/2.0',
+      };
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+      const res = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(60000),
+      });
+
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await res.arrayBuffer();
+        return { bytes: new Uint8Array(arrayBuffer), mimeType: contentType, provider: 'pollinations' };
+      } else {
+        const errText = await res.text().catch(() => '');
+        lastErr = new Error(`Pollinations API error (${res.status}): ${errText.slice(0, 150)}`);
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  throw lastErr || new Error('Pollinations image generation failed');
 }
 
-function selectModel({ hasImage, requestedModel } = {}) {
-  if (hasImage) return requestedModel || 'kontext';
-  return requestedModel || 'flux';
-}
-
+// ----------------------------------------------------
+// Main Handler: Auto-Cascade Image Generator
+// ----------------------------------------------------
 export default async function handler(req) {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: CORS_HEADERS });
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+    return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
   }
 
   try {
-    const { prompt, width, height, seed, image, model } = await req.json();
+    const body = await req.json();
+    const { prompt, width, height, seed, image, model, provider } = body;
 
     const finalWidth = toPositiveInt(width, 1024);
     const finalHeight = toPositiveInt(height, 1024);
-    const finalSeed = toSeed(seed, 0);
+    const finalSeed = toSeed(seed, Math.floor(Math.random() * 2147483647));
+    const finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'masterpiece digital art';
 
-    console.log('[API /api/image] Received request:', {
-      prompt,
-      width: finalWidth,
-      height: finalHeight,
-      seed: finalSeed,
-      model: model || (image ? 'kontext' : 'flux'),
-      hasImage: !!image,
-      imageUrl: image
-    });
+    console.log(`[D-Ai Image] Generating: "${finalPrompt.slice(0, 60)}..." (${finalWidth}x${finalHeight})`);
 
-    const apiKey = process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API;
+    const hasCloudflare = Boolean(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN);
+    const hasHuggingFace = Boolean(process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY);
 
-    if (!apiKey) {
-      return jsonResponse({ error: 'Configuration Error: POLLINATIONS_API key is missing.' }, 401);
-    }
+    // Build execution sequence
+    const attempts = [];
+    let imageResult = null;
 
-    const finalPrompt = prompt && prompt.trim() ? prompt : 'abstract art';
-    const finalModel = selectModel({ hasImage: !!image, requestedModel: model });
-
-    let url, fetchOptions;
-
-    // Use different endpoints based on whether we're editing an image or generating new
-    if (image) {
-      // IMAGE EDITING: Use OpenAI-compatible /v1/images/edits endpoint
-      url = 'https://gen.pollinations.ai/v1/images/edits';
-
-      const requestBody = {
-        prompt: finalPrompt,
-        model: finalModel,
-        image: Array.isArray(image) ? image : [image],
-        size: `${finalWidth}x${finalHeight}`,
-        n: 1,
-        response_format: 'b64_json'
-      };
-
-      console.log('[API /api/image] Using /v1/images/edits endpoint with body:', requestBody);
-
-      fetchOptions = {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      };
-    } else {
-      // IMAGE GENERATION: Use simple /image/{prompt} endpoint
-      const baseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
-
-      const params = new URLSearchParams();
-      params.append('width', finalWidth);
-      params.append('height', finalHeight);
-      params.append('seed', finalSeed);
-      params.append('model', finalModel);
-      params.append('nologo', 'true');
-      params.append('safe', 'false');
-
-      url = `${baseUrl}?${params.toString()}`;
-
-      console.log('[API /api/image] Using /image endpoint:', url);
-
-      fetchOptions = {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'image/*'
-        }
-      };
-    }
-
-    // Fetch from Pollinations
-    const imageRes = await fetch(url, fetchOptions);
-
-    if (!imageRes.ok) {
-      let errorMessage = imageRes.statusText;
+    // 1. If Cloudflare is requested or available (and not an image edit), try Cloudflare
+    if (!image && (provider === 'cloudflare' || (hasCloudflare && provider !== 'huggingface' && provider !== 'pollinations'))) {
       try {
-        const text = await imageRes.text();
-        if (text.trim().startsWith('{')) {
-            const json = JSON.parse(text);
-            errorMessage = JSON.stringify(json);
-        } else {
-            errorMessage = `Request blocked (${imageRes.status}). content filter or invalid param.`;
-        }
-      } catch (e) { }
-
-      return jsonResponse({ error: `Pollinations API Error (${imageRes.status}): ${errorMessage}` }, imageRes.status);
-    }
-
-    const responseType = imageRes.headers.get('Content-Type') || '';
-
-    if (responseType.startsWith('image/')) {
-      return imageResponse(imageRes.body, responseType);
-    }
-
-    if (responseType.includes('application/json')) {
-      const payload = await imageRes.json();
-
-      if (payload?.success === false && payload?.error) {
-        const errorMessage = typeof payload.error === 'string'
-          ? payload.error
-          : payload.error.message || JSON.stringify(payload.error);
-        return jsonResponse({ error: `Pollinations API JSON Error: ${errorMessage}` }, 502);
-      }
-
-      const extracted = extractImageData(payload);
-
-      if (extracted.imageUrl) {
-        const resolvedImageRes = await fetch(extracted.imageUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'image/*'
-          }
+        imageResult = await generateWithCloudflare({
+          prompt: finalPrompt,
+          model: model?.startsWith('@cf/') ? model : '@cf/black-forest-labs/flux-1-schnell',
         });
-
-        if (resolvedImageRes.ok) {
-          return imageResponse(resolvedImageRes.body, resolvedImageRes.headers.get('Content-Type') || 'image/jpeg');
-        }
-
-        return jsonResponse({ error: `Failed to resolve generated image URL (${resolvedImageRes.status}).` }, resolvedImageRes.status);
+      } catch (err) {
+        console.warn('[D-Ai Image] Cloudflare attempt failed:', err.message);
+        attempts.push({ provider: 'cloudflare', error: err.message });
       }
-
-      if (extracted.decodedBase64) {
-        return imageResponse(extracted.decodedBase64.bytes, extracted.decodedBase64.mimeType);
-      }
-
-      // Fallback path for edit requests: use /image endpoint with reference image parameter.
-      if (image) {
-        const fallbackBaseUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(finalPrompt)}`;
-        const fallbackParams = new URLSearchParams();
-        fallbackParams.append('width', finalWidth);
-        fallbackParams.append('height', finalHeight);
-        fallbackParams.append('seed', finalSeed);
-        fallbackParams.append('model', finalModel);
-        fallbackParams.append('nologo', 'true');
-        fallbackParams.append('safe', 'false');
-        fallbackParams.append('image', image);
-
-        const fallbackUrl = `${fallbackBaseUrl}?${fallbackParams.toString()}`;
-        const fallbackRes = await fetch(fallbackUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'image/*'
-          }
-        });
-
-        if (fallbackRes.ok) {
-          return imageResponse(fallbackRes.body, fallbackRes.headers.get('Content-Type') || 'image/jpeg');
-        }
-
-        let fallbackDetail = fallbackRes.statusText;
-        try {
-          const fallbackText = await fallbackRes.text();
-          if (fallbackText.trim().startsWith('{')) {
-            fallbackDetail = JSON.stringify(JSON.parse(fallbackText));
-          }
-        } catch (e) { }
-
-        return jsonResponse({
-          error: `Image edit fallback failed (${fallbackRes.status}): ${fallbackDetail}`,
-          debug: extracted.debug
-        }, 502);
-      }
-
-      return jsonResponse({
-        error: 'Pollinations API returned JSON without image URL or b64 data.',
-        debug: extracted.debug
-      }, 502);
     }
 
-    // If content type is missing or unknown, pass through as image to keep compatibility.
-    return imageResponse(imageRes.body, imageRes.headers.get('Content-Type') || 'image/jpeg');
+    // 2. If Hugging Face is requested or available, try Hugging Face
+    if (!imageResult && !image && (provider === 'huggingface' || (hasHuggingFace && provider !== 'cloudflare' && provider !== 'pollinations'))) {
+      try {
+        imageResult = await generateWithHuggingFace({
+          prompt: finalPrompt,
+          model: model || 'runwayml/stable-diffusion-v1-5',
+          seed: finalSeed,
+        });
+      } catch (err) {
+        console.warn('[D-Ai Image] Hugging Face attempt failed:', err.message);
+        attempts.push({ provider: 'huggingface', error: err.message });
+      }
+    }
+
+    // 3. Fallback to Free High-Definition Engine (Pollinations FLUX / Turbo)
+    if (!imageResult) {
+      try {
+        imageResult = await generateWithPollinations({
+          prompt: finalPrompt,
+          width: finalWidth,
+          height: finalHeight,
+          seed: finalSeed,
+          model: model || (image ? 'kontext' : 'flux'),
+          image,
+        });
+      } catch (err) {
+        console.error('[D-Ai Image] Pollinations attempt failed:', err.message);
+        attempts.push({ provider: 'pollinations', error: err.message });
+      }
+    }
+
+    if (!imageResult || !imageResult.bytes) {
+      const allErrors = attempts.map(a => `${a.provider}: ${a.error}`).join(' | ');
+      return jsonResponse({ error: `Image generation failed across all providers: ${allErrors}` }, 500);
+    }
+
+    console.log(`[D-Ai Image] Successfully generated via ${imageResult.provider}! Size: ${imageResult.bytes.length} bytes`);
+    return imageResponse(imageResult.bytes, imageResult.mimeType);
 
   } catch (error) {
-    return jsonResponse({ error: error.message }, 500);
+    console.error('[D-Ai Image] Top-level handler error:', error);
+    return jsonResponse({ error: error.message || 'Internal Server Error' }, 500);
   }
 }

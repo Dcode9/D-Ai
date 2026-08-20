@@ -5,10 +5,8 @@ import { fileURLToPath } from 'url';
 import chatHandler from './api/chat.js';
 import imageHandler from './api/image.js';
 import interfaceHandler from './api/interface.js';
-import musicHandler from './api/music.js';
 import searchHandler from './api/search.js';
 import uploadHandler from './api/upload.js';
-import videoHandler from './api/video.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,9 +91,7 @@ app.all('/api/upload', uploadHandler);
 
 app.all('/api/image', adaptWebHandler(imageHandler));
 app.all('/api/interface', adaptWebHandler(interfaceHandler));
-app.all('/api/music', adaptWebHandler(musicHandler));
 app.all('/api/search', adaptWebHandler(searchHandler));
-app.all('/api/video', adaptWebHandler(videoHandler));
 
 // Serve static files
 app.use(express.static(__dirname));

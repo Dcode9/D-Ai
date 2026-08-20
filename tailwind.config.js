@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ['./index.html'],
+export default {
+  content: ['./index.html', './scripts/**/*.js'],
   darkMode: 'class',
   theme: {
     extend: {
@@ -13,8 +13,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['Inter'],
-        mono: ['JetBrains Mono']
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace']
       }
     }
   },
