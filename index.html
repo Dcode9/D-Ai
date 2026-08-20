@@ -1422,7 +1422,7 @@
             <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
                 <div class="flex justify-between items-center text-[11px]">
                     <span class="text-gray-400">Active Model</span>
-                    <span id="dev-metric-model" class="font-mono text-white font-semibold">gemma-4-31b</span>
+                    <span id="dev-metric-model" class="font-mono text-white font-semibold">llama-3.3-70b</span>
                 </div>
                 <div class="flex justify-between items-center text-[11px]">
                     <span class="text-gray-400">API Provider</span>
@@ -1501,9 +1501,9 @@
                 if (incBtn) {
                     incBtn.className = 'py-1.5 px-2 rounded-md text-[11px] font-semibold transition-all text-gray-400 hover:text-white border border-transparent cursor-pointer';
                 }
-                if (modEl) modEl.textContent = 'gemma-4-31b';
+                if (modEl) modEl.textContent = 'llama-3.3-70b';
                 if (prvEl) prvEl.textContent = 'Cerebras';
-                window.showToast?.('⚡ Switched to Cerebras (Gemma)', 'fa-solid fa-bolt text-sky-400');
+                window.showToast?.('⚡ Switched to Cerebras (Llama 3.3)', 'fa-solid fa-bolt text-sky-400');
             }
         };
 
@@ -1549,7 +1549,7 @@
             window.setDevProvider(window.activeDevProvider);
         });
 
-        window.updateDevTelemetry = ({ latency = 0, ttft = 0, tokens = 0, tps = 0, model = 'gemma-4-31b', provider = 'Cerebras', context = 0, searches = 0, raw = '' }) => {
+        window.updateDevTelemetry = ({ latency = 0, ttft = 0, tokens = 0, tps = 0, model = 'llama-3.3-70b', provider = 'Cerebras', context = 0, searches = 0, raw = '' }) => {
             const latEl = document.getElementById('dev-metric-latency');
             const tpsEl = document.getElementById('dev-metric-tps');
             const tokEl = document.getElementById('dev-metric-tokens');
@@ -2263,7 +2263,7 @@ ${safeJs}
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'gemma-4-31b',
+                        model: 'llama-3.3-70b',
                         stream: false,
                         max_completion_tokens: 500,
                         temperature: 0.7,
@@ -3324,7 +3324,7 @@ ${safeJs}
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: 'gemma-4-31b',
+                            model: 'llama-3.3-70b',
                             stream: false,
                             max_completion_tokens: 900,
                             temperature: 0.45,
@@ -4051,7 +4051,7 @@ ${safeJs}
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: 'gemma-4-31b',
+                            model: 'llama-3.3-70b',
                             stream: false,
                             max_completion_tokens: 24,
                             temperature: 0.2,
@@ -4656,7 +4656,7 @@ ${safeJs}
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'gemma-4-31b',
+                        model: 'llama-3.3-70b',
                         stream: false,
                         max_completion_tokens: 8192,
                         temperature: 0.35,
@@ -4986,7 +4986,7 @@ ${safeJs}
                                                 ttft,
                                                 tokens: tokenCount,
                                                 tps: currentTps,
-                                                model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'gemma-4-31b',
+                                                model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'llama-3.3-70b',
                                                 provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : 'Cerebras',
                                                 context: JSON.stringify(messagesToSend).length,
                                                 searches: searchCount,
@@ -5042,7 +5042,7 @@ ${safeJs}
                         ttft,
                         tokens: tokenCount,
                         tps: totalTps,
-                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'gemma-4-31b',
+                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'llama-3.3-70b',
                         provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : 'Cerebras',
                         context: JSON.stringify(messagesToSend).length,
                         searches: searchCount,

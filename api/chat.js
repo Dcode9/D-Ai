@@ -1,6 +1,6 @@
 // Standard Node.js Serverless Function (Bypasses Edge WAF rules)
 const UPLOADED_IMAGE_RE = /\[UPLOADED_IMAGE:\s*([^\]]+)\]/gi;
-const UPLOADED_IMAGE_ASPECT_RE = /\[UPLOADED_IMAGE_ASPECT_RATIO:\s*([^\]]+)\]/gi;
+const UPLOADED_IMAGE_ASPECT_RATIO_RE = /\[UPLOADED_IMAGE_ASPECT_RATIO:\s*([^\]]+)\]/gi;
 
 function getTextContent(content) {
   if (typeof content === 'string') return content;
@@ -20,7 +20,7 @@ function getTextContent(content) {
 function stripUploadedImageMarkers(text) {
   return String(text || '')
     .replace(UPLOADED_IMAGE_RE, '[image attached]')
-    .replace(UPLOADED_IMAGE_ASPECT_RE, '[image aspect ratio attached]')
+    .replace(UPLOADED_IMAGE_ASPECT_RATIO_RE, '[image aspect ratio attached]')
     .trim();
 }
 
@@ -48,7 +48,7 @@ Key Guidelines:
    - Also highlight the peaceful unification of 565 princely states led by Sardar Vallabhbhai Patel and the constitutional framework under Dr. B.R. Ambedkar.
 6. If the user explicitly asks to generate images or interactive widgets, use clean directives:
    - Image: <<GENERATE_IMAGE: prompt | aspect_ratio | filename_slug>>
-   - Interactive UI: ```dai-ui chart``` or ```dai-ui demo``` or ```dai-ui pythagoras```
+   - Interactive UI: \`\`\`dai-ui chart\`\`\` or \`\`\`dai-ui demo\`\`\` or \`\`\`dai-ui pythagoras\`\`\`
 7. If the user explicitly shares personal facts, you may optionally append:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
 8. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
@@ -64,13 +64,24 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
 
   let endpoint = '';
   let candidateModels = [];
+  let headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) D-Ai/2.0',
+  };
 
   if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
     candidateModels = ['mercury-2', 'mercury-2-coder', 'mercury'];
-  } else {
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'cerebras') {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
-    candidateModels = ['gemma-4-31b', 'gemma-2-9b-it', 'gemma-2-27b-it', 'gemma-3-27b-it', 'llama3.1-8b'];
+    candidateModels = ['llama-3.3-70b', 'llama3.1-8b', 'llama3.1-70b', 'llama-3.2-3b'];
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'cloudflare') {
+    const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
+    endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/ai/v1/chat/completions`;
+    candidateModels = ['@cf/meta/llama-3.3-70b-instruct', '@cf/meta/llama-3.1-8b-instruct'];
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
   let lastRes = null;
@@ -78,36 +89,34 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
 
   for (const model of candidateModels) {
     lastModelUsed = model;
-    const payload = {
-      model,
-      messages: [
-        { role: 'system', content: fullSystemPrompt },
-        ...otherMessages.map(normalizeMessageForProvider)
-      ],
-      stream: incomingBody.stream !== false,
-      max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
-      temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
-    };
+    try {
+      const payload = {
+        model,
+        messages: [
+          { role: 'system', content: fullSystemPrompt },
+          ...otherMessages.map(normalizeMessageForProvider)
+        ],
+        stream: incomingBody.stream !== false,
+        max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
+        temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
+      };
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(45000)
+      });
 
-    if (response.ok) {
-      return { response, provider, model };
-    }
+      if (response.ok) {
+        return { response, provider, model };
+      }
 
-    if (response.status === 404) {
-      console.warn(`[D-Ai API] Model ${model} returned 404 on ${provider}. Trying fallback candidate...`);
+      const errText = await response.text().catch(() => '');
+      console.warn(`[D-Ai API] ${provider} (${model}) returned HTTP ${response.status}: ${errText.slice(0, 150)}. Trying next model...`);
       lastRes = response;
-      continue;
-    } else {
-      return { response, provider, model };
+    } catch (modelErr) {
+      console.warn(`[D-Ai API] ${provider} (${model}) network error:`, modelErr.message);
     }
   }
 
@@ -123,34 +132,49 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const inceptionKey = process.env.INCEPTION_API;
-  const cerebrasKey = process.env.CEREBRAS_API_KEY;
+  const inceptionKey = (process.env.INCEPTION_API || '').trim();
+  const cerebrasKey = (process.env.CEREBRAS_API_KEY || '').trim();
+  const cfKey = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
+  const cfAccount = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 
   if (req.method === 'GET') {
     return res.status(200).json({ 
       status: 'Online', 
       has_inception: !!inceptionKey,
       has_cerebras: !!cerebrasKey,
-      primary_provider: inceptionKey ? 'Inception (Mercury-2)' : (cerebrasKey ? 'Cerebras (Gemma)' : 'None')
+      has_cloudflare: !!(cfKey && cfAccount),
+      primary_provider: inceptionKey ? 'Inception (Mercury-2)' : (cerebrasKey ? 'Cerebras (Llama 3.3)' : 'Cerebras')
     });
   }
 
   if (req.method === 'POST') {
     try {
-      if (!inceptionKey && !cerebrasKey) {
-        return res.status(500).json({ error: 'Missing API keys. Configure INCEPTION_API or CEREBRAS_API_KEY in environment variables.' });
+      const requestedProvider = req.body?.provider;
+
+      // Assemble tiered provider cascade
+      const providersToTry = [];
+
+      if (requestedProvider === 'inception' && inceptionKey) {
+        providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
+      } else if (requestedProvider === 'cerebras' && cerebrasKey) {
+        providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
       }
 
-      // Sequence: Order providers according to requested preference (or default)
-      const requestedProvider = req.body?.provider === 'inception' ? 'inception' : (req.body?.provider === 'cerebras' ? 'cerebras' : (inceptionKey ? 'inception' : 'cerebras'));
+      // Add all available authenticated providers in sequence
+      if (cerebrasKey && !providersToTry.some(p => p.provider === 'cerebras')) {
+        providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
+      }
+      if (inceptionKey && !providersToTry.some(p => p.provider === 'inception')) {
+        providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
+      }
+      if (cfKey && cfAccount) {
+        providersToTry.push({ provider: 'cloudflare', apiKey: cfKey });
+      }
 
-      const providersToTry = [];
-      if (requestedProvider === 'inception') {
-        if (inceptionKey) providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
-        if (cerebrasKey) providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
-      } else {
-        if (cerebrasKey) providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey });
-        if (inceptionKey) providersToTry.push({ provider: 'inception', apiKey: inceptionKey });
+      if (providersToTry.length === 0) {
+        return res.status(500).json({ 
+          error: 'Configuration Error: Missing CEREBRAS_API_KEY or INCEPTION_API in environment variables.' 
+        });
       }
 
       let activeResponse = null;
@@ -167,22 +191,28 @@ export default async function handler(req, res) {
 
           if (result.response && result.response.ok) {
             activeResponse = result.response;
-            console.log(`[D-Ai API] Provider ${p.provider} OK (200) using ${result.model}`);
+            console.log(`[D-Ai API] Provider ${p.provider} SUCCESS (200) using ${result.model}`);
             break;
           } else if (result.response) {
-            const errBody = await result.response.text();
-            lastError = `Provider ${p.provider} (${result.response.status}): ${errBody}`;
-            console.warn(`[D-Ai API] Provider ${p.provider} failed (${result.response.status}). Trying fallback...`);
+            const errBody = await result.response.text().catch(() => '');
+            lastError = `Provider ${p.provider} (${result.response.status}): ${errBody.slice(0, 150)}`;
+            console.warn(`[D-Ai API] Provider ${p.provider} failed:`, lastError);
           }
         } catch (callErr) {
           lastError = `Provider ${p.provider} exception: ${callErr.message}`;
-          console.warn(`[D-Ai API] Provider ${p.provider} network error:`, callErr);
+          console.warn(`[D-Ai API] Provider ${p.provider} exception:`, callErr.message);
         }
       }
 
       if (!activeResponse) {
         console.error('[D-Ai API Critical] All providers failed:', lastError);
         return res.status(502).json({ error: lastError || 'All AI model providers failed to respond.' });
+      }
+
+      // Handle non-streaming JSON response
+      if (req.body?.stream === false) {
+        const json = await activeResponse.json();
+        return res.status(200).json(json);
       }
 
       // Stream SSE chunks to client
