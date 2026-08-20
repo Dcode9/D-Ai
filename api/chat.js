@@ -26,10 +26,42 @@ function stripUploadedImageMarkers(text) {
 
 function normalizeMessageForProvider(message) {
   if (!message || typeof message !== 'object') return { role: 'user', content: '' };
-  const role = message.role === 'assistant' ? 'assistant' : (message.role === 'system' ? 'system' : 'user');
+  const role = ['assistant', 'system', 'tool'].includes(message.role) ? message.role : 'user';
+
+  const payload = { role };
+
+  if (role === 'assistant' && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+    payload.tool_calls = message.tool_calls;
+  }
+  if (role === 'tool' && message.tool_call_id) {
+    payload.tool_call_id = message.tool_call_id;
+  }
+
   const rawText = getTextContent(message.content);
+
+  // Extract images
+  const images = [];
+  let match;
+  UPLOADED_IMAGE_RE.lastIndex = 0;
+  while ((match = UPLOADED_IMAGE_RE.exec(rawText)) !== null) {
+    images.push(match[1]);
+  }
+
   const cleanText = stripUploadedImageMarkers(rawText);
-  return { role, content: cleanText };
+
+  if (images.length > 0) {
+    const contentArray = [
+      { type: 'text', text: cleanText }
+    ];
+    for (const url of images) {
+      contentArray.push({ type: 'image_url', image_url: { url } });
+    }
+    payload.content = contentArray;
+  } else {
+    payload.content = cleanText;
+  }
+
+  return payload;
 }
 
 function buildSystemPrompt(messages) {
@@ -72,7 +104,11 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
     candidateModels = ['mercury-2', 'mercury-2-coder', 'mercury'];
   } else {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
-    candidateModels = ['gemma-4-31b', 'gemma-2-9b-it', 'gemma-2-27b-it', 'gemma-3-27b-it', 'llama3.1-8b'];
+    if (incomingBody._cerebrasVisionModels && incomingBody._cerebrasVisionModels.length > 0) {
+      candidateModels = incomingBody._cerebrasVisionModels;
+    } else {
+      candidateModels = ['gemma-4-31b', 'gemma-2-9b-it', 'gemma-2-27b-it', 'gemma-3-27b-it', 'llama3.1-8b'];
+    }
   }
 
   let lastRes = null;
@@ -90,6 +126,24 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
       max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
       temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
     };
+
+    // Configure reasoning if running on Cerebras (we know from SDK that reasoning_effort is supported, and reasoning_format="parsed")
+    if (provider === 'cerebras') {
+      if (incomingBody.reasoning_effort) payload.reasoning_effort = incomingBody.reasoning_effort;
+      // Only apply parsed reasoning format to models that support reasoning to avoid 400 Bad Request
+      if (model.includes('gemma-4-31b') || model.includes('gpt-oss-120b') || model.includes('zai-glm-4.7')) {
+        payload.reasoning_format = 'parsed';
+      }
+    } else if (provider === 'inception') {
+      if (incomingBody.reasoning_effort) payload.reasoning_effort = incomingBody.reasoning_effort;
+    }
+
+    if (incomingBody.tools && Array.isArray(incomingBody.tools)) {
+      payload.tools = incomingBody.tools;
+      if (incomingBody.tool_choice) {
+        payload.tool_choice = incomingBody.tool_choice;
+      }
+    }
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -144,7 +198,25 @@ export default async function handler(req, res) {
       }
 
       // Sequence: Order providers according to requested preference (or default)
-      const requestedProvider = req.body?.provider === 'inception' ? 'inception' : (req.body?.provider === 'cerebras' ? 'cerebras' : (inceptionKey ? 'inception' : 'cerebras'));
+      // Detect if images are present
+      const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+      let hasImages = false;
+      for (const m of messages) {
+        const text = getTextContent(m.content);
+        UPLOADED_IMAGE_RE.lastIndex = 0;
+        if (UPLOADED_IMAGE_RE.test(text)) {
+          hasImages = true;
+          break;
+        }
+      }
+
+      // If an image is uploaded, force the provider to Cerebras
+      let requestedProvider = req.body?.provider;
+      if (hasImages && cerebrasKey) {
+        requestedProvider = 'cerebras';
+      } else if (!requestedProvider) {
+        requestedProvider = inceptionKey ? 'inception' : 'cerebras';
+      }
 
       const providersToTry = [];
       if (requestedProvider === 'inception') {
@@ -161,10 +233,33 @@ export default async function handler(req, res) {
       for (const p of providersToTry) {
         try {
           console.log(`[D-Ai API] Attempting provider: ${p.provider}...`);
+
+          let incomingBody = req.body || {};
+          if (p.provider === 'cerebras' && hasImages) {
+            // Dynamically discover vision models
+            try {
+              const modelsRes = await fetch('https://api.cerebras.ai/v1/models', {
+                headers: { 'Authorization': `Bearer ${p.apiKey}` }
+              });
+              if (modelsRes.ok) {
+                const modelsData = await modelsRes.json();
+                const visionModels = modelsData.data.filter(m => String(m.id).toLowerCase().includes('vision')).map(m => m.id);
+                if (visionModels.length > 0) {
+                  // Pass the discovered vision models via a custom property
+                  incomingBody = { ...incomingBody, _cerebrasVisionModels: visionModels };
+                }
+              }
+            } catch (e) {
+              console.warn('[D-Ai API] Failed to fetch Cerebras models list for vision fallback:', e);
+            }
+            // Pass a flag indicating vision is required so the provider can fall back properly if dynamic fetch fails
+            incomingBody._requiresVision = true;
+          }
+
           const result = await callProviderAPI({
             provider: p.provider,
             apiKey: p.apiKey,
-            incomingBody: req.body || {}
+            incomingBody
           });
 
           if (result.response && result.response.ok) {
@@ -195,11 +290,64 @@ export default async function handler(req, res) {
       });
 
       const reader = activeResponse.body.getReader();
+      const dec = new TextDecoder();
+      const enc = new TextEncoder();
+      let buffer = '';
+      let isReasoning = false;
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          res.write(value);
+
+          buffer += dec.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr === "[DONE]") {
+                  if (isReasoning) {
+                    res.write(enc.encode(`data: {"choices":[{"delta":{"content":"</think>"}}]}\n\n`));
+                  }
+                  res.write(enc.encode(line + '\n\n'));
+                  continue;
+                }
+                const json = JSON.parse(jsonStr);
+
+                // For Cerebras "parsed" reasoning_format, delta.reasoning is sent instead of delta.content
+                if (json.choices && json.choices[0] && json.choices[0].delta && typeof json.choices[0].delta.reasoning === 'string') {
+                  const reasoningChunk = json.choices[0].delta.reasoning;
+
+                  if (!isReasoning) {
+                    json.choices[0].delta.content = `<think>${reasoningChunk}`;
+                    isReasoning = true;
+                  } else {
+                    json.choices[0].delta.content = reasoningChunk;
+                  }
+                  delete json.choices[0].delta.reasoning;
+                  res.write(enc.encode(`data: ${JSON.stringify(json)}\n\n`));
+                } else {
+                  if (isReasoning && json.choices && json.choices[0] && json.choices[0].delta && typeof json.choices[0].delta.content === 'string') {
+                    json.choices[0].delta.content = `</think>${json.choices[0].delta.content}`;
+                    isReasoning = false;
+                    res.write(enc.encode(`data: ${JSON.stringify(json)}\n\n`));
+                  } else {
+                    res.write(enc.encode(line + '\n\n'));
+                  }
+                }
+              } catch (e) {
+                res.write(enc.encode(line + '\n\n'));
+              }
+            } else {
+              res.write(enc.encode(line + '\n'));
+            }
+          }
+        }
+        if (buffer) {
+          res.write(enc.encode(buffer));
         }
       } catch (streamError) {
         console.error('[D-Ai API] Stream transfer error:', streamError);
