@@ -722,8 +722,8 @@
         header > * { position: relative; z-index: 1; }
 
         .status-flow { position: relative; display: inline-flex; align-items: center; max-width: 100%; min-height: 58px; padding: 0.75rem 0.9rem; overflow: visible; isolation: isolate; border-radius: 999px; background: transparent; }
-        .status-flow::before { content: ''; position: absolute; inset: -28px -36px; border-radius: 999px; background: radial-gradient(circle at 22% 45%, rgba(125,211,252,0.46), transparent 33%), radial-gradient(circle at 62% 38%, rgba(167,139,250,0.35), transparent 32%), radial-gradient(circle at 84% 65%, rgba(245,158,11,0.28), transparent 30%); filter: blur(24px); animation: loadingBlob 2.9s ease-in-out infinite; z-index: -1; pointer-events: none; }
-        .status-flow::after { content: ''; position: absolute; top: 50%; left: -42px; width: 46px; height: 46px; border-radius: 999px; transform: translateY(-50%); background: rgba(255,255,255,0.18); filter: blur(16px); animation: hoverSpot 2.6s ease-in-out infinite; z-index: 2; pointer-events: none; }
+        .status-flow::before { content: ''; position: absolute; inset: -28px -36px; border-radius: 999px; background: radial-gradient(circle at 22% 45%, rgba(125,211,252,0.46), transparent 33%), radial-gradient(circle at 62% 38%, rgba(167,139,250,0.35), transparent 32%), radial-gradient(circle at 84% 65%, rgba(245,158,11,0.28), transparent 30%); filter: blur(24px); animation: loadingBlob 2.9s ease-in-out infinite; z-index: -1; pointer-events: none; will-change: transform, opacity; transform: translateZ(0); backface-visibility: hidden; }
+        .status-flow::after { content: ''; position: absolute; top: 50%; left: -42px; width: 46px; height: 46px; border-radius: 999px; transform: translateY(-50%) translateZ(0); background: rgba(255,255,255,0.18); filter: blur(16px); animation: hoverSpot 2.6s ease-in-out infinite; z-index: 2; pointer-events: none; will-change: transform, opacity; backface-visibility: hidden; }
         .status-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.12rem; color: rgba(255,255,255,0.94); text-shadow: 0 1px 18px rgba(125,211,252,0.24); }
         .status-label { font-size: 0.74rem; font-weight: 760; letter-spacing: 0.12em; text-transform: uppercase; }
         .status-detail { font-size: 0.78rem; color: rgba(209,213,219,0.78); letter-spacing: 0; }
@@ -744,10 +744,10 @@
         @keyframes auraFade { to { opacity: 0; transform: scale(1.04); } }
         @keyframes loadingBlob { 0%, 100% { transform: translate3d(-3%, 0, 0) scale(0.92, 1.04) rotate(0deg); } 50% { transform: translate3d(4%, -2%, 0) scale(1.08, 0.94) rotate(4deg); } }
         .assistant-shell { position: relative; width: 100%; min-width: 0; padding: clamp(1rem, 2.4vw, 1.35rem); border: 0; border-radius: 28px; background: transparent; box-shadow: none; overflow: visible; isolation: isolate; animation: auraBloom 0.5s cubic-bezier(.2,.8,.2,1) both; }
-        .assistant-shell::before { content: ''; position: absolute; inset: -4px -6px; border-radius: 26px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 40%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 36%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 36%); filter: blur(16px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; }
+        .assistant-shell::before { content: ''; position: absolute; inset: -4px -6px; border-radius: 26px; background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.36), transparent 40%), radial-gradient(circle at 50% 34%, rgba(167,139,250,0.28), transparent 36%), radial-gradient(circle at 82% 58%, rgba(245,158,11,0.22), transparent 36%); filter: blur(16px); opacity: 0.88; transform-origin: var(--aura-origin-x, 88%) var(--aura-origin-y, 100%); animation: loadingBlob 2.8s ease-in-out infinite; z-index: -1; pointer-events: none; will-change: transform, opacity; transform: translateZ(0); backface-visibility: hidden; }
         .assistant-shell.is-streaming::before { inset: -4px -6px; border-radius: 26px; animation: auroraDrift 5.5s ease-in-out infinite; }
         .assistant-shell.is-settled::before { animation: auraFade 1.25s ease forwards; }
-        .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 99999 !important; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; overflow: visible; }
+        .send-aura-flight { position: fixed; left: 0; top: 0; width: 170px; height: 170px; border-radius: 999px; pointer-events: none; z-index: 99999 !important; background: radial-gradient(circle at 30% 35%, rgba(125,211,252,0.58), transparent 32%), radial-gradient(circle at 68% 42%, rgba(167,139,250,0.42), transparent 34%), radial-gradient(circle at 54% 72%, rgba(245,158,11,0.34), transparent 30%); filter: blur(22px); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity, border-radius; transform: translateZ(0); backface-visibility: hidden; overflow: visible; }
 
         /* Developer Mode Inspector Drawer */
         .dev-inspector-panel {
@@ -1572,8 +1572,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src data:; form-action 'none'; base-uri 'none';">
 <title>${String(title || 'Preview').replace(/[<>&"]/g, '')}</title>
 <style>
-html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111827}
-body{padding:18px;box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:transparent;color:inherit}
+body{padding:0;box-sizing:border-box;overflow:hidden}
 *{box-sizing:border-box}
 ${safeCss}
 </style>
@@ -1586,6 +1586,9 @@ ${safeJs}
 } catch (error) {
   document.body.insertAdjacentHTML('beforeend', '<pre style="margin-top:16px;padding:12px;border-radius:8px;background:#fee2e2;color:#991b1b;white-space:pre-wrap;font:12px ui-monospace,monospace;"></pre>');
   document.body.lastElementChild.textContent = error && error.message ? error.message : String(error);
+  if (window.parent) {
+    window.parent.postMessage({ type: 'dai-widget-error', message: error && error.message ? error.message : String(error) }, '*');
+  }
 }
 <\/script>
 </body>
@@ -4676,6 +4679,13 @@ ${safeJs}
             if (window.dverse) initDverseUi();
             else window.addEventListener('dverse:ready', initDverseUi, { once: true });
 
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'dai-widget-error' && !S.gen) {
+                    console.log('Visual auto-fix triggered by iframe error:', event.data.message);
+                    window.sendPrompt(`The visual threw an error: ${event.data.message}. Please fix the code and output the updated dai-ui block.`);
+                }
+            });
+
             const shouldSearch = (text) => {
                 const lower = String(text || '').toLowerCase();
                 const keywords = ['latest', 'current', 'news', 'today', 'price', 'weather', 'recently', 'who is', 'what is', 'when is', 'live', 'real-time', 'update', 'search', 'find', 'google', 'where is', 'how much', 'score', 'stock', 'winner', 'released', 'upcoming', 'matches'];
@@ -5050,6 +5060,37 @@ ${safeJs}
                         let isFirstChunk = true;
                         getMd();
 
+                        // Line sweep animation variables
+                        let displayedText = "";
+                        let isAnimating = false;
+                        let lastRenderTime = performance.now();
+                        const MAX_CHARS_PER_FRAME = 25;
+
+                        const renderSweep = (now) => {
+                            if (displayedText.length < fullText.length) {
+                                const dt = now - lastRenderTime;
+                                if (dt > 16) { // ~60fps
+                                    const charsToAdd = Math.min(
+                                        fullText.length - displayedText.length,
+                                        Math.max(2, Math.floor((fullText.length - displayedText.length) * 0.2), MAX_CHARS_PER_FRAME)
+                                    );
+                                    displayedText += fullText.slice(displayedText.length, displayedText.length + charsToAdd);
+                                    if (!displayedText.includes('<<SEARCH:')) {
+                                        let textToRender = displayedText;
+                                        // Detect unclosed dai-ui blocks and inject a loading state for visuals
+                                        if (textToRender.includes('```dai-ui') && !textToRender.match(/```dai-ui[\s\S]*?```/)) {
+                                            textToRender = textToRender.replace(/```dai-ui[\s\S]*$/, `\n<div class="dai-widget"><div class="dai-widget-body flex justify-center py-6"><i class="fa-solid fa-circle-notch fa-spin text-sky-400 text-2xl"></i><span class="ml-3 text-sm text-gray-400">Generating interactive visual...</span></div></div>\n`);
+                                        }
+                                        renderAssistantContent(textToRender, el, { final: false, sources: currentSources });
+                                    }
+                                    lastRenderTime = now;
+                                }
+                                requestAnimationFrame(renderSweep);
+                            } else {
+                                isAnimating = false;
+                            }
+                        };
+
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
@@ -5090,8 +5131,10 @@ ${safeJs}
                                                 raw: fullText.slice(-200)
                                             });
 
-                                            if (!fullText.includes('<<SEARCH:')) {
-                                                renderAssistantContent(fullText, el, { final: false, sources: currentSources });
+                                            if (!isAnimating) {
+                                                isAnimating = true;
+                                                lastRenderTime = performance.now();
+                                                requestAnimationFrame(renderSweep);
                                             }
                                         }
                                     } catch (e) {}
