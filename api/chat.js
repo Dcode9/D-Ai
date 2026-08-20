@@ -26,7 +26,17 @@ function stripUploadedImageMarkers(text) {
 
 function normalizeMessageForProvider(message) {
   if (!message || typeof message !== 'object') return { role: 'user', content: '' };
-  const role = message.role === 'assistant' ? 'assistant' : (message.role === 'system' ? 'system' : 'user');
+  const role = ['assistant', 'system', 'tool'].includes(message.role) ? message.role : 'user';
+
+  const payload = { role };
+
+  if (role === 'assistant' && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+    payload.tool_calls = message.tool_calls;
+  }
+  if (role === 'tool' && message.tool_call_id) {
+    payload.tool_call_id = message.tool_call_id;
+  }
+
   const rawText = getTextContent(message.content);
 
   // Extract images
@@ -46,10 +56,12 @@ function normalizeMessageForProvider(message) {
     for (const url of images) {
       contentArray.push({ type: 'image_url', image_url: { url } });
     }
-    return { role, content: contentArray };
+    payload.content = contentArray;
+  } else {
+    payload.content = cleanText;
   }
 
-  return { role, content: cleanText };
+  return payload;
 }
 
 function buildSystemPrompt(messages) {
@@ -118,8 +130,10 @@ async function callProviderAPI({ provider, apiKey, incomingBody }) {
     // Configure reasoning if running on Cerebras (we know from SDK that reasoning_effort is supported, and reasoning_format="parsed")
     if (provider === 'cerebras') {
       if (incomingBody.reasoning_effort) payload.reasoning_effort = incomingBody.reasoning_effort;
-      // Tell API to return delta.reasoning so we can intercept and wrap it for the UI
-      payload.reasoning_format = 'parsed';
+      // Only apply parsed reasoning format to models that support reasoning to avoid 400 Bad Request
+      if (model.includes('gemma-4-31b') || model.includes('gpt-oss-120b') || model.includes('zai-glm-4.7')) {
+        payload.reasoning_format = 'parsed';
+      }
     } else if (provider === 'inception') {
       if (incomingBody.reasoning_effort) payload.reasoning_effort = incomingBody.reasoning_effort;
     }
@@ -238,6 +252,8 @@ export default async function handler(req, res) {
             } catch (e) {
               console.warn('[D-Ai API] Failed to fetch Cerebras models list for vision fallback:', e);
             }
+            // Pass a flag indicating vision is required so the provider can fall back properly if dynamic fetch fails
+            incomingBody._requiresVision = true;
           }
 
           const result = await callProviderAPI({
