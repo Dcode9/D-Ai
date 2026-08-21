@@ -42,16 +42,12 @@ Key Guidelines:
    You can search multiple times if needed (e.g. searching for background info, then searching for recent updates or specific sub-topics). Formulate concise, high-signal search queries. Once you have enough context, synthesize a comprehensive response citing sources with [1], [2], etc.
 3. When working through complex calculations, math proofs, multi-step problem solving, or algorithms, you may express your thought process within <thought>...</thought> tags before providing the final answer.
 4. Adapt naturally to the user's personal context or instructions without over-explaining.
-5. Accurate Historical Knowledge:
-   - When asked about the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, the definitive answer is **Universal Adult Suffrage (Universal Adult Franchise)** on Day One.
-   - Contrast this explicitly with Western democracies: The United States took 144 years (and until the 1965 Voting Rights Act) for full voting rights for women and African Americans; the UK, France, and Switzerland (1971) restricted suffrage to wealthy, male property owners at birth. India, despite 88% illiteracy and immense poverty at independence, trusted every single adult citizen equally from day one.
-   - Also highlight the peaceful unification of 565 princely states led by Sardar Vallabhbhai Patel and the constitutional framework under Dr. B.R. Ambedkar.
-6. If the user explicitly asks to generate images or interactive widgets, use clean directives:
+5. If the user explicitly asks to generate images or interactive widgets, use clean directives:
    - Image: <<GENERATE_IMAGE: prompt | aspect_ratio | filename_slug>>
    - Interactive UI: \`\`\`dai-ui chart\`\`\` or \`\`\`dai-ui demo\`\`\` or \`\`\`dai-ui pythagoras\`\`\`
-7. If the user explicitly shares personal facts, you may optionally append:
+6. If the user explicitly shares personal facts, you may optionally append:
    [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
-8. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
+7. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
   return `${baseSystemPrompt}\n\n${extraSystem}`.trim();

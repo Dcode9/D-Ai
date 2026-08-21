@@ -4865,7 +4865,6 @@ ${safeJs}
                         role: "system",
                         content: "You are D'Ai, a helpful AI assistant made by Dhairya Shah.\n" +
                                  "Answer naturally and directly. Be warm, but do not overdo greetings or filler.\n" +
-                                 "When asked about the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, directly state that it was Universal Adult Suffrage (Universal Adult Franchise)—granting immediate, equal voting rights to all men and women regardless of wealth, caste, or literacy from Day One, contrasting it with Western democracies that took centuries, and highlight Sardar Patel's unification of 565 states and the Constitutional foundation.\n" +
                                  "Use simple formatting: short paragraphs, bullets for lists, numbered steps for sequences, and tables only when they make comparisons clearer. Never use a top-level # heading.\n" +
                                  "When a new conversation starts, choose an internal 3-5 word topic title through your wording and keep the answer focused on that thread.\n" +
                                  "Start with the answer or result first, then add only the context, caveats, or steps that help the user. Match the user's requested depth and tone.\n" +
@@ -5154,10 +5153,6 @@ ${safeJs}
 
                     function getSmartFallbackAnswer(query) {
                         const q = String(query || '').toLowerCase();
-                        
-                        if (q.includes('independence') || q.includes('1947') || q.includes('august 15') || q.includes('revolutionary') || q.includes('decision') || q.includes('democracy') || q.includes('freedom') || q.includes('achieve') || q.includes('india')) {
-                            return `### 🇮🇳 The Greatest Democratic Gamble in Human History\n\nWhen India awoke to freedom on **August 15, 1947**, it made a daring, unprecedented decision that astonished global historians and political theorists:\n\n---\n\n#### 1. Universal Adult Suffrage on Day One\nNo major western democracy in human history had ever granted **instant, universal adult voting rights to every single citizen** at the moment of independence regardless of:\n- **Gender** (Indian women received equal voting rights from day one—unlike the United States which took 144 years, or Switzerland which took until 1971)\n- **Literacy & Wealth** (Over 85% of India was non-literate and living in extreme poverty due to two centuries of colonial drain)\n- **Caste, Religion, or Community**\n\nWestern critics and politicians like Winston Churchill predicted that an impoverished, diverse nation would fracture within a decade. Instead, India proved the world wrong and built the world's most resilient democracy.\n\n---\n\n#### 2. Unification of 565 Princely States\nUnder the leadership of **Sardar Vallabhbhai Patel** and **V.P. Menon**, India peacefully integrated 565 independent princely states into a unified republic—an administrative and diplomatic feat without parallel.\n\n---\n\n#### 3. The Constitutional Blueprint\nLed by **Dr. B.R. Ambedkar**, the Constituent Assembly crafted a visionary charter guaranteeing fundamental rights, secularism, and institutional equality.\n\n> **💡 The Takeaway:** India did not wait to become wealthy to trust its people with democracy—it trusted democracy to empower its people.`;
-                        }
 
                         if (q.includes('pythagor') || (q.includes('triangle') && q.includes('theorem')) || q.includes('hypotenuse')) {
                             return `### 📐 The Pythagorean Theorem\n\nThe **Pythagorean Theorem** is a fundamental principle in Euclidean geometry stating that in any **right-angled triangle**, the area of the square whose side is the hypotenuse is equal to the sum of the areas of the squares on the other two sides.\n\n$$\na^2 + b^2 = c^2\n$$\n\n- **$a$ and $b$**: Lengths of the two legs adjacent to the $90^\\circ$ angle.\n- **$c$**: Length of the **hypotenuse** (the longest side opposite the right angle).\n\n---\n\n#### Common Pythagorean Triples\n1. **$(3, 4, 5)$**: $3^2 + 4^2 = 9 + 16 = 25 = 5^2$\n2. **$(5, 12, 13)$**: $5^2 + 12^2 = 25 + 144 = 169 = 13^2$\n3. **$(8, 15, 17)$**: $8^2 + 15^2 = 64 + 225 = 289 = 17^2$\n\n---\n\n#### Practical Applications\n- **Navigation & GPS:** Calculating straight-line distances in 2D and 3D coordinate planes.\n- **Architecture & Construction:** Ensuring walls and corners are perfectly square ($90^\\circ$).\n- **Computer Graphics:** Vector normalization, distance fields, and physics collision detection.\n\n\`\`\`dai-ui pythagoras\n{\"a\":3,\"b\":4,\"min\":1,\"max\":12,\"step\":1}\n\`\`\``;
@@ -5200,10 +5195,6 @@ ${safeJs}
 
                     if (initialPrompt && initialPrompt.trim()) {
                         let cleanPrompt = decodeURIComponent(initialPrompt.trim());
-                        const lower = cleanPrompt.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        if (lower === '1947' || lower === 'independence' || lower === 'ind' || lower === 'august15' || lower === 'independenceday') {
-                            cleanPrompt = 'What is the one revolutionary decision India made on August 15, 1947 that no other major democracy dared to do at birth, and why did it change world history?';
-                        }
                         
                         let attempts = 0;
                         const pollAndSend = setInterval(() => {
