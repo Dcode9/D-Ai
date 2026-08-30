@@ -389,6 +389,41 @@
             background: rgba(255, 255, 255, 0.6);
         }
 
+        /* Native tool-call activity strip (server pushes event: tool) */
+        .tool-activity {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0 0.65rem 0;
+            border-radius: 12px;
+            background: rgba(167, 139, 250, 0.06);
+            border: 1px solid rgba(167, 139, 250, 0.18);
+        }
+        .tool-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.22rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(167, 139, 250, 0.12);
+            border: 1px solid rgba(167, 139, 250, 0.32);
+            color: #c4b5fd;
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+        .tool-pill i { font-size: 0.66rem; }
+        body.light-theme .tool-activity {
+            background: rgba(147, 51, 234, 0.05);
+            border-color: rgba(147, 51, 234, 0.18);
+        }
+        body.light-theme .tool-pill {
+            background: rgba(147, 51, 234, 0.08);
+            border-color: rgba(147, 51, 234, 0.28);
+            color: #6d28d9;
+        }
+
         /* Web Search & Source Citations */
         .search-status-bar {
             display: flex;
@@ -968,6 +1003,13 @@
             #history-toggle { display: flex; align-items: center; justify-content: center; }
         }
 
+        /* Desktop: when the panel is collapsed, use the small 4.5rem width.
+           When .open, transition to 280px. Make sure the transition for
+           chat-viewport padding-left is in sync with the panel's width. */
+        .history-panel {
+            transition: width 240ms cubic-bezier(0.2, 0.9, 0.4, 1), transform 240ms cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+
         @media (max-width: 640px) {
             body {
                 height: 100dvh;
@@ -983,7 +1025,9 @@
                 -webkit-tap-highlight-color: transparent;
             }
 
-            /* Mobile Sidebar in background */
+            /* Mobile Sidebar: hidden by default, only shown when body.sidebar-shifted.
+               Uses the same swipe-shift custom property so touch swipes animate
+               in lockstep with the open/close snap. */
             .history-panel {
                 position: fixed !important;
                 inset: 0 auto 0 0 !important;
@@ -994,15 +1038,27 @@
                 padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
                 padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
                 padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
-                z-index: 10 !important;
-                transform: translateX(0) !important;
+                z-index: 18 !important;
+                /* Hide off-screen when closed. Swipe-shifts use --swipe-shift
+                   in a separate property so the snap-back animation is smooth. */
+                transform: translate3d(calc(-100% + var(--swipe-shift, 0px)), 0, 0) !important;
                 background: var(--dai-bg) !important;
                 border-right: 1px solid var(--dai-border) !important;
                 box-shadow: none !important;
                 -webkit-overflow-scrolling: touch;
+                pointer-events: none;
             }
 
-            /* Mobile Chat Viewport shifts right revealing sidebar */
+            body.sidebar-shifted .history-panel,
+            .history-panel.open,
+            .history-panel.swipe-peek {
+                transform: translate3d(0, 0, 0) !important;
+                pointer-events: auto;
+            }
+
+            /* Mobile Chat Viewport shifts right revealing sidebar.
+               Uses --swipe-shift (0..maxShift) so touch swipes and the
+               open/close button share the exact same end position. */
             .chat-viewport {
                 position: fixed !important;
                 inset: 0 !important;
@@ -1030,6 +1086,9 @@
             .history-backdrop {
                 position: fixed !important;
                 inset: 0 !important;
+                /* Backdrop sits above the sidebar (18) and chat (20) so any
+                   tap on the dimmed area (the right edge of the visible
+                   chat, or anywhere outside the sidebar) closes the panel. */
                 z-index: 25 !important;
                 background: rgba(0, 0, 0, 0.4) !important;
                 backdrop-filter: blur(2px) !important;
@@ -5264,246 +5323,257 @@ ${safeJs}
                     } finally {
                         if (shouldShowAnalysing) setAnalysing(el, false);
                         S.gen = false;
-                        document.getElementById('btn').disabled = false;
-                        document.getElementById('btn').textContent = '➜';
+                        const sendBtn = document.getElementById('btn');
+                        if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-arrow-up text-sm"></i>'; }
                     }
                     return;
                 }
 
-                let searchContext = "";
                 let currentSources = [];
                 let searchCount = 0;
-                let useGroqCompound = false;
+                const useCompound = window.activeDevProvider === 'compound';
 
-                if (forceSearch || shouldSearch(t)) {
-                    searchCount++;
-                    setAnswerAura(el, 'loading');
-                    el.innerHTML = activityLoader('Searching web', 'Finding live information...');
-                    try {
-                        const searchRes = await searchTavily(t);
-                        if (searchRes && searchRes.formatted && searchRes.results && searchRes.results.length) {
-                            searchContext = `\n\n[SYSTEM: Web Results with Sources]\n${searchRes.formatted}`;
-                            currentSources.push(...searchRes.results);
-                        } else {
-                            // If custom search returned no results, fallback seamlessly to Groq Compound
-                            console.info('[Search] Custom search returned 0 results. Cascading to Groq Compound built-in search & tools.');
-                            useGroqCompound = true;
-                        }
-                    } catch (searchErr) {
-                        console.warn('[Search] Custom search error, cascading to Groq Compound:', searchErr);
-                        useGroqCompound = true;
-                    }
+                // Pre-compute the memory-prompt prefix outside the try block so
+                // it's in scope when we build the request payload.
+                const memoryFacts = window.getPersonalContext ? window.getPersonalContext() : [];
+                const memoryPrompt = memoryFacts.length > 0
+                    ? `[USER PERSONAL MEMORY CONTEXT]\nThe user has specified the following remembered facts about themselves:\n${memoryFacts.map(f => `- ${f}`).join('\n')}\nUse these remembered facts naturally to personalize your response.`
+                    : '';
 
-                    if (shouldShowAnalysing) {
-                        setAnswerAura(el, 'loading');
-                        el.innerHTML = activityLoader('Analysing', 'Preparing the final answer');
-                    } else if (useGroqCompound) {
-                        setAnswerAura(el, 'loading');
-                        el.innerHTML = activityLoader('Researching & Reasoning', 'Using autonomous search & execution...');
-                    } else {
-                        el.innerHTML = "";
-                    }
-                }
+                // Native tool-call flow: tell the backend to enable web search as a tool
+                // for this request. The model decides when (and whether) to call it. The
+                // backend handles the tool loop and returns `event: sources` + `event: tool`
+                // SSE events so we can render them in the UI.
+                const requestPayload = {
+                    provider: useCompound ? 'groq' : (window.activeDevProvider || 'inception'),
+                    compound: useCompound,
+                    model: window.activeDevModel || undefined,
+                    messages: memoryPrompt
+                        ? [{ role: 'system', content: memoryPrompt }, ...S.msg]
+                        : [...S.msg],
+                    stream: true,
+                    enable_web_search: !useCompound,  // groq/compound has its own tools; only inject for non-compound
+                    max_tokens: 4096,
+                    temperature: 0.7
+                };
 
                 try {
                     const streamStartTime = performance.now();
                     let ttft = 0;
                     let tokenCount = 0;
+                    let fullText = '';
+                    let fullReasoning = '';
+                    let sourcesList = [];
 
-                    const memoryFacts = window.getPersonalContext ? window.getPersonalContext() : [];
-                    let memoryPrompt = '';
-                    if (memoryFacts.length > 0) {
-                        memoryPrompt = `[USER PERSONAL MEMORY CONTEXT]\nThe user has specified the following remembered facts about themselves:\n${memoryFacts.map(f => `- ${f}`).join('\n')}\nUse these remembered facts naturally to personalize your response.`;
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestPayload)
+                    });
+
+                    if (!res.ok) {
+                        let errDetail = `API Error: ${res.status}`;
+                        try {
+                            const errJson = await res.json();
+                            if (errJson?.error) errDetail += ` - ${typeof errJson.error === 'object' ? JSON.stringify(errJson.error) : errJson.error}`;
+                        } catch (_) {}
+                        throw new Error(errDetail);
                     }
 
-                    let messagesToSend = memoryPrompt 
-                        ? [{ role: 'system', content: memoryPrompt }, ...S.msg] 
-                        : [...S.msg];
+                    const reader = res.body.getReader();
+                    const dec = new TextDecoder();
+                    let isFirstChunk = true;
 
-                    if (searchContext) {
-                        const lastIdx = messagesToSend.length - 1;
-                        messagesToSend[lastIdx] = {
-                            role: messagesToSend[lastIdx].role,
-                            content: messagesToSend[lastIdx].content + searchContext
-                        };
-                    }
+                    // SSE state machine. Events from the new chat.js backend are
+                    // `event: <name>\ndata: <json>\n\n`. We accumulate raw
+                    // bytes, split into events on blank lines, then dispatch by name.
+                    let sseBuffer = '';
+                    let currentEvent = 'message';
+                    let currentData = '';
 
-                    let iteration = 0;
-                    let streamFinished = false;
-                    let fullText = "";
+                    const handleEvent = (eventName, dataText) => {
+                        if (!dataText) return;
+                        if (dataText === '[DONE]') return;
+                        let payload = null;
+                        try { payload = JSON.parse(dataText); } catch { return; }
+                        if (!payload || typeof payload !== 'object') return;
 
-                    while (iteration < 3 && !streamFinished) {
-                        iteration++;
-
-                        if (forceThink) {
-                            setAnswerAura(el, 'loading');
-                            el.innerHTML = activityLoader('Thinking', 'Reasoning step-by-step...');
-                        } else if (iteration > 1) {
-                            setAnswerAura(el, 'loading');
-                            el.innerHTML = activityLoader('Analysing', 'Synthesizing verified findings...');
+                        if (eventName === 'status') {
+                            const phase = payload.phase || 'thinking';
+                            const detail = payload.detail || '';
+                            if (phase === 'searching') {
+                                el.innerHTML = activityLoader('Searching web', detail || 'Finding live information...');
+                                searchCount++;
+                            } else if (phase === 'reasoning') {
+                                el.innerHTML = activityLoader('Reasoning', detail || 'Step-by-step thinking...');
+                            } else if (phase === 'tool_call') {
+                                el.innerHTML = activityLoader('Tool call', detail || 'Calling a tool...');
+                            } else if (phase === 'streaming') {
+                                el.innerHTML = activityLoader('Streaming', detail || 'Writing response...');
+                            } else if (phase === 'error') {
+                                console.warn('[Chat] Server reported phase=error:', detail);
+                            }
+                            return;
                         }
 
-                        const requestPayload = {
-                            provider: useGroqCompound ? 'groq' : (window.activeDevProvider || 'inception'),
-                            compound: useGroqCompound || window.activeDevProvider === 'compound',
-                            model: useGroqCompound ? 'groq/compound' : (window.activeDevModel || undefined),
-                            messages: messagesToSend,
-                            stream: true,
-                            max_tokens: 4096,
-                            temperature: 0.7
-                        };
+                        if (eventName === 'reasoning') {
+                            const d = payload.delta || '';
+                            if (!d) return;
+                            fullReasoning += d;
+                            tokenCount += Math.max(1, Math.round(d.length / 4));
+                            // Update the thinking accordion live.
+                            renderReasoningLive(fullReasoning, el, true);
+                            if (isFirstChunk) {
+                                isFirstChunk = false;
+                                ttft = Math.round(performance.now() - streamStartTime);
+                                if (shouldShowAnalysing) setAnalysing(el, false);
+                            }
+                            return;
+                        }
 
-                        const res = await fetch("/api/chat", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(requestPayload)
-                        });
+                        if (eventName === 'delta') {
+                            const d = payload.delta || '';
+                            if (!d) return;
+                            fullText += d;
+                            tokenCount += Math.max(1, Math.round(d.length / 4));
+                            if (isFirstChunk) {
+                                isFirstChunk = false;
+                                ttft = Math.round(performance.now() - streamStartTime);
+                                if (shouldShowAnalysing) setAnalysing(el, false);
+                            }
+                            renderStreamedAnswer(fullReasoning, fullText, sourcesList, el, /* final */ false);
+                            return;
+                        }
 
-                        if (!res.ok) {
-                            let errDetail = `API Error: ${res.status}`;
+                        if (eventName === 'tool') {
+                            // Server reports a tool invocation (name, args, resultPreview).
+                            // We render a small pill inside a `.tool-activity` strip so
+                            // the user sees the tool was called.
                             try {
-                                const errJson = await res.json();
-                                if (errJson?.error) errDetail += ` - ${typeof errJson.error === 'object' ? JSON.stringify(errJson.error) : errJson.error}`;
-                            } catch (_) {}
-                            throw new Error(errDetail);
+                                const strip = el.closest('.assistant-shell')?.querySelector('.tool-activity') || appendToolStrip(el);
+                                const pill = document.createElement('span');
+                                pill.className = 'tool-pill';
+                                const name = payload.name || 'tool';
+                                const status = payload.status || 'called';
+                                pill.innerHTML = `<i class="fa-solid ${status === 'done' ? 'fa-circle-check' : 'fa-circle-notch'} ${status === 'called' ? 'fa-spin' : ''}"></i> ${escapeHtml(name)}`;
+                                strip.appendChild(pill);
+                            } catch (e) { /* non-fatal */ }
+                            return;
                         }
 
-                        const reader = res.body.getReader();
-                        const dec = new TextDecoder();
-                        fullText = "";
-                        let buffer = "";
-                        let isFirstChunk = true;
-                        let inReasoningStream = false;
-                        getMd();
-
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-
-                            buffer += dec.decode(value, { stream: true });
-                            const lines = buffer.split('\n');
-                            buffer = lines.pop();
-
-                            for (const line of lines) {
-                                if (line.startsWith('data: ')) {
-                                    try {
-                                        const jsonStr = line.slice(6).trim();
-                                        if (jsonStr === "[DONE]") continue;
-                                        const json = JSON.parse(jsonStr);
-                                        const delta = json.choices?.[0]?.delta || {};
-                                        const reasoningChunk = delta.reasoning || delta.reasoning_content || "";
-                                        const contentChunk = delta.content || "";
-
-                                        if (reasoningChunk) {
-                                            if (!inReasoningStream && !fullText.includes('<think>')) {
-                                                fullText = '<think>' + fullText;
-                                                inReasoningStream = true;
-                                            }
-                                            fullText += reasoningChunk;
-                                            tokenCount += Math.max(1, Math.round(reasoningChunk.length / 4));
-                                        }
-
-                                        if (contentChunk) {
-                                            if (inReasoningStream && !fullText.includes('</think>')) {
-                                                fullText += '</think>\n\n';
-                                                inReasoningStream = false;
-                                            }
-                                            fullText += contentChunk;
-                                            tokenCount += Math.max(1, Math.round(contentChunk.length / 4));
-                                        }
-
-                                        if (reasoningChunk || contentChunk) {
-                                            if (isFirstChunk) {
-                                                isFirstChunk = false;
-                                                ttft = Math.round(performance.now() - streamStartTime);
-                                                if (shouldShowAnalysing) setAnalysing(el, false);
-                                            }
-
-                                            const elapsedSec = (performance.now() - streamStartTime) / 1000;
-                                            const currentTps = elapsedSec > 0 ? (tokenCount / elapsedSec) : 0;
-                                            window.updateDevTelemetry?.({
-                                                latency: Math.round(performance.now() - streamStartTime),
-                                                ttft,
-                                                tokens: tokenCount,
-                                                tps: currentTps,
-                                                model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'llama-3.3-70b',
-                                                provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : 'Groq',
-                                                context: JSON.stringify(messagesToSend).length,
-                                                searches: searchCount,
-                                                raw: fullText.slice(-200)
-                                            });
-
-                                            if (!fullText.includes('<<SEARCH:')) {
-                                                renderAssistantContent(fullText, el, { final: false, sources: currentSources });
-                                            }
-                                        }
-                                    } catch (e) {}
+                        if (eventName === 'sources') {
+                            const items = Array.isArray(payload.items) ? payload.items : [];
+                            if (items.length) {
+                                // Merge with prior sources, dedupe by url.
+                                const seen = new Set(sourcesList.map(s => s.url));
+                                for (const s of items) {
+                                    if (s && s.url && !seen.has(s.url)) {
+                                        sourcesList.push(s);
+                                        seen.add(s.url);
+                                    }
                                 }
                             }
+                            // Re-render so the new sources appear above the answer.
+                            renderStreamedAnswer(fullReasoning, fullText, sourcesList, el, false);
+                            return;
                         }
 
-                        // Close unclosed think tag at the end of stream if needed
-                        if (inReasoningStream && !fullText.includes('</think>')) {
-                            fullText += '</think>\n\n';
+                        if (eventName === 'done') {
+                            // Terminal event; carries final metadata. Ignore for
+                            // rendering — the stream is closing.
+                            return;
                         }
+                    };
 
-                        // Multi-step Search Directive Detection: <<SEARCH: query>>
-                        const searchMatch = fullText.match(/<<SEARCH:\s*([^>]+)>>/i);
-                        if (searchMatch && iteration < 3) {
-                            searchCount++;
-                            const nextSearchQuery = searchMatch[1].trim();
-                            setAnswerAura(el, 'loading');
-                            el.innerHTML = activityLoader('Searching web', 'Gathering additional sources...');
+                    const flushSseEvent = () => {
+                        if (!currentEvent && !currentData) return;
+                        // Trim trailing newlines and dispatch.
+                        const dataStr = currentData.replace(/\n$/, '').trim();
+                        if (dataStr) {
+                            // `data:` lines are joined by '\n' if multi-line; for
+                            // our backend each event uses a single line so this
+                            // is a no-op split.
+                            dataStr.split('\n').forEach(line => handleEvent(currentEvent, line));
+                        }
+                        currentEvent = 'message';
+                        currentData = '';
+                    };
 
-                            const searchRes = await searchTavily(nextSearchQuery);
-                            if (searchRes && searchRes.results && searchRes.results.length) {
-                                currentSources.push(...searchRes.results);
-                                const seenUrls = new Set();
-                                currentSources = currentSources.filter(s => {
-                                    if (!s.url || seenUrls.has(s.url)) return false;
-                                    seenUrls.add(s.url);
-                                    return true;
-                                });
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        sseBuffer += dec.decode(value, { stream: true });
 
-                                messagesToSend.push({
-                                    role: 'assistant',
-                                    content: fullText
-                                });
-                                messagesToSend.push({
-                                    role: 'user',
-                                    content: `[SYSTEM: Follow-up Web Search Results]\n${searchRes.formatted}\nNow continue answering the user's question directly with comprehensive context and citations.`
-                                });
-                                continue;
+                        // SSE messages are separated by a blank line (\n\n).
+                        let sepIdx;
+                        while ((sepIdx = sseBuffer.indexOf('\n\n')) !== -1) {
+                            const raw = sseBuffer.slice(0, sepIdx);
+                            sseBuffer = sseBuffer.slice(sepIdx + 2);
+                            // Parse one SSE message.
+                            currentEvent = 'message';
+                            currentData = '';
+                            const sseLines = raw.split('\n');
+                            for (const sseLine of sseLines) {
+                                if (!sseLine) continue;
+                                if (sseLine.startsWith(':')) continue; // comment / keep-alive
+                                if (sseLine.startsWith('event:')) {
+                                    currentEvent = sseLine.slice(6).trim();
+                                } else if (sseLine.startsWith('data:')) {
+                                    currentData += sseLine.slice(5).trimStart() + '\n';
+                                } else if (sseLine.startsWith('id:') || sseLine.startsWith('retry:')) {
+                                    /* ignore */
+                                }
                             }
+                            flushSseEvent();
                         }
-
-                        streamFinished = true;
+                    }
+                    // Final flush in case the server didn't terminate with \n\n.
+                    if (sseBuffer.trim()) {
+                        const raw = sseBuffer;
+                        currentEvent = 'message';
+                        currentData = '';
+                        const sseLines = raw.split('\n');
+                        for (const sseLine of sseLines) {
+                            if (!sseLine) continue;
+                            if (sseLine.startsWith(':')) continue;
+                            if (sseLine.startsWith('event:')) currentEvent = sseLine.slice(6).trim();
+                            else if (sseLine.startsWith('data:')) currentData += sseLine.slice(5).trimStart() + '\n';
+                        }
+                        flushSseEvent();
                     }
 
                     const totalElapsed = Math.round(performance.now() - streamStartTime);
-                    const totalTps = totalElapsed > 0 ? ((tokenCount / (totalElapsed / 1000))) : 0;
+                    const totalTps = totalElapsed > 0 ? (tokenCount / (totalElapsed / 1000)) : 0;
                     window.updateDevTelemetry?.({
                         latency: totalElapsed,
                         ttft,
                         tokens: tokenCount,
                         tps: totalTps,
-                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : 'llama-3.3-70b',
-                        provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : 'Groq',
-                        context: JSON.stringify(messagesToSend).length,
+                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : (window.activeDevModel || 'llama-3.3-70b-versatile'),
+                        provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : (useCompound ? 'Groq Compound' : 'Groq'),
+                        context: JSON.stringify(requestPayload.messages).length,
                         searches: searchCount,
                         raw: `Complete: ${tokenCount} tokens in ${totalElapsed}ms`
                     });
 
-                    const cleanFinalText = fullText.replace(/<<SEARCH:\s*[^>]+>>/gi, '').trim();
-                    renderAssistantContent(cleanFinalText, el, { final: true, sources: currentSources });
-                    S.msg.push({ role: "assistant", content: cleanFinalText });
+                    // Final render. Pass sources so the [N] citation badges resolve.
+                    renderStreamedAnswer(fullReasoning, fullText, sourcesList, el, true);
+                    currentSources = sourcesList;
+
+                    // Combine reasoning + answer for storage. The reasoning is
+                    // wrapped in <thought>...</thought> so a re-render through
+                    // renderAssistantContent still works.
+                    const cleanFinalText = (fullReasoning
+                        ? `<thought>${fullReasoning.replace(/<\/thought>/gi, '')}</thought>\n\n`
+                        : '') + fullText;
+                    S.msg.push({ role: 'assistant', content: cleanFinalText });
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                     saveSyncedMessage('assistant', cleanFinalText, { mode: currentSources.length ? 'search' : 'chat' });
                     if (window.processTextForFacts) window.processTextForFacts(t, cleanFinalText);
                     if (shouldShowAnalysing) setAnalysing(el, false);
                     S.gen = false;
-                    document.getElementById('btn').disabled = false;
-                    document.getElementById('btn').textContent = '➜';
+                    const sendBtn = document.getElementById('btn');
+                    if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-arrow-up text-sm"></i>'; }
                 } catch (err) {
                     console.error('[D-Ai Stream Error]', err);
                     window.captureApiError?.('Stream Error', err);
@@ -5529,13 +5599,81 @@ ${safeJs}
 
                     const fallbackAnswer = getSmartFallbackAnswer(t || userContent);
                     renderAssistantContent(fallbackAnswer, el, { final: true });
-                    S.msg.push({ role: "assistant", content: fallbackAnswer });
+                    S.msg.push({ role: 'assistant', content: fallbackAnswer });
                     setMessageNodeIndex(assistantMessage, S.msg.length - 1);
                     saveSyncedMessage('assistant', fallbackAnswer, { mode: 'smart-fallback' });
                     S.gen = false;
-                    document.getElementById('btn').disabled = false;
-                    document.getElementById('btn').textContent = '➜';
+                    const sendBtn = document.getElementById('btn');
+                    if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-arrow-up text-sm"></i>'; }
                 }
+            };
+
+            // ---- Helper: streaming render of the assistant answer ----
+            // The backend's new SSE vocabulary emits `event: reasoning`,
+            // `event: delta`, `event: sources`, `event: tool`, and `event: done`.
+            // We compose (reasoning + answer + sources) and let the existing
+            // renderAssistantContent handle markdown + citation badges.
+            // The full reasoning buffer is passed as a `thought` text inside a
+            // leading <thought>...</thought> block which parseThinkingAndAnswer
+            // already understands.
+            const renderStreamedAnswer = (fullReasoning, fullText, sources, target, isFinal) => {
+                if (!target) return;
+                const merged = (fullReasoning
+                    ? `<thought>${fullReasoning.replace(/<\/thought>/gi, '')}</thought>\n\n`
+                    : '') + fullText;
+                renderAssistantContent(merged, target, { final: !!isFinal, sources });
+            };
+
+            // Live-update the thinking accordion while reasoning streams in.
+            const renderReasoningLive = (fullReasoning, target, isStreaming) => {
+                if (!target || !fullReasoning) return;
+                const mdRenderer = getMd();
+                if (!mdRenderer) return;
+                // Open the accordion automatically while reasoning streams so the
+                // user sees it unfold.
+                target.__thinkingOpen = true;
+                const thoughtHtml = sanitizeRenderedHtml(mdRenderer.render(normalizeMathDelimiters(fullReasoning)));
+                // Reuse the accordion markup. We rebuild the whole target each time;
+                // for a typical reasoning trace (<= 2k tokens) this is fine.
+                const sources = target.__sources || [];
+                const content = target.__lastText || '';
+                const merged = `<thought>${fullReasoning.replace(/<\/thought>/gi, '')}</thought>\n\n${content}`;
+                setAnswerAura(target, 'streaming');
+                let htmlOutput = '';
+                if (sources.length) htmlOutput += renderSourcesGrid(sources);
+                htmlOutput += `
+                    <details class="thinking-shell" open>
+                        <summary class="thinking-summary">
+                            <div class="thinking-label">
+                                <i class="fa-solid fa-brain text-purple-400"></i>
+                                <span>Thought Process</span>
+                                ${isStreaming ? '<span class="thinking-spinner ml-1.5"></span><span class="text-[10px] text-purple-300 font-normal opacity-80">Reasoning…</span>' : ''}
+                            </div>
+                            <i class="fa-solid fa-chevron-down thinking-chevron"></i>
+                        </summary>
+                        <div class="thinking-body">${thoughtHtml}</div>
+                    </details>
+                `;
+                if (content || !isStreaming) {
+                    const processed = normalizeMathDelimiters(processMediaDirectives(content));
+                    const rendered = sanitizeRenderedHtml(mdRenderer.render(processed));
+                    const cited = formatSourceCitations(rendered, sources);
+                    htmlOutput += `<div class="assistant-answer-body">${cited}</div>`;
+                }
+                target.innerHTML = htmlOutput;
+            };
+
+            // Append a `.tool-activity` strip above the answer body for tool pills.
+            const appendToolStrip = (target) => {
+                const shell = target.closest('.assistant-shell');
+                if (!shell) return null;
+                let strip = shell.querySelector('.tool-activity');
+                if (!strip) {
+                    strip = document.createElement('div');
+                    strip.className = 'tool-activity';
+                    shell.insertBefore(strip, shell.firstChild);
+                }
+                return strip;
             };
 
             // URL Query Parameter Auto-Prompt Loader (?prompt=... or ?q=... or #prompt=... or ?1947)
