@@ -1,5 +1,58 @@
 # D'Ai Changelog
 
+## 1.1.1 — Bulletproof /api/chat
+
+Hotfix for the "none of the apis or models work" crash.
+
+### Root cause
+
+The graceful-fallback path inside `runWithProviders()` was writing to the
+response and calling `res.end()` regardless of the request's `stream` flag.
+When the frontend called `/api/chat` with `stream:false` (used by
+`explainTopic`, `generateChatTitle`, `buildGenerativeInterface`) and every
+provider failed:
+
+1. The inner fallback wrote a `graceful` SSE event and closed the response.
+2. The outer handler tried to return `res.status(200).json(...)` → `ERR_HTTP_HEADERS_SENT`.
+3. The critical catch tried to write more SSE events to a closed response → `ERR_STREAM_WRITE_AFTER_END`.
+4. Node escalated that to an unhandled `error` event on the response's EventEmitter
+   and **killed the entire Node process**.
+5. Every subsequent `/api/*` request got `connection refused` — exactly the
+   user's "none of the apis or models work" symptom.
+
+### Fixes
+
+**Server**
+- `api/chat.js`: `runWithProviders()` now respects the `stream` flag — never
+  touches `res` when `stream:false`.
+- `api/chat.js`: `handler` attaches `res.on('error' / 'close')` listeners at
+  the top so any stray write becomes a logged warning, not an unhandled error.
+- `api/chat.js`: `sendEvent()` and the SSE keep-alive interval guard on
+  `writableEnded` and `destroyed` so they short-circuit silently.
+- `api/chat.js`: outer critical catch never throws and never writes to a
+  closed response.
+- `server.js`: adds `process.on('uncaughtException' / 'unhandledRejection')`
+  and `server.on('clientError')` as last-resort safety nets.
+- `server.js`: cleans up the dead module-level `res_id` variable in
+  `adaptWebHandler` (refactored to a closure) and silences response errors
+  via `res.on('error')`.
+
+**Frontend**
+- `index.html`: Dev Console model dropdown rewritten to use **Groq's current
+  production models** — `openai/gpt-oss-120b`, `openai/gpt-oss-20b`,
+  `groq/compound`, `groq/compound-mini`. The previously-listed
+  `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, and `qwen/qwen3-32b`
+  are deprecated on Groq and now sit as last-resort fallbacks.
+- `index.html`: new **deployment-status banner** in the hero area, visible
+  only when no chat provider keys are set on the server. Shows per-provider
+  chips (Groq / Inception / Cloudflare) and an actionable hint about
+  `GROQ_API_KEY` / `INCEPTION_API`. Auto-hides the moment a real provider
+  is detected. So a user on a fresh deployment sees the reason they're in
+  graceful-offline mode instead of a silent failure.
+- `index.html`: internal non-streaming chat calls (`explainTopic`,
+  `generateChatTitle`, `buildGenerativeInterface`) updated to use the new
+  default model.
+
 ## 1.1.0 — Hardening & Improvements
 
 This release addresses 10 identified issues and adds 10 improvements across the
