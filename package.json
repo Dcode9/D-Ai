@@ -1,10 +1,14 @@
 {
   "name": "d-ai",
   "private": true,
+  "version": "1.1.0",
+  "description": "D'Ai - A fast multimodal AI chat application by Dhairya Shah",
   "scripts": {
     "dev": "node server.js",
     "build:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --watch"
+    "watch:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --watch",
+    "start": "node server.js",
+    "check": "node --check server.js && node --check api/*.js && node --check scripts/*.js"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17"
@@ -12,6 +16,9 @@
   "dependencies": {
     "@vercel/blob": "^2.4.0",
     "express": "^5.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "type": "module"
 }

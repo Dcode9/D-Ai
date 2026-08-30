@@ -10,9 +10,17 @@
     <meta name="theme-color" content="#050505" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
     <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' https://api.groq.com https://api.inceptionlabs.ai https://api.cloudflare.com https://api.tavily.com https://gen.pollinations.ai https://image.pollinations.ai https://api.vercel.com https://*.blob.vercel-storage.com https://gmwieijbrrztukqpfwkg.supabase.co https://d-verse.in wss: https:; frame-src 'self' https://api.tavily.com; worker-src 'self' blob:; media-src 'self' blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'self';">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>D'Ai</title>
     <link href="/styles/tailwind.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Use the CDN runtime config but defer to the built stylesheet to avoid duplicate work.
+      (function() {
+        if (window.__daiTailwindLoaded) return;
+        window.__daiTailwindLoaded = true;
+      })();
+    </script>
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -1079,6 +1087,30 @@
             *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
         }
 
+        /* Connection Health Indicator states */
+        #health-indicator.is-ok { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); color: #34d399; }
+        #health-indicator.is-ok #health-dot { background: #34d399; animation: none; }
+        #health-indicator.is-warn { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; }
+        #health-indicator.is-warn #health-dot { background: #fbbf24; }
+        #health-indicator.is-error { background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: #f87171; }
+        #health-indicator.is-error #health-dot { background: #f87171; }
+        #health-indicator.is-checking #health-dot { background: #38bdf8; }
+
+        /* Error boundary overlay */
+        .dai-error-boundary {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(5, 5, 5, 0.92); backdrop-filter: blur(8px);
+            padding: 1.5rem;
+        }
+        .dai-error-boundary-card {
+            max-width: 32rem; width: 100%;
+            background: rgba(15, 15, 18, 0.98);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            border-radius: 18px; padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden bg-dark-bg text-gray-100">
@@ -1161,6 +1193,11 @@
 
                 <!-- Right: Quick Action Controls (Dev Inspector, New Chat, Settings, Theme) -->
                 <div class="flex items-center gap-1.5 z-30">
+                    <!-- Connection Health Indicator -->
+                    <div id="health-indicator" class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all" title="Checking server health..." aria-live="polite">
+                        <span id="health-dot" class="w-2 h-2 rounded-full bg-gray-500 animate-pulse"></span>
+                        <span id="health-text" class="hidden sm:inline text-gray-500">Connecting…</span>
+                    </div>
                     <button id="dev-inspector-btn" onclick="window.toggleDevInspector()" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-gray-300 hover:text-emerald-300 flex items-center justify-center text-xs transition-all cursor-pointer" title="Dev Console & Tools" aria-label="Dev Inspector">
                         <i class="fa-solid fa-terminal"></i>
                     </button>
@@ -1783,6 +1820,142 @@
             if (rawEl) rawEl.textContent = stamped;
             return stamped;
         };
+
+        // --- Global error boundary (catches uncaught exceptions & promise rejections) ---
+        (function setupErrorBoundary() {
+            const showBoundary = (title, message, stack) => {
+                // Don't open two error boundaries at once
+                if (document.getElementById('dai-error-boundary')) return;
+                const overlay = document.createElement('div');
+                overlay.id = 'dai-error-boundary';
+                overlay.className = 'dai-error-boundary';
+                overlay.innerHTML = `
+                    <div class="dai-error-boundary-card text-white">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-base border border-rose-500/30">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold">Something went wrong</div>
+                                <div class="text-[11px] text-gray-400">D'Ai caught an unexpected error</div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-300 mb-3 leading-relaxed">${escapeHtml(message || 'An unexpected error occurred.')}</div>
+                        ${stack ? `<pre class="p-2.5 rounded-lg bg-black/40 border border-white/10 text-[10px] font-mono text-gray-400 max-h-32 overflow-y-auto whitespace-pre-wrap mb-3">${escapeHtml(stack.slice(0, 800))}</pre>` : ''}
+                        <div class="flex gap-2">
+                            <button id="dai-error-reload" class="flex-1 py-2 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-arrows-rotate mr-1.5"></i> Reload
+                            </button>
+                            <button id="dai-error-dismiss" class="flex-1 py-2 px-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/15 text-white text-xs font-semibold transition-all">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                overlay.querySelector('#dai-error-reload')?.addEventListener('click', () => window.location.reload());
+                overlay.querySelector('#dai-error-dismiss')?.addEventListener('click', () => overlay.remove());
+            };
+
+            window.addEventListener('error', (event) => {
+                // Ignore non-actionable noise (extension noise, expected benign errors)
+                const message = String(event?.message || event?.error?.message || '');
+                if (message.includes('has already been defined')) return;
+                if (message.includes('ResizeObserver loop')) return;
+                if (message.includes('Loading chunk') || message.includes('Loading CSS chunk')) return;
+                console.error('[D-Ai Error]', event.error || message);
+                if (window.daiDevMode) {
+                    showBoundary('Uncaught error', message, event.error?.stack);
+                } else {
+                    window.showToast?.('An error occurred. Some features may be limited.', 'fa-solid fa-triangle-exclamation text-rose-400');
+                }
+            });
+
+            window.addEventListener('unhandledrejection', (event) => {
+                const reason = event?.reason;
+                const message = reason?.message || String(reason || 'Unknown rejection');
+                if (message.includes('NetworkError') || message.includes('Failed to fetch')) {
+                    window.showToast?.('Network hiccup. Please retry.', 'fa-solid fa-wifi text-amber-400');
+                    return;
+                }
+                console.error('[D-Ai Rejection]', reason);
+                if (window.daiDevMode) {
+                    showBoundary('Unhandled promise rejection', message, reason?.stack);
+                } else {
+                    window.showToast?.('A background task failed silently.', 'fa-solid fa-circle-exclamation text-amber-400');
+                }
+            });
+        })();
+
+        // --- localStorage / IndexedDB quota error handler ---
+        (function setupQuotaHandler() {
+            const origSetItem = Storage.prototype.setItem;
+            Storage.prototype.setItem = function (key, value) {
+                try {
+                    return origSetItem.call(this, key, value);
+                } catch (err) {
+                    if (err && (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014)) {
+                        console.warn('[D-Ai Storage] Quota exceeded for', key);
+                        window.showToast?.(
+                            'Browser storage is full. Old history or memory may need to be cleared.',
+                            'fa-solid fa-database text-amber-400'
+                        );
+                        window.dispatchEvent(new CustomEvent('dai:storage-quota', { detail: { key } }));
+                    } else {
+                        throw err;
+                    }
+                }
+            };
+        })();
+
+        // --- Connection health indicator ---
+        (function setupHealthIndicator() {
+            const indicator = document.getElementById('health-indicator');
+            const dot = document.getElementById('health-dot');
+            const text = document.getElementById('health-text');
+            if (!indicator || !dot || !text) return;
+
+            let lastCheck = 0;
+            const checkHealth = async (force = false) => {
+                const now = Date.now();
+                if (!force && now - lastCheck < 30_000) return;
+                lastCheck = now;
+                indicator.classList.add('is-checking');
+                indicator.classList.remove('is-ok', 'is-warn', 'is-error');
+                text.textContent = 'Checking…';
+                indicator.title = 'Checking server health...';
+                const start = performance.now();
+                try {
+                    const ctrl = new AbortController();
+                    const timeoutId = setTimeout(() => ctrl.abort(), 6000);
+                    const res = await fetch('/api/chat', { method: 'GET', signal: ctrl.signal });
+                    clearTimeout(timeoutId);
+                    const ms = Math.round(performance.now() - start);
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        indicator.classList.remove('is-checking');
+                        indicator.classList.add('is-ok');
+                        const provider = data.primary_provider ? data.primary_provider.split(' ')[0] : 'API';
+                        text.textContent = `${provider} • ${ms}ms`;
+                        indicator.title = `Server online. Primary provider: ${data.primary_provider || 'Unknown'}`;
+                    } else {
+                        throw new Error(`HTTP ${res.status}`);
+                    }
+                } catch (err) {
+                    indicator.classList.remove('is-checking');
+                    indicator.classList.add('is-error');
+                    text.textContent = 'Offline';
+                    indicator.title = `Cannot reach server: ${err.message}`;
+                }
+            };
+
+            window.runHealthCheck = checkHealth;
+            document.addEventListener('DOMContentLoaded', () => checkHealth(true));
+            // Re-check periodically
+            setInterval(() => checkHealth(false), 60_000);
+            // Re-check when window regains focus
+            window.addEventListener('focus', () => checkHealth(true));
+        })();
         window.devErrorBlock = (title, message) => `<div class="text-red-300 p-4 text-xs border border-red-900/40 rounded-lg bg-black/70 font-mono leading-relaxed"><strong>${escapeHtml(title || 'Error')}</strong><br>${escapeHtml(message || 'Unknown error')}</div>`;
         const MEDIA_LIMITS = { image: 5, video: 2 };
 

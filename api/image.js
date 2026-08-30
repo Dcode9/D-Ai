@@ -6,15 +6,18 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Max-Age': '600'
 };
+
+const ALLOWED_PROVIDERS = new Set(['cloudflare', 'huggingface', 'pollinations', 'auto']);
+const MAX_PROMPT_LENGTH = 4000;
+const MAX_WIDTH = 2048;
+const MAX_HEIGHT = 2048;
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...CORS_HEADERS,
-    },
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
   });
 }
 
@@ -23,15 +26,15 @@ function imageResponse(bytes, contentType = 'image/jpeg') {
     headers: {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000, immutable',
-      ...CORS_HEADERS,
-    },
+      ...CORS_HEADERS
+    }
   });
 }
 
 function toPositiveInt(value, fallback = 1024) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return Math.floor(parsed);
+  return Math.min(Math.floor(parsed), fallback > MAX_WIDTH ? MAX_WIDTH : fallback);
 }
 
 function toSeed(value, fallback = 0) {
@@ -42,6 +45,8 @@ function toSeed(value, fallback = 0) {
 
 function base64ToUint8Array(base64) {
   const cleanBase64 = String(base64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '').replace(/\s+/g, '');
+  // Guard against pathological inputs (~6MB raw cap)
+  if (cleanBase64.length > 8_000_000) throw new Error('Image payload is too large.');
   const binary = atob(cleanBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -237,22 +242,24 @@ async function generateWithPollinations({ prompt, width, height, seed, model = '
 // ----------------------------------------------------
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: CORS_HEADERS });
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
-
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
   }
 
   try {
-    const body = await req.json();
-    const { 
-      prompt, 
-      width, 
-      height, 
-      seed, 
-      image, 
-      model, 
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return jsonResponse({ error: 'Invalid JSON body' }, 400);
+    }
+    const {
+      prompt,
+      width,
+      height,
+      seed,
+      image,
+      model,
       provider,
       cfAccountId,
       cfApiToken,
@@ -260,6 +267,21 @@ export default async function handler(req) {
       cfModel,
       hfModel
     } = body;
+
+    if (provider && !ALLOWED_PROVIDERS.has(provider)) {
+      return jsonResponse({ error: `Invalid provider: ${provider}` }, 400);
+    }
+    if (typeof prompt === 'string' && prompt.length > MAX_PROMPT_LENGTH) {
+      return jsonResponse({ error: `Prompt exceeds the ${MAX_PROMPT_LENGTH} character limit.` }, 400);
+    }
+    const numericW = Number(width);
+    if (Number.isFinite(numericW) && (numericW <= 0 || numericW > MAX_WIDTH)) {
+      return jsonResponse({ error: `width must be between 1 and ${MAX_WIDTH}` }, 400);
+    }
+    const numericH = Number(height);
+    if (Number.isFinite(numericH) && (numericH <= 0 || numericH > MAX_HEIGHT)) {
+      return jsonResponse({ error: `height must be between 1 and ${MAX_HEIGHT}` }, 400);
+    }
 
     const finalWidth = toPositiveInt(width, 1024);
     const finalHeight = toPositiveInt(height, 1024);

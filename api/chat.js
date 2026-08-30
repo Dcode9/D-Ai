@@ -199,6 +199,7 @@ export default async function handler(req, res) {
   const groqKey = (process.env.GROQ_API_KEY || process.env.GROQ_API || process.env.GROK_API_KEY || process.env.GROK_API || '').trim();
   const cfKey = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
   const cfAccount = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+  const reqId = req.headers['x-request-id'] || `chat_${Date.now().toString(36)}`;
 
   if (req.method === 'GET') {
     return res.status(200).json({ 
@@ -213,9 +214,47 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+
+      // Input validation
+      const MAX_MESSAGES = 200;
+      const MAX_CONTENT_LENGTH = 50_000; // chars per message
+      const MAX_TOTAL_MESSAGES_BYTES = 200_000; // aggregate safety
+      if (messages.length === 0) {
+        return res.status(400).json({ error: 'At least one message is required.' });
+      }
+      if (messages.length > MAX_MESSAGES) {
+        return res.status(400).json({ error: `Too many messages in the request (limit ${MAX_MESSAGES}).` });
+      }
+      let totalSize = 0;
+      for (const m of messages) {
+        if (!m || typeof m !== 'object') {
+          return res.status(400).json({ error: 'Each message must be an object with role and content.' });
+        }
+        if (!['user', 'assistant', 'system'].includes(m.role)) {
+          return res.status(400).json({ error: `Invalid message role: ${m.role}` });
+        }
+        const contentStr = getTextContent(m.content);
+        if (contentStr.length > MAX_CONTENT_LENGTH) {
+          return res.status(400).json({ error: `A single message exceeds the ${MAX_CONTENT_LENGTH} character limit.` });
+        }
+        totalSize += contentStr.length;
+        if (totalSize > MAX_TOTAL_MESSAGES_BYTES) {
+          return res.status(400).json({ error: 'Conversation is too long to send in a single request.' });
+        }
+      }
+      if (typeof req.body?.max_tokens === 'number' && (req.body.max_tokens < 1 || req.body.max_tokens > 32768)) {
+        return res.status(400).json({ error: 'max_tokens must be between 1 and 32768.' });
+      }
+      if (typeof req.body?.temperature === 'number' && (req.body.temperature < 0 || req.body.temperature > 2)) {
+        return res.status(400).json({ error: 'temperature must be between 0 and 2.' });
+      }
+
       const hasVision = hasAnyVisionContent(messages);
       const isCompoundRequest = req.body?.compound === true || req.body?.model === 'groq/compound' || req.body?.model === 'groq/compound-mini';
       const requestedProvider = req.body?.provider;
+      if (requestedProvider && !['groq', 'inception', 'cloudflare'].includes(requestedProvider)) {
+        return res.status(400).json({ error: `Invalid provider: ${requestedProvider}` });
+      }
 
       // Tiered Provider Cascade Assembly
       const providersToTry = [];
