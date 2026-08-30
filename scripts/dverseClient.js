@@ -1,7 +1,15 @@
 (function () {
+  // Prefer runtime overrides so deployments can inject via their hosting platform.
+  // Falls back to defaults for local convenience, but you SHOULD override
+  // DVERSE_SUPABASE_URL and DVERSE_SUPABASE_KEY in your hosting environment.
   const SUPABASE_URL = window.DVERSE_SUPABASE_URL || 'https://gmwieijbrrztukqpfwkg.supabase.co';
   const SUPABASE_KEY = window.DVERSE_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdtd2llaWpicnJ6dHVrcXBmd2tnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNzcyMDAsImV4cCI6MjA5Njc1MzIwMH0.yPVyvYH3g1TBCb65S86USa6_dNNactQb-bNLKWxcf3w';
   const ready = Boolean(window.supabase && SUPABASE_URL && SUPABASE_KEY);
+  if (!window.DVERSE_SUPABASE_URL || !window.DVERSE_SUPABASE_KEY) {
+    // Surface a console warning so deployers know to configure their own Supabase project
+    // for production. The anon key below is only safe when Row Level Security is on.
+    console.info('[D-Ai] Using default Supabase project for cloud sync. Override window.DVERSE_SUPABASE_URL and window.DVERSE_SUPABASE_KEY in production.');
+  }
   const client = ready ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
       autoRefreshToken: true,

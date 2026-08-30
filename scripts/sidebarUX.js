@@ -64,6 +64,16 @@
       const ratio = clamped / maxShift;
       document.body.style.setProperty('--swipe-shift', `${Math.round(clamped)}px`);
       document.body.style.setProperty('--swipe-ratio', ratio.toFixed(3));
+      // While the user is actively dragging, mark the sidebar as visually
+      // open so the panel can slide in. The actual open/close state
+      // is committed on touchend by `setHistoryOpen`.
+      if (clamped > 4) {
+        panel.classList.add('swipe-peek');
+        panel.style.pointerEvents = 'none';
+      } else {
+        panel.classList.remove('swipe-peek');
+        panel.style.pointerEvents = '';
+      }
       if (backdrop) {
         backdrop.style.opacity = String(Math.min(0.65, ratio * 0.65));
         if (clamped > 0) backdrop.classList.remove('hidden');
@@ -73,6 +83,8 @@
     const resetSwipeShift = () => {
       document.body.style.removeProperty('--swipe-shift');
       document.body.style.removeProperty('--swipe-ratio');
+      panel.classList.remove('swipe-peek');
+      panel.style.pointerEvents = '';
       if (backdrop) backdrop.style.removeProperty('opacity');
     };
 
