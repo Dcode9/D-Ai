@@ -101,7 +101,7 @@ const imageParser = express.json({ limit: '64kb' });
 const interfaceParser = express.json({ limit: '64kb' });
 const uploadParser = express.json({ limit: '128kb' });
 
-function createWebRequest(req) {
+function createWebRequest(req, requestId) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
     const host = req.headers['host'] || 'localhost:3000';
     const url = `${protocol}://${host}${req.originalUrl || req.url}`;
@@ -116,7 +116,7 @@ function createWebRequest(req) {
             }
         }
     }
-    if (res_id) headers.set('x-request-id', res_id);
+    if (requestId) headers.set('x-request-id', requestId);
 
     const init = { method: req.method, headers };
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -124,19 +124,28 @@ function createWebRequest(req) {
     }
     return new Request(url, init);
 }
-let res_id;
-const _origSetHeader = (() => {})();
 
 // adapt a Web-Fetch-style handler to Express
 function adaptWebHandler(handler) {
     return async (req, res) => {
+        // CRITICAL: silence stray response errors. Without this, a write
+        // after the response is closed becomes an unhandled error and
+        // crashes the Node process.
+        res.on('error', (e) => {
+            try {
+                console.error(JSON.stringify({
+                    level: 'warn', scope: 'response.error',
+                    message: e?.message || String(e)
+                }));
+            } catch { /* noop */ }
+        });
         try {
-            res_id = res.getHeader('X-Request-Id') || crypto.randomUUID();
-            const webReq = createWebRequest(req);
+            const requestId = res.getHeader('X-Request-Id') || crypto.randomUUID();
+            const webReq = createWebRequest(req, requestId);
             const webRes = await handler(webReq);
             res.status(webRes.status);
             webRes.headers.forEach((val, key) => {
-                try { res.setHeader(key, val); } catch (e) { /* ignore restricted headers */ }
+                try { res.setHeader(key, val); } catch { /* ignore restricted headers */ }
             });
             if (webRes.body) {
                 const reader = webRes.body.getReader();
@@ -149,9 +158,15 @@ function adaptWebHandler(handler) {
             res.end();
         } catch (err) {
             const reqId = res.getHeader('X-Request-Id');
-            console.error(JSON.stringify({ level: 'error', reqId, scope: 'adaptWebHandler', message: err.message, stack: err.stack }));
-            if (!res.headersSent) res.status(500).json({ error: 'Internal Server Error', requestId: reqId });
-            else { try { res.end(); } catch (e) {} }
+            try {
+                console.error(JSON.stringify({ level: 'error', reqId, scope: 'adaptWebHandler', message: err.message, stack: err.stack }));
+            } catch { /* noop */ }
+            if (!res.headersSent) {
+                try { res.status(500).json({ error: 'Internal Server Error', requestId: reqId }); }
+                catch { try { res.end(); } catch { /* noop */ } }
+            } else {
+                try { res.end(); } catch { /* socket gone */ }
+            }
         }
     };
 }
@@ -179,6 +194,45 @@ app.get('*all', (req, res) => {
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(JSON.stringify({ level: 'info', message: `D'Ai Server running on http://0.0.0.0:${PORT}`, port: PORT }));
+});
+
+// ---------- Global safety nets ----------
+// Without these, a single rogue response write (e.g.
+// `ERR_STREAM_WRITE_AFTER_END` from a path that closed the response
+// twice) becomes an unhandled `error` event on the response's
+// EventEmitter and crashes the entire Node process, which then
+// makes every subsequent request fail with "connection refused".
+// We log and keep running.
+process.on('uncaughtException', (err) => {
+    try {
+        console.error(JSON.stringify({
+            level: 'error', scope: 'uncaughtException',
+            message: err?.message || String(err),
+            stack: err?.stack
+        }));
+    } catch { /* nothing to do */ }
+});
+process.on('unhandledRejection', (reason) => {
+    try {
+        const msg = reason?.stack || reason?.message || String(reason);
+        console.error(JSON.stringify({
+            level: 'error', scope: 'unhandledRejection',
+            message: msg
+        }));
+    } catch { /* nothing to do */ }
+});
+// Belt-and-braces: if any active socket emits an error we just log it
+// instead of crashing.
+server.on('clientError', (err, socket) => {
+    try {
+        console.error(JSON.stringify({
+            level: 'warn', scope: 'server.clientError',
+            message: err?.message || String(err)
+        }));
+    } catch { /* noop */ }
+    if (socket && socket.writable) {
+        try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch { /* noop */ }
+    }
 });
 
 // Graceful shutdown

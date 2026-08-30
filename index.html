@@ -1281,7 +1281,32 @@
                 <div id="hero" class="h-full flex flex-col items-center justify-center select-none py-6">
                     <img src="https://raw.githubusercontent.com/Dcode9/D-verse/334e4e91469fe01722191b729d92b0c090b77eaf/D_Ai_Logo.ico" class="h-16 w-auto mb-4" alt="Logo">
                     <h2 class="text-2xl font-extrabold text-white tracking-tight mb-2">D'Ai ✨ - Scary Fast.</h2>
-                    <p class="text-xs text-gray-400 mb-8 max-w-md text-center">Lightning fast chat, image generation, web search, code previews, and interactive widgets.</p>
+                    <p class="text-xs text-gray-400 mb-4 max-w-md text-center">Lightning fast chat, image generation, web search, code previews, and interactive widgets.</p>
+
+                    <!-- Deployment status banner: shown only when no API keys are
+                         configured. Auto-dismisses once the health check confirms
+                         a real provider is online. -->
+                    <div id="deployment-status-banner" class="hidden w-full max-w-xl px-2 mb-5">
+                        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-3.5 text-left flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-300 flex items-center justify-center text-base flex-shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-bold text-amber-200 mb-0.5">No AI provider keys detected on this server</div>
+                                <div class="text-[11px] text-amber-200/80 leading-relaxed">
+                                    Replies are using a graceful offline mode. Set <code class="px-1 py-0.5 rounded bg-black/30 text-amber-100 font-mono text-[10px]">GROQ_API_KEY</code> or <code class="px-1 py-0.5 rounded bg-black/30 text-amber-100 font-mono text-[10px]">INCEPTION_API</code> in the server environment to enable real models.
+                                </div>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/30 text-amber-200 border border-amber-500/20" id="dep-status-groq">Groq: …</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/30 text-amber-200 border border-amber-500/20" id="dep-status-inception">Inception: …</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/30 text-amber-200 border border-amber-500/20" id="dep-status-cf">Cloudflare: …</span>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('deployment-status-banner').classList.add('hidden')" class="w-7 h-7 rounded-full text-amber-200/80 hover:text-white hover:bg-white/10 flex items-center justify-center text-xs flex-shrink-0 transition-colors" title="Dismiss banner" aria-label="Dismiss">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl px-2">
                         <button onclick="window.sendPrompt('⚡ Explain quantum computing simply')" class="hero-chip p-3.5 text-left border border-white/10 rounded-2xl bg-white/[0.03] hover:bg-sky-500/10 hover:border-sky-500/30 transition-all text-xs group">
@@ -1522,11 +1547,15 @@
                 <div class="space-y-1">
                     <label class="text-[10px] text-gray-400">Selected Model</label>
                     <select id="dev-select-model" onchange="window.setDevModel(this.value)" class="w-full px-2 py-1.5 rounded-lg bg-black/50 border border-white/10 text-[11px] font-mono text-white focus:outline-none focus:border-sky-500">
-                        <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b (Qwen 3.6 27B Vision)</option>
-                        <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Default Text)</option>
-                        <option value="deepseek-r1-distill-llama-70b">deepseek-r1-distill-llama-70b (Reasoning)</option>
-                        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Fast 8B)</option>
+                        <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Reasoning + Tools, Production)</option>
+                        <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Reasoning + Tools, Smaller)</option>
                         <option value="groq/compound">groq/compound (Autonomous Search & Code)</option>
+                        <option value="groq/compound-mini">groq/compound-mini (Lower Latency Agentic)</option>
+                        <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b (Vision, Preview)</option>
+                        <option value="meta-llama/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b (Vision)</option>
+                        <option value="meta-llama/llama-4-scout-17b-16e-instruct">llama-4-scout-17b (Vision)</option>
+                        <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Legacy Fallback)</option>
+                        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Legacy Fallback)</option>
                         <option value="mercury-2">mercury-2 (Inception Fast Text)</option>
                         <option value="mercury-2-coder">mercury-2-coder (Inception Coder)</option>
                     </select>
@@ -1576,7 +1605,7 @@
             <div class="p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
                 <div class="flex justify-between items-center text-[11px]">
                     <span class="text-gray-400">Active Model</span>
-                    <span id="dev-metric-model" class="font-mono text-white font-semibold">llama-3.3-70b</span>
+                    <span id="dev-metric-model" class="font-mono text-white font-semibold">openai/gpt-oss-120b</span>
                 </div>
                 <div class="flex justify-between items-center text-[11px]">
                     <span class="text-gray-400">API Provider</span>
@@ -1669,7 +1698,7 @@
         window.activeDevProvider = localStorage.getItem('dai_dev_provider') || 'inception';
         window.lastApiError = null;
 
-        window.activeDevModel = localStorage.getItem('dai_dev_model') || 'llama-3.3-70b-versatile';
+        window.activeDevModel = localStorage.getItem('dai_dev_model') || 'openai/gpt-oss-120b';
 
         window.setDevProvider = (provider) => {
             window.activeDevProvider = provider === 'inception' ? 'inception' : (provider === 'compound' ? 'compound' : 'groq');
@@ -1700,10 +1729,10 @@
                 window.showToast?.('🔍 Switched to Groq Compound (Autonomous Search & Code)', 'fa-solid fa-robot text-emerald-400');
             } else {
                 if (grqBtn) grqBtn.className = 'py-1.5 px-1 rounded-md text-[10px] font-semibold transition-all bg-sky-500/20 text-sky-300 border border-sky-500/40 cursor-pointer text-center';
-                window.activeDevModel = 'llama-3.3-70b-versatile';
+                window.activeDevModel = 'openai/gpt-oss-120b';
                 if (prvEl) prvEl.textContent = 'Groq';
-                if (selEl) selEl.value = 'llama-3.3-70b-versatile';
-                window.showToast?.('⚡ Switched to Groq (Llama 3.3 / Qwen)', 'fa-solid fa-bolt text-sky-400');
+                if (selEl) selEl.value = 'openai/gpt-oss-120b';
+                window.showToast?.('⚡ Switched to Groq (Reasoning + Tools)', 'fa-solid fa-bolt text-sky-400');
             }
             if (modEl) modEl.textContent = window.activeDevModel;
             try { localStorage.setItem('dai_dev_model', window.activeDevModel); } catch (e) {}
@@ -1851,7 +1880,7 @@
             window.setDevProvider(window.activeDevProvider);
         });
 
-        window.updateDevTelemetry = ({ latency = 0, ttft = 0, tokens = 0, tps = 0, model = 'llama-3.3-70b', provider = 'Groq', context = 0, searches = 0, raw = '' }) => {
+        window.updateDevTelemetry = ({ latency = 0, ttft = 0, tokens = 0, tps = 0, model = 'openai/gpt-oss-120b', provider = 'Groq', context = 0, searches = 0, raw = '' }) => {
             const latEl = document.getElementById('dev-metric-latency');
             const tpsEl = document.getElementById('dev-metric-tps');
             const tokEl = document.getElementById('dev-metric-tokens');
@@ -2014,6 +2043,61 @@
             setInterval(() => checkHealth(false), 60_000);
             // Re-check when window regains focus
             window.addEventListener('focus', () => checkHealth(true));
+        })();
+
+        // --- Deployment-status banner: visible only when no API keys are
+        //     configured on the server. Lets the user know they're in
+        //     "graceful offline" mode instead of wondering why the model
+        //     "isn't working". Auto-hides once keys are present.
+        (function setupDeploymentStatusBanner() {
+            const banner = document.getElementById('deployment-status-banner');
+            if (!banner) return;
+            const groqEl = document.getElementById('dep-status-groq');
+            const incEl = document.getElementById('dep-status-inception');
+            const cfEl = document.getElementById('dep-status-cf');
+            const setChip = (el, ok, label) => {
+                if (!el) return;
+                if (ok) {
+                    el.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-500/30';
+                    el.textContent = `${label}: ✓`;
+                } else {
+                    el.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/30 text-amber-200 border border-amber-500/20';
+                    el.textContent = `${label}: ✗`;
+                }
+            };
+            const refresh = async () => {
+                try {
+                    const ctrl = new AbortController();
+                    const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+                    const res = await fetch('/api/chat', { method: 'GET', signal: ctrl.signal });
+                    clearTimeout(timeoutId);
+                    if (!res.ok) {
+                        banner.classList.add('hidden');
+                        return;
+                    }
+                    const data = await res.json().catch(() => ({}));
+                    const hasGroq = !!data.has_groq;
+                    const hasInc = !!data.has_inception;
+                    const hasCf = !!data.has_cloudflare;
+                    setChip(groqEl, hasGroq, 'Groq');
+                    setChip(incEl, hasInc, 'Inception');
+                    setChip(cfEl, hasCf, 'Cloudflare');
+                    // Banner is only meaningful when NO chat provider is set
+                    // (Cloudflare alone only serves image, not chat).
+                    if (!hasGroq && !hasInc) {
+                        banner.classList.remove('hidden');
+                    } else {
+                        banner.classList.add('hidden');
+                    }
+                } catch {
+                    // server unreachable — don't pester with the banner.
+                    banner.classList.add('hidden');
+                }
+            };
+            window.refreshDeploymentStatus = refresh;
+            document.addEventListener('DOMContentLoaded', () => setTimeout(refresh, 800));
+            setInterval(refresh, 90_000);
+            window.addEventListener('focus', refresh);
         })();
         window.devErrorBlock = (title, message) => `<div class="text-red-300 p-4 text-xs border border-red-900/40 rounded-lg bg-black/70 font-mono leading-relaxed"><strong>${escapeHtml(title || 'Error')}</strong><br>${escapeHtml(message || 'Unknown error')}</div>`;
         const MEDIA_LIMITS = { image: 5, video: 2 };
@@ -2701,7 +2785,7 @@ ${safeJs}
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'llama-3.3-70b',
+                        model: 'openai/gpt-oss-120b',
                         stream: false,
                         max_completion_tokens: 500,
                         temperature: 0.7,
@@ -3793,7 +3877,7 @@ ${safeJs}
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: 'llama-3.3-70b',
+                            model: 'openai/gpt-oss-120b',
                             stream: false,
                             max_completion_tokens: 900,
                             temperature: 0.45,
@@ -4521,7 +4605,7 @@ ${safeJs}
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: 'llama-3.3-70b',
+                            model: 'openai/gpt-oss-120b',
                             stream: false,
                             max_completion_tokens: 24,
                             temperature: 0.2,
@@ -5126,7 +5210,7 @@ ${safeJs}
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'llama-3.3-70b',
+                        model: 'openai/gpt-oss-120b',
                         stream: false,
                         max_completion_tokens: 8192,
                         temperature: 0.35,
@@ -5549,7 +5633,7 @@ ${safeJs}
                         ttft,
                         tokens: tokenCount,
                         tps: totalTps,
-                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : (window.activeDevModel || 'llama-3.3-70b-versatile'),
+                        model: window.activeDevProvider === 'inception' ? 'mercury-2' : (window.activeDevModel || 'openai/gpt-oss-120b'),
                         provider: window.activeDevProvider === 'inception' ? 'Inception Labs' : (useCompound ? 'Groq Compound' : 'Groq'),
                         context: JSON.stringify(requestPayload.messages).length,
                         searches: searchCount,

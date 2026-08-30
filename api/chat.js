@@ -53,6 +53,22 @@ const WEB_SEARCH_TOOL = {
 // ---------- Public entry point -----------------------------------------
 
 export default async function handler(req, res) {
+  // CRITICAL safety nets — without these an `ERR_STREAM_WRITE_AFTER_END`
+  // (or any other async response error) escapes as an unhandled error
+  // on the response's EventEmitter and crashes the entire Node process,
+  // which makes every subsequent request fail. We swallow them here.
+  if (res && typeof res.on === 'function') {
+    res.on('error', (e) => {
+      try { log('warn', req?.headers?.['x-request-id'] || 'unknown', `response stream error: ${e?.message || e}`); } catch { /* noop */ }
+    });
+    res.on('close', () => {
+      // If the client hangs up mid-stream, mark the response so any
+      // background writer (keep-alive, fallback path, tool events)
+      // can short-circuit without throwing.
+      try { res.writableEnded = true; } catch { /* noop */ }
+    });
+  }
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -193,15 +209,38 @@ export default async function handler(req, res) {
     // Last-resort safety net — should never hit because the loop has
     // its own try/catch. We still emit a clean SSE failure.
     log('error', reqId, `critical unhandled: ${critical?.stack || critical}`);
+    // If headers have not been sent yet, we can still send a clean JSON
+    // error (this is the non-streaming path that bailed early).
     if (!res.headersSent) {
-      return res.status(500).json({ error: 'Internal server error.', reqId });
+      try {
+        return res.status(500).json({ error: 'Internal server error.', reqId });
+      } catch (e) {
+        log('error', reqId, `failed to send 500 JSON: ${e?.message || e}`);
+        try { res.end(); } catch { /* socket gone */ }
+      }
+      return;
+    }
+    // Headers already sent (we're mid-stream). If the response is
+    // already closed, there is literally nothing we can do — writing
+    // any more bytes would throw `ERR_STREAM_WRITE_AFTER_END`, which
+    // Node escalates to an unhandled error and crashes the process.
+    // Just log and bail. The client will see a truncated stream, which
+    // is far better than a crashed server.
+    if (res.writableEnded || res.destroyed) {
+      log('warn', reqId, 'response already closed; cannot emit graceful event');
+      return;
     }
     try {
       sendEvent(res, 'delta', { delta: '\n\nI hit an unexpected issue on my end. Please try again in a moment.' });
       sendEvent(res, 'done', { provider: 'fallback', model: 'none', durationMs: Date.now() - start, turns: 0, error: 'critical' });
       res.write('data: [DONE]\n\n');
       res.end();
-    } catch (e) { /* socket already gone */ }
+    } catch (e) {
+      // Never let the safety net throw — it would escape as an
+      // unhandled error and crash the process.
+      log('warn', reqId, `critical-writer error: ${e?.message || e}`);
+      try { res.end(); } catch { /* socket gone */ }
+    }
   }
 }
 
@@ -212,7 +251,7 @@ async function runWithProviders(ctx) {
   //    (which may itself cascade models within the provider).
   // 2) If everything errors, return a graceful best-effort answer.
   const { reqId, providers, normalised, hasVision, modelHint,
-    maxTokens, temperature, enableWebSearch, searchApiKey, res } = ctx;
+    maxTokens, temperature, enableWebSearch, searchApiKey, res, stream } = ctx;
   const accumulatedSources = [];
   const accumulatedToolCalls = [];
 
@@ -247,16 +286,29 @@ async function runWithProviders(ctx) {
 
   // 2) No provider produced an answer. Stream a graceful, deterministic
   //    best-effort reply so the user always sees something.
+  // CRITICAL: respect the `stream` flag. When `stream:false` the caller
+  // expects a single JSON response — we must NOT touch `res` here or
+  // we'll end the response and then the outer handler will try to
+  // write a JSON body on a closed response, triggering
+  // `ERR_STREAM_WRITE_AFTER_END` which Node treats as an unhandled
+  // error on the response's EventEmitter and crashes the whole
+  // process. Just return the text.
   const lastUser = [...normalised].reverse().find(m => m.role === 'user');
   const graceful = gracefulFallback(lastUser?.content || '', hasVision);
-  try {
-    if (res && !res.writableEnded) {
-      sendEvent(res, 'delta', { delta: graceful });
-      sendEvent(res, 'done', { provider: 'fallback', model: 'graceful', turns: 0, fallback: true });
-      res.write('data: [DONE]\n\n');
-      res.end();
+  if (stream) {
+    try {
+      if (res && !res.writableEnded && !res.destroyed) {
+        sendEvent(res, 'delta', { delta: graceful });
+        sendEvent(res, 'done', { provider: 'fallback', model: 'graceful', turns: 0, fallback: true });
+        if (!res.writableEnded) res.write('data: [DONE]\n\n');
+        if (!res.writableEnded) res.end();
+      }
+    } catch (e) {
+      // Never let the safety net throw — it would escape as an
+      // unhandled error and crash the process.
+      log('warn', reqId, `fallback writer error: ${e?.message || e}`);
     }
-  } catch { /* socket gone */ }
+  }
   return {
     text: graceful, reasoning: null, sources: [], toolCalls: [],
     provider: 'fallback', model: 'graceful', turns: 0, streamed: true
@@ -289,9 +341,21 @@ async function runProviderLoop(ctx) {
     // SSE keep-alive: send a comment on the response every KEEPALIVE_MS
     // so intermediate proxies don't drop the connection during long
     // tool execution. The comment line starts with `:` (SSE spec).
+    // We MUST guard `res.write` and clear the interval as soon as the
+    // response is closed, otherwise an `ERR_STREAM_WRITE_AFTER_END`
+    // would crash the process.
     const keepAlive = setInterval(() => {
-      try { res.write(`: keepalive ${Date.now()}\n\n`); } catch { /* socket gone */ }
-    }, KEEPALIVE_MS).unref?.();
+      if (!res || res.writableEnded || res.destroyed) {
+        clearInterval(keepAlive);
+        return;
+      }
+      try {
+        res.write(`: keepalive ${Date.now()}\n\n`);
+      } catch {
+        clearInterval(keepAlive);
+      }
+    }, KEEPALIVE_MS);
+    if (typeof keepAlive.unref === 'function') keepAlive.unref();
 
     let upstream;
     try {
@@ -626,17 +690,27 @@ function normaliseMessageForWire(m, isVision, provider) {
 function pickModelsForProvider({ provider, isVision }, hasVision, modelHint) {
   if (provider === 'groq') {
     if (hasVision || isVision) {
-      const list = ['meta-llama/llama-4-scout-17b-16e-instruct', 'llama-3.2-90b-vision-preview', 'llama-3.2-11b-vision-preview'];
+      // Vision-capable models currently on Groq. Order = best → fallback.
+      const list = [
+        'meta-llama/llama-4-maverick-17b-128e-instruct', // vision, current
+        'meta-llama/llama-4-scout-17b-16e-instruct',    // vision, still on the doc
+        'qwen/qwen3.6-27b'                              // vision, preview
+      ];
       return modelHint ? [modelHint, ...list.filter(m => m !== modelHint)] : list;
     }
+    // Compound family — its own system, list first if requested
     if (modelHint === 'groq/compound' || modelHint === 'groq/compound-mini') {
-      return ['groq/compound', 'groq/compound-mini', 'llama-3.3-70b-versatile'];
+      return ['groq/compound', 'groq/compound-mini', 'openai/gpt-oss-20b'];
     }
+    // Current production text models (Llama 3.3 / 3.1 / qwen3-32b are
+    // deprecated on Groq as of late 2025; do NOT rely on them).
     const textList = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'qwen/qwen3-32b',
-      'openai/gpt-oss-120b'
+      'openai/gpt-oss-120b',     // reasoning + tools (production)
+      'openai/gpt-oss-20b',      // reasoning + tools (smaller)
+      'groq/compound',           // agentic, server-side tools
+      'groq/compound-mini',      // agentic, lower latency
+      'llama-3.3-70b-versatile', // legacy — kept as last-resort fallback
+      'llama-3.1-8b-instant'     // legacy — kept as last-resort fallback
     ];
     return modelHint ? [modelHint, ...textList.filter(m => m !== modelHint)] : textList;
   }
@@ -736,7 +810,19 @@ function log(level, reqId, msg) {
 }
 
 function sendEvent(res, type, data) {
-  try { res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); } catch { /* socket gone */ }
+  // `sendEvent` is the single chokepoint for every SSE write. It MUST
+  // never throw — a thrown write becomes an unhandled error on the
+  // response's EventEmitter and crashes the Node process. So we
+  // double-check `writableEnded` (the cheap path) AND wrap the write
+  // in a try/catch for everything else (e.g. a socket that was reset
+  // mid-flight).
+  if (!res || res.writableEnded || res.destroyed) return false;
+  try {
+    res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ---------- Graceful fallback when the entire cascade fails -----------
