@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -94,11 +95,15 @@ app.all('/api/interface', adaptWebHandler(interfaceHandler));
 app.all('/api/search', adaptWebHandler(searchHandler));
 
 // Serve static files
-app.use(express.static(__dirname));
+const staticDir = fs.existsSync(path.join(__dirname, 'dist')) ? path.join(__dirname, 'dist') : __dirname;
+app.use(express.static(staticDir));
 
 // Fallback to index.html for SPA routing
 app.get('*all', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexHtml = fs.existsSync(path.join(__dirname, 'dist', 'index.html'))
+    ? path.join(__dirname, 'dist', 'index.html')
+    : path.join(__dirname, 'index.html');
+  res.sendFile(indexHtml);
 });
 
 app.listen(PORT, '0.0.0.0', () => {

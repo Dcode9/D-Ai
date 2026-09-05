@@ -1,17 +1,30 @@
 {
   "name": "d-ai",
   "private": true,
+  "version": "2.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "build:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./styles/input.css -o ./styles/tailwind.css --watch"
-  },
-  "devDependencies": {
-    "tailwindcss": "^3.4.17"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "dependencies": {
     "@vercel/blob": "^2.4.0",
-    "express": "^5.2.1"
+    "clsx": "2.1.1",
+    "express": "^5.2.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "tailwind-merge": "3.4.0"
   },
-  "type": "module"
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.17",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "vite": "7.3.2"
+  }
 }

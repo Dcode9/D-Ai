@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1c1b1a;
+  --color-ink-2: #232220;
+  --color-gold: #c9a86a;
+  --color-gold-2: #e8d3a0;
+  --color-cream: #efe3c6;
+  --color-muted: #8f8574;
+  --color-plum: #6b3fa0;
+  --color-plum-2: #8a5bc4;
+  --color-amber: #c9a04a;
+
+  --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-body: "Newsreader", Georgia, serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #1c1b1a;
+  color: #efe3c6;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ---------- ambient background blobs ---------- */
+.ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  will-change: transform;
+  animation: drift var(--dur, 22s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(var(--dx, 30px), var(--dy, -20px), 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(calc(var(--dx, 30px) * -0.6), calc(var(--dy, -20px) * 0.8), 0) scale(0.96);
+  }
+}
+
+/* ---------- aura blob (thinking / answering) ---------- */
+.aura {
+  position: relative;
+  --c1: #7a49b8;
+  --c2: #c9a04a;
+  --c3: #2c1a45;
+  transition: --c1 1s ease, --c2 1s ease;
+}
+
+.aura__shape {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  animation: morph 9s ease-in-out infinite, spin 26s linear infinite;
+  mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 74%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 74%);
+}
+
+.aura--thinking .aura__shape {
+  animation: morph 4.5s ease-in-out infinite, spin 12s linear infinite, breathe 2.2s ease-in-out infinite;
+}
+
+.aura--answering .aura__shape {
+  animation: morph 7s ease-in-out infinite, spin 30s linear infinite reverse, breathe 5s ease-in-out infinite;
+}
+
+.aura__layer {
+  position: absolute;
+  inset: -20%;
+  filter: blur(14px);
+}
+
+.aura__layer--a {
+  background: radial-gradient(circle at 35% 35%, var(--c1) 0%, transparent 60%),
+    radial-gradient(circle at 70% 70%, var(--c3) 0%, transparent 55%);
+  animation: swirl 7s ease-in-out infinite alternate;
+}
+
+.aura__layer--b {
+  background: radial-gradient(circle at 65% 40%, var(--c2) 0%, transparent 55%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: swirl 5s ease-in-out infinite alternate-reverse;
+}
+
+.aura__grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: overlay;
+  opacity: 0.9;
+}
+
+.aura__ring {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  animation: spin 14s linear infinite;
+}
+
+.aura__ring::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: #e8d3a0;
+  box-shadow: 0 0 8px 2px rgba(232, 211, 160, 0.6);
+}
+
+@keyframes morph {
+  0%,
+  100% {
+    border-radius: 58% 42% 36% 64% / 56% 34% 66% 44%;
+  }
+  33% {
+    border-radius: 38% 62% 66% 34% / 46% 60% 40% 54%;
+  }
+  66% {
+    border-radius: 52% 48% 42% 58% / 64% 40% 60% 36%;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    scale: 0.94;
+  }
+  50% {
+    scale: 1.08;
+  }
+}
+
+@keyframes swirl {
+  from {
+    transform: translate(-6%, -4%) rotate(0deg);
+  }
+  to {
+    transform: translate(6%, 5%) rotate(40deg);
+  }
+}
+
+/* ---------- misc animations & styling ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #8f8574 0%, #efe3c6 50%, #8f8574 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.4s linear infinite;
+}
+
+.caret > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: #c9a86a;
+  animation: blink 0.9s steps(2) infinite;
+}
+
+@keyframes blink {
+  to {
+    opacity: 0;
+  }
+}
+
+.scroll-gold {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 106, 0.35) transparent;
+}
+.scroll-gold::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-gold::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 106, 0.35);
+  border-radius: 3px;
+}
+
+.title-glow {
+  text-shadow: 0 0 22px rgba(239, 227, 198, 0.35), 0 0 2px rgba(239, 227, 198, 0.6);
+}
+
+.frame-glow {
+  filter: drop-shadow(0 0 6px rgba(201, 168, 106, 0.35));
+}
+
+input::placeholder {
+  color: #7f755f;
+}
