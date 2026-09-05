@@ -21,7 +21,6 @@ export default function App() {
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-ink text-cream">
       <SvgDefs />
-      {/* Requirement: All ambient background blobs hidden after the first interaction/response */}
       <Ambient state={chat.state} visible={empty} />
 
       <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
@@ -38,8 +37,22 @@ export default function App() {
             )}
           >
             {empty ? (
-              <div className="flex -translate-y-8 flex-col items-center gap-10 px-6">
+              <div className="flex -translate-y-6 flex-col items-center gap-7 px-6 text-center">
+                {/* Coming Soon Gilded Emblem */}
+                <div className="rise flex flex-col items-center gap-2.5">
+                  <div className="flex items-center gap-2 rounded-full border border-gold/45 bg-black/40 px-4 py-1 shadow-[0_0_16px_rgba(201,168,106,0.18)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-gold-2 shadow-[0_0_6px_rgba(232,211,160,0.8)] animate-pulse" />
+                    <span className="font-body text-[12px] uppercase tracking-[0.26em] text-[#fff2cf]">
+                      ai.d-verse.in — Coming Soon
+                    </span>
+                  </div>
+                  <h2 className="title-glow font-display text-[32px] md:text-[38px] italic tracking-wide text-cream">
+                    An Ornate Intelligence
+                  </h2>
+                </div>
+
                 <ModeButtons mode={chat.mode} onSelect={chat.setMode} />
+
                 <p
                   key={chat.mode ?? "none"}
                   className="rise font-display text-[19px] italic tracking-wide text-muted"
@@ -48,7 +61,6 @@ export default function App() {
                 </p>
               </div>
             ) : (
-              /* Requirement: Mode buttons (Image, Video, Code, Text, Music) hidden after first response */
               <Messages messages={chat.messages} state={chat.state} />
             )}
           </div>

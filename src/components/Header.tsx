@@ -57,12 +57,20 @@ export function Header({ onHistory, onNewChat, historyOpen }: Props) {
         </SmallButton>
       </div>
 
-      <h1
-        className="title-glow pointer-events-none absolute left-1/2 top-[34px] -translate-x-1/2 font-display text-[50px] leading-none tracking-tight text-cream"
-        aria-label="D'Ai"
-      >
-        D’Ai
-      </h1>
+      <div className="pointer-events-none absolute left-1/2 top-[24px] -translate-x-1/2 flex flex-col items-center">
+        <h1
+          className="title-glow font-display text-[46px] leading-none tracking-tight text-cream"
+          aria-label="D'Ai"
+        >
+          D’Ai
+        </h1>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-gold-2 animate-pulse" />
+          <span className="font-body text-[11px] uppercase tracking-[0.24em] text-gold-2/80">
+            Coming Soon • ai.d-verse.in
+          </span>
+        </div>
+      </div>
     </header>
   );
 }
