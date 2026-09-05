@@ -180,7 +180,7 @@ body,
 }
 
 .rise {
-  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @keyframes shimmer {
@@ -201,21 +201,29 @@ body,
   animation: shimmer 2.4s linear infinite;
 }
 
-.caret > :last-child::after {
-  content: "";
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  margin-left: 2px;
-  vertical-align: -0.15em;
-  background: #c9a86a;
-  animation: blink 0.9s steps(2) infinite;
+/* Streaming gold pulse marker */
+@keyframes quill-glow {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.75;
+    box-shadow: 0 0 6px 1px rgba(232, 211, 160, 0.5);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    box-shadow: 0 0 12px 3px rgba(232, 211, 160, 0.85);
+  }
 }
 
-@keyframes blink {
-  to {
-    opacity: 0;
-  }
+.streaming-quill {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  vertical-align: 0.05em;
+  border-radius: 50%;
+  background: #e8d3a0;
+  animation: quill-glow 1.1s ease-in-out infinite;
 }
 
 .scroll-gold {
@@ -240,4 +248,174 @@ body,
 
 input::placeholder {
   color: #7f755f;
+}
+
+/* ---------- D'Ai Ornate Markdown Prose Styling ---------- */
+.dai-prose {
+  font-family: var(--font-body);
+  color: rgba(239, 227, 198, 0.95);
+  font-size: 18.5px;
+  line-height: 1.75;
+  font-weight: 300;
+  word-break: break-word;
+}
+
+.dai-prose > :first-child {
+  margin-top: 0 !important;
+}
+
+.dai-prose > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.dai-prose h1,
+.dai-prose h2,
+.dai-prose h3,
+.dai-prose h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: #fff3d6;
+  margin-top: 1.3em;
+  margin-bottom: 0.45em;
+}
+
+.dai-prose h1 {
+  font-size: 1.75em;
+  border-bottom: 1px solid rgba(201, 168, 106, 0.25);
+  padding-bottom: 0.2em;
+}
+
+.dai-prose h2 {
+  font-size: 1.45em;
+  color: #f4e7c9;
+}
+
+.dai-prose h3 {
+  font-size: 1.25em;
+  color: #e8d3a0;
+}
+
+.dai-prose h4 {
+  font-size: 1.1em;
+  color: #c9a86a;
+}
+
+.dai-prose p {
+  margin-top: 0.65em;
+  margin-bottom: 0.65em;
+}
+
+.dai-prose strong {
+  color: #fff2cf;
+  font-weight: 600;
+}
+
+.dai-prose em {
+  color: #e8d3a0;
+  font-style: italic;
+}
+
+.dai-prose ul {
+  list-style: none !important;
+  padding-left: 0.25rem;
+  margin: 0.8em 0;
+}
+
+.dai-prose ul > li {
+  position: relative;
+  padding-left: 1.6rem;
+  margin-bottom: 0.4em;
+}
+
+.dai-prose ul > li::before {
+  content: "◆";
+  position: absolute;
+  left: 0.35rem;
+  top: 0.2rem;
+  font-size: 0.52rem;
+  color: rgba(201, 168, 106, 0.85);
+}
+
+.dai-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.7rem;
+  margin: 0.8em 0;
+}
+
+.dai-prose ol > li {
+  margin-bottom: 0.4em;
+}
+
+.dai-prose ol > li::marker {
+  color: rgba(201, 168, 106, 0.85);
+  font-family: monospace;
+  font-size: 0.85em;
+}
+
+.dai-prose blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em 0.5em 1.25em;
+  border-left: 2px solid rgba(201, 168, 106, 0.65);
+  background: rgba(201, 168, 106, 0.05);
+  border-radius: 0 4px 4px 0;
+  color: rgba(239, 227, 198, 0.9);
+  font-style: italic;
+}
+
+.dai-prose a {
+  color: #e8d3a0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(201, 168, 106, 0.4);
+  transition: all 0.2s ease;
+}
+
+.dai-prose a:hover {
+  color: #fff3d6;
+  text-decoration-color: #e8d3a0;
+  text-shadow: 0 0 8px rgba(232, 211, 160, 0.4);
+}
+
+.dai-prose code:not(pre code) {
+  font-family: monospace;
+  font-size: 0.88em;
+  padding: 0.15em 0.45em;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  color: #e8d3a0;
+}
+
+.dai-prose hr {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 106, 0.45), transparent);
+  margin: 1.5em 0;
+}
+
+.dai-prose table {
+  width: 100%;
+  margin: 1.2em 0;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.dai-prose th,
+.dai-prose td {
+  border: 1px solid rgba(201, 168, 106, 0.25);
+  padding: 0.6em 0.9em;
+  text-align: left;
+}
+
+.dai-prose th {
+  background: rgba(201, 168, 106, 0.08);
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  color: #fff3d6;
+  border-bottom: 2px solid rgba(201, 168, 106, 0.45);
+}
+
+.dai-prose tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
 }

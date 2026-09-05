@@ -66,6 +66,7 @@ export function useChat() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [state, setState] = useState<AuraState>("idle");
   const abortControllerRef = useRef<AbortController | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -78,6 +79,7 @@ export function useChat() {
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
 
@@ -103,6 +105,21 @@ export function useChat() {
     },
     [],
   );
+
+  const stop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    setState("idle");
+    setMessages((prev) =>
+      prev.map((m) => (m.streaming ? { ...m, streaming: false } : m)),
+    );
+  }, []);
 
   const send = useCallback(
     async (text: string) => {
@@ -137,7 +154,6 @@ export function useChat() {
         ]);
 
         try {
-          // Attempt real /api/image endpoint
           let imageUrl = "";
           try {
             const imgRes = await fetch("/api/image", {
@@ -160,7 +176,6 @@ export function useChat() {
             console.warn("Direct /api/image call failed, using fallback:", apiErr);
           }
 
-          // Fallback image via Pollinations free high-quality engine
           if (!imageUrl) {
             const seed = Math.floor(Math.random() * 1000000);
             imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
@@ -211,8 +226,35 @@ export function useChat() {
           content: m.content,
         }));
 
-        let accumulated = "";
+        let rawBuffer = "";
+        let displayedText = "";
+        let isStreamingActive = true;
         let streamSuccess = false;
+
+        // Smooth double-buffer streaming loop
+        const startAnimationLoop = () => {
+          const tick = () => {
+            if (displayedText.length < rawBuffer.length) {
+              const diff = rawBuffer.length - displayedText.length;
+              // Adaptive pacing for 100+ tokens/sec:
+              // Reveals smoothly without lag while handling huge bursts
+              const step = Math.max(1, Math.ceil(diff / 5));
+              displayedText = rawBuffer.slice(0, displayedText.length + step);
+
+              setMessages((prev) =>
+                prev.map((x) =>
+                  x.id === asstId ? { ...x, content: displayedText } : x,
+                ),
+              );
+            }
+
+            if (isStreamingActive || displayedText.length < rawBuffer.length) {
+              animFrameRef.current = requestAnimationFrame(tick);
+            }
+          };
+
+          animFrameRef.current = requestAnimationFrame(tick);
+        };
 
         try {
           const response = await fetch("/api/chat", {
@@ -229,15 +271,17 @@ export function useChat() {
           if (response.ok && response.body) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let buffer = "";
+            let sseChunkBuffer = "";
+
+            startAnimationLoop();
 
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
 
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() || "";
+              sseChunkBuffer += decoder.decode(value, { stream: true });
+              const lines = sseChunkBuffer.split("\n");
+              sseChunkBuffer = lines.pop() || "";
 
               for (const line of lines) {
                 const trimmed = line.trim();
@@ -252,36 +296,33 @@ export function useChat() {
                     parsed.choices?.[0]?.text ||
                     "";
                   if (chunk) {
-                    if (!accumulated) {
+                    if (!rawBuffer) {
                       setState("answering");
                     }
-                    accumulated += chunk;
-                    setMessages((m) =>
-                      m.map((x) => (x.id === asstId ? { ...x, content: accumulated } : x)),
-                    );
+                    rawBuffer += chunk;
                     streamSuccess = true;
                   }
                 } catch {
-                  // If raw plain text
                   if (raw && !raw.startsWith("{")) {
-                    accumulated += raw;
-                    setMessages((m) =>
-                      m.map((x) => (x.id === asstId ? { ...x, content: accumulated } : x)),
-                    );
+                    if (!rawBuffer) {
+                      setState("answering");
+                    }
+                    rawBuffer += raw;
                     streamSuccess = true;
                   }
                 }
               }
             }
           }
-        } catch (apiErr) {
-          console.warn("Direct /api/chat error, attempting resilient fallback:", apiErr);
+        } catch (apiErr: any) {
+          if (apiErr?.name !== "AbortError") {
+            console.warn("Direct /api/chat error, attempting resilient fallback:", apiErr);
+          }
         }
 
-        // Resilient fallback if /api/chat returned no content (e.g. offline or missing server keys)
-        if (!streamSuccess || !accumulated.trim()) {
+        // Resilient fallback if /api/chat returned no content
+        if (!streamSuccess || !rawBuffer.trim()) {
           try {
-            // Free Pollinations AI streaming / completions fallback
             const fallbackRes = await fetch(
               `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&system=${encodeURIComponent(
                 "You are D'Ai, an ornate and profound intelligence created by Dhairya Shah. Respond thoughtfully in elegant markdown.",
@@ -290,24 +331,41 @@ export function useChat() {
             );
             if (fallbackRes.ok) {
               setState("answering");
-              accumulated = await fallbackRes.text();
-              setMessages((m) =>
-                m.map((x) => (x.id === asstId ? { ...x, content: accumulated } : x)),
-              );
+              const fullText = await fallbackRes.text();
+              rawBuffer = fullText;
+              startAnimationLoop();
               streamSuccess = true;
             }
-          } catch (pollErr) {
-            console.warn("Pollinations fallback failed, utilizing local composer:", pollErr);
+          } catch (pollErr: any) {
+            if (pollErr?.name !== "AbortError") {
+              console.warn("Pollinations fallback failed, utilizing local composer:", pollErr);
+            }
           }
         }
 
-        // Final fallback: Fable 5.1 ornamental composition
-        if (!streamSuccess || !accumulated.trim()) {
+        // Final ornamental fallback
+        if (!streamSuccess || !rawBuffer.trim()) {
           setState("answering");
-          accumulated = compose(prompt, mode);
-          setMessages((m) =>
-            m.map((x) => (x.id === asstId ? { ...x, content: accumulated } : x)),
-          );
+          rawBuffer = compose(prompt, mode);
+          startAnimationLoop();
+        }
+
+        // Let the animation finish catching up
+        isStreamingActive = false;
+        await new Promise<void>((resolve) => {
+          const checkDone = () => {
+            if (displayedText.length >= rawBuffer.length) {
+              resolve();
+            } else {
+              setTimeout(checkDone, 40);
+            }
+          };
+          checkDone();
+        });
+
+        if (animFrameRef.current) {
+          cancelAnimationFrame(animFrameRef.current);
+          animFrameRef.current = null;
         }
 
         const done = [
@@ -315,8 +373,9 @@ export function useChat() {
           {
             id: asstId,
             role: "assistant" as const,
-            content: accumulated,
+            content: rawBuffer,
             mode,
+            streaming: false,
           },
         ];
         setMessages(done);
@@ -332,24 +391,24 @@ export function useChat() {
   );
 
   const newChat = useCallback(() => {
-    abortControllerRef.current?.abort();
+    stop();
     setMessages([]);
     setActiveId(null);
     setMode(null);
     setState("idle");
-  }, []);
+  }, [stop]);
 
   const openConversation = useCallback(
     (id: string) => {
       const c = conversations.find((x) => x.id === id);
       if (!c) return;
-      abortControllerRef.current?.abort();
+      stop();
       setActiveId(id);
       setMessages(c.messages);
       setMode(c.messages[c.messages.length - 1]?.mode ?? null);
       setState("idle");
     },
-    [conversations],
+    [conversations, stop],
   );
 
   const deleteConversation = useCallback(
@@ -368,6 +427,7 @@ export function useChat() {
     setMode,
     state,
     send,
+    stop,
     newChat,
     openConversation,
     deleteConversation,

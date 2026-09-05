@@ -4,7 +4,12 @@ import { INPUT_CAP, INPUT_DIAMOND, InputFrame } from "./frames/InputFrame";
 import type { Mode } from "../hooks/useChat";
 import { cn } from "../utils/cn";
 
-type Props = { onSend: (text: string) => void; busy: boolean; mode: Mode | null };
+type Props = {
+  onSend: (text: string) => void;
+  onStop?: () => void;
+  busy: boolean;
+  mode: Mode | null;
+};
 
 const HINT: Record<Mode, string> = {
   Image: "Describe the image you envision…",
@@ -14,13 +19,17 @@ const HINT: Record<Mode, string> = {
   Music: "Describe the mood, tempo, instruments…",
 };
 
-export function ChatInput({ onSend, busy, mode }: Props) {
+export function ChatInput({ onSend, onStop, busy, mode }: Props) {
   const { ref, w, h } = useSize<HTMLFormElement>();
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
+    if (busy && onStop) {
+      onStop();
+      return;
+    }
     if (!value.trim() || busy) return;
     onSend(value);
     setValue("");
@@ -51,21 +60,36 @@ export function ChatInput({ onSend, busy, mode }: Props) {
           autoComplete="off"
           spellCheck={false}
         />
-        <button
-          type="submit"
-          disabled={busy || !value.trim()}
-          aria-label="Send"
-          className={cn(
-            "group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300",
-            "disabled:cursor-default disabled:opacity-50",
-            "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
-          )}
-        >
-          <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 10h25" />
-            <path d="M19 3l8 7-8 7" />
-          </svg>
-        </button>
+
+        {busy ? (
+          <button
+            type="button"
+            onClick={onStop}
+            title="Stop composing"
+            aria-label="Stop composing"
+            className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/70 bg-gold/15 shadow-[0_0_12px_rgba(201,168,106,0.35)]">
+              <span className="h-2.5 w-2.5 rounded-[2px] bg-[#e8d3a0]" />
+            </span>
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!value.trim()}
+            aria-label="Send"
+            className={cn(
+              "group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300",
+              "disabled:cursor-default disabled:opacity-50",
+              "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
+            )}
+          >
+            <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 10h25" />
+              <path d="M19 3l8 7-8 7" />
+            </svg>
+          </button>
+        )}
       </div>
     </form>
   );

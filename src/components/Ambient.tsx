@@ -1,9 +1,10 @@
 import type { AuraState } from "./Aura";
+import { cn } from "../utils/cn";
 
-type Props = { state: AuraState };
+type Props = { state: AuraState; visible?: boolean };
 
 /** Slow-drifting grainy gradient blobs bleeding in from the edges. */
-export function Ambient({ state }: Props) {
+export function Ambient({ state, visible = true }: Props) {
   const boost = state === "thinking" ? 1.35 : state === "answering" ? 1.2 : 1;
   const blob = (style: React.CSSProperties, color: string, base: number) => (
     <div
@@ -17,7 +18,13 @@ export function Ambient({ state }: Props) {
   );
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-1000",
+        visible ? "opacity-100" : "opacity-0",
+      )}
+      aria-hidden
+    >
       {/* top-right plum */}
       {blob(
         { top: "-6%", right: "-10%", width: 560, height: 560, ["--dx" as string]: "-40px", ["--dy" as string]: "30px", ["--dur" as string]: "26s" },

@@ -21,11 +21,12 @@ export default function App() {
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-ink text-cream">
       <SvgDefs />
-      <Ambient state={chat.state} />
+      {/* Requirement: All ambient background blobs hidden after the first interaction/response */}
+      <Ambient state={chat.state} visible={empty} />
 
       <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
 
-      <main className="relative z-10 flex-1 px-4 pb-[88px] pt-3 md:px-8">
+      <main className="relative z-10 flex-1 px-3 pb-[88px] pt-3 md:px-8">
         {/* framed panel */}
         <div ref={panel.ref} className="relative h-full">
           <PanelFrame w={panel.w} h={panel.h} />
@@ -47,19 +48,15 @@ export default function App() {
                 </p>
               </div>
             ) : (
-              <>
-                <div className="sticky top-0 z-10 flex justify-center bg-gradient-to-b from-ink via-ink/85 to-transparent px-4 pb-4 pt-5">
-                  <ModeButtons mode={chat.mode} onSelect={chat.setMode} compact />
-                </div>
-                <Messages messages={chat.messages} state={chat.state} />
-              </>
+              /* Requirement: Mode buttons (Image, Video, Code, Text, Music) hidden after first response */
+              <Messages messages={chat.messages} state={chat.state} />
             )}
           </div>
         </div>
 
         {/* banner input, straddling the panel's bottom rule */}
         <div className="absolute inset-x-0 bottom-[32px] z-20 px-2 md:px-8">
-          <ChatInput onSend={chat.send} busy={busy} mode={chat.mode} />
+          <ChatInput onSend={chat.send} onStop={chat.stop} busy={busy} mode={chat.mode} />
         </div>
       </main>
 
