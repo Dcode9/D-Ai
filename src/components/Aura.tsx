@@ -26,7 +26,7 @@ export function Aura({ state, size = 56, className, ring = true }: Props) {
         <div className="aura__layer aura__layer--a" />
         <div className="aura__layer aura__layer--b" />
         <svg className="aura__grain">
-          <rect width="100%" height="100%" filter="url(#noise)" />
+          <rect width="100%" height="100%" fill="url(#grain-pattern)" />
         </svg>
       </div>
       {ring && <div className="aura__ring" />}

@@ -155,7 +155,7 @@ export function OrnateFrame({ variant, active, className, children, onClick }: P
               filter="url(#blur-12)"
               className={cn("transition-opacity duration-700", active ? "opacity-70" : "opacity-35 group-hover:opacity-60")}
             />
-            <rect width={w} height={h} filter="url(#noise)" style={{ mixBlendMode: "overlay" }} opacity="0.35" />
+            <rect width={w} height={h} fill="url(#grain-pattern)" style={{ mixBlendMode: "overlay" }} opacity="0.35" />
           </g>
 
           {geo.strokes.map((s, i) => (
