@@ -26,7 +26,7 @@ export function StretchFrame({
   active = false,
   glow = false,
   showBackdrop = true,
-  backdropOpacity = 0.94,
+  backdropOpacity = 0.9,
   className,
 }: StretchFrameProps) {
   const reactId = useId().replace(/:/g, "");
@@ -75,30 +75,59 @@ export function StretchFrame({
         <clipPath id={`frame-clip-${reactId}`}>
           <path d={outerPath} />
         </clipPath>
-        {/* Subtle radial golden sheen for active / hover states */}
-        <radialGradient id={`frame-glow-${reactId}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#e8d3a0" stopOpacity={active ? 0.22 : 0.08} />
-          <stop offset="60%" stopColor="#c9a86a" stopOpacity={active ? 0.1 : 0.03} />
-          <stop offset="100%" stopColor="#181716" stopOpacity="0" />
-        </radialGradient>
       </defs>
 
-      {/* BACK COLORED CONTAINER AREA: 100% boundary-clipped to the exact ornate contour */}
+      {/* BACK COLORED CONTAINER AREA: 100% boundary-clipped to the exact ornate contour with plum/amber soul */}
       {showBackdrop && (
         <g clipPath={`url(#frame-clip-${reactId})`}>
-          {/* Rich velvety dark glass background */}
-          <rect width={w} height={h} fill="#181716" opacity={backdropOpacity} />
+          {/* Base velvety obsidian plate */}
+          <rect width={w} height={h} fill="#161514" opacity={backdropOpacity} />
 
-          {/* Elegant centered golden sheen */}
-          <rect width={w} height={h} fill={`url(#frame-glow-${reactId})`} />
+          {/* Royal Plum ambient glow (drifting from upper-left) */}
+          <ellipse
+            cx={w * 0.28}
+            cy={h * 0.22}
+            rx={Math.max(w * 0.35, 120)}
+            ry={Math.max(h * 0.65, 45)}
+            fill="#6b3fa0"
+            filter="url(#blur-12)"
+            className="transition-opacity duration-700"
+            opacity={active ? 0.85 : 0.52}
+          />
 
-          {/* Subtle noise grain */}
+          {/* Warm Amber / Gold glow (drifting from lower-right) */}
+          <ellipse
+            cx={w * 0.78}
+            cy={h * 0.85}
+            rx={Math.max(w * 0.3, 100)}
+            ry={Math.max(h * 0.6, 40)}
+            fill="#c9a04a"
+            filter="url(#blur-12)"
+            className="transition-opacity duration-700"
+            opacity={active ? 0.78 : 0.44}
+          />
+
+          {/* Third amethyst accent for wider frames (like the message box) */}
+          {w > 300 && (
+            <ellipse
+              cx={w * 0.9}
+              cy={h * 0.15}
+              rx={w * 0.16}
+              ry={h * 0.55}
+              fill="#7a49b8"
+              filter="url(#blur-24)"
+              className="transition-opacity duration-700"
+              opacity={active ? 0.7 : 0.38}
+            />
+          )}
+
+          {/* Fine noise grain overlay for the authentic animated grainy texture */}
           <rect
             width={w}
             height={h}
             filter="url(#noise)"
             style={{ mixBlendMode: "overlay" }}
-            opacity={0.25}
+            opacity={0.35}
           />
         </g>
       )}

@@ -25,7 +25,7 @@ export default function App() {
 
       <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
 
-      <main className="relative z-10 flex-1 px-3 pb-5 pt-2 md:px-8 md:pb-6">
+      <main className="relative z-10 flex-1 px-3 pb-[58px] pt-2 md:px-8 md:pb-[68px]">
         {/* Main D'Ai framed panel container */}
         <div ref={panel.ref} className="relative h-full">
           <PanelFrame w={panel.w} h={panel.h} />
@@ -33,7 +33,7 @@ export default function App() {
           <div
             className={cn(
               "scroll-gold absolute inset-[1px] overflow-y-auto overflow-x-hidden rounded-[15px]",
-              empty ? "flex items-center justify-center pb-24" : "pb-32",
+              empty ? "flex items-center justify-center pb-20" : "pb-24",
             )}
           >
             {empty ? (
@@ -52,8 +52,8 @@ export default function App() {
             )}
           </div>
 
-          {/* Message Box: Positioned cleanly INSIDE the D'Ai panel container, perfectly centered */}
-          <div className="absolute inset-x-0 bottom-4 z-20 px-3 md:bottom-6 md:px-8 flex justify-center pointer-events-none">
+          {/* Message Box: Positioned so the chat container bottom border ends in the middle of the message box */}
+          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-1/2 px-3 md:px-8 pointer-events-none">
             <div className="w-full max-w-[780px] pointer-events-auto">
               <ChatInput onSend={chat.send} onStop={chat.stop} busy={busy} mode={chat.mode} />
             </div>

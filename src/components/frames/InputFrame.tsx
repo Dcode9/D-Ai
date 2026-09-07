@@ -8,39 +8,28 @@ type Props = {
   focused?: boolean;
   busy?: boolean;
   mode?: Mode | null;
-  shapeId?: number;
 };
 
-export const INPUT_CAP = 78; // horizontal padding for ornate end caps
-export const INPUT_DIAMOND = 14; // vertical padding
+export const INPUT_CAP = 78;
+export const INPUT_DIAMOND = 14;
 
-// Mapping of discipline modes to distinct shapes, defaulting to Shape 8 for general chat
-export const MODE_SHAPES: Record<Mode, number> = {
-  Image: 1,
-  Video: 2,
-  Code: 3,
-  Text: 4,
-  Music: 5,
-};
+// The message box ALWAYS uses the same SVG (Shape 8: the heraldic banner container) regardless of mode
+const MESSAGE_BOX_SHAPE: StretchShape =
+  STRETCH_SHAPES.find((s) => s.id === 8) ?? STRETCH_SHAPES[7];
 
-export function InputFrame({ w, h, focused, busy, mode, shapeId }: Props) {
+export function InputFrame({ w, h, focused, busy }: Props) {
   if (!w || !h || w <= 0 || h <= 0) return null;
-
-  // Selected discipline shape or default Shape 8 (heraldic banner frame)
-  const activeShapeId = shapeId ?? (mode ? MODE_SHAPES[mode] : 8);
-  const shape: StretchShape =
-    STRETCH_SHAPES.find((s) => s.id === activeShapeId) ?? STRETCH_SHAPES[7]; // Shape 8 is index 7
 
   return (
     <StretchFrame
-      shape={shape}
+      shape={MESSAGE_BOX_SHAPE}
       w={w}
       h={h}
       strokeWidth={focused ? 1.8 : 1.5}
       active={focused}
       glow={focused || busy}
       showBackdrop={true}
-      backdropOpacity={0.92}
+      backdropOpacity={0.94}
       className="transition-all duration-300"
     />
   );
