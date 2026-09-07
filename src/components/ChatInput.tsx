@@ -39,12 +39,11 @@ export function ChatInput({ onSend, onStop, busy, mode }: Props) {
     <form
       ref={ref}
       onSubmit={submit}
-      className="relative mx-auto h-[112px] w-full max-w-[760px]"
-      style={{ paddingLeft: INPUT_CAP, paddingRight: INPUT_CAP, paddingTop: INPUT_DIAMOND, paddingBottom: INPUT_DIAMOND }}
+      className="relative mx-auto h-[100px] w-full max-w-[780px]"
     >
-      <InputFrame w={w} h={h} focused={focused} busy={busy} />
+      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} />
 
-      <div className="relative z-10 flex h-full items-center gap-3 pl-8 pr-6">
+      <div className="relative z-10 flex h-full items-center gap-3 px-12 md:px-20">
         {mode && (
           <span className="hidden shrink-0 rounded-sm border border-gold/40 px-2 py-[2px] font-body text-[13px] uppercase tracking-[0.18em] text-gold-2/90 sm:inline-block">
             {mode}

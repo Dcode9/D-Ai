@@ -350,14 +350,19 @@ export function useChat() {
           startAnimationLoop();
         }
 
-        // Let the animation finish catching up
+        // Let the animation finish catching up with safety timeout and abort protection
         isStreamingActive = false;
         await new Promise<void>((resolve) => {
+          const startTime = Date.now();
           const checkDone = () => {
-            if (displayedText.length >= rawBuffer.length) {
+            if (
+              controller.signal.aborted ||
+              displayedText.length >= rawBuffer.length ||
+              Date.now() - startTime > 3000
+            ) {
               resolve();
             } else {
-              setTimeout(checkDone, 40);
+              setTimeout(checkDone, 30);
             }
           };
           checkDone();

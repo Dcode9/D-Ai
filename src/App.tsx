@@ -25,37 +25,24 @@ export default function App() {
 
       <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
 
-      <main className="relative z-10 flex-1 px-3 pb-[88px] pt-3 md:px-8">
-        {/* framed panel */}
+      <main className="relative z-10 flex-1 px-3 pb-5 pt-2 md:px-8 md:pb-6">
+        {/* Main D'Ai framed panel container */}
         <div ref={panel.ref} className="relative h-full">
           <PanelFrame w={panel.w} h={panel.h} />
 
           <div
             className={cn(
               "scroll-gold absolute inset-[1px] overflow-y-auto overflow-x-hidden rounded-[15px]",
-              empty ? "flex items-center justify-center" : "pb-24",
+              empty ? "flex items-center justify-center pb-24" : "pb-32",
             )}
           >
             {empty ? (
-              <div className="flex -translate-y-6 flex-col items-center gap-7 px-6 text-center">
-                {/* Coming Soon Gilded Emblem */}
-                <div className="rise flex flex-col items-center gap-2.5">
-                  <div className="flex items-center gap-2 rounded-full border border-gold/45 bg-black/40 px-4 py-1 shadow-[0_0_16px_rgba(201,168,106,0.18)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-gold-2 shadow-[0_0_6px_rgba(232,211,160,0.8)] animate-pulse" />
-                    <span className="font-body text-[12px] uppercase tracking-[0.26em] text-[#fff2cf]">
-                      ai.d-verse.in — Coming Soon
-                    </span>
-                  </div>
-                  <h2 className="title-glow font-display text-[32px] md:text-[38px] italic tracking-wide text-cream">
-                    An Ornate Intelligence
-                  </h2>
-                </div>
-
+              <div className="flex flex-col items-center justify-center gap-7 md:gap-9 px-4 text-center max-w-5xl mx-auto -translate-y-4">
                 <ModeButtons mode={chat.mode} onSelect={chat.setMode} />
 
                 <p
                   key={chat.mode ?? "none"}
-                  className="rise font-display text-[19px] italic tracking-wide text-muted"
+                  className="rise font-display text-[20px] md:text-[22px] italic tracking-wide text-muted"
                 >
                   {chat.mode ? `${chat.mode} mode — ask away.` : "Choose a discipline, or simply begin."}
                 </p>
@@ -64,11 +51,13 @@ export default function App() {
               <Messages messages={chat.messages} state={chat.state} />
             )}
           </div>
-        </div>
 
-        {/* banner input, straddling the panel's bottom rule */}
-        <div className="absolute inset-x-0 bottom-[32px] z-20 px-2 md:px-8">
-          <ChatInput onSend={chat.send} onStop={chat.stop} busy={busy} mode={chat.mode} />
+          {/* Message Box: Positioned cleanly INSIDE the D'Ai panel container, perfectly centered */}
+          <div className="absolute inset-x-0 bottom-4 z-20 px-3 md:bottom-6 md:px-8 flex justify-center pointer-events-none">
+            <div className="w-full max-w-[780px] pointer-events-auto">
+              <ChatInput onSend={chat.send} onStop={chat.stop} busy={busy} mode={chat.mode} />
+            </div>
+          </div>
         </div>
       </main>
 
