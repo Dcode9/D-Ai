@@ -41,10 +41,15 @@ export function StretchFrame({
   const { outerPath, innerPath } = useMemo(() => {
     if (!w || !h || w <= 0 || h <= 0) return { outerPath: "", innerPath: "" };
 
-    // Cap scale proportionally to height, clamped so caps never exceed 42% width on each side
-    const capScale = Math.min(h / shape.viewH, (w * 0.42) / shape.capW);
-    const naturalHeight = shape.viewH * capScale;
-    const capTop = (h - naturalHeight) / 2;
+    // Visual bounds of the ornate frame within the shape's coordinate system
+    const shapeVisualCenterY = (shape.outerTopY + shape.outerBottomY) / 2;
+    const shapeVisualHeight = shape.outerBottomY - shape.outerTopY;
+
+    // Scale proportionally so the visual frame fits comfortably within h
+    const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
+
+    // Position capTop so that the visual center of the shape maps EXACTLY to h / 2
+    const capTop = h / 2 - shapeVisualCenterY * capScale;
 
     const outer = buildClosedFramePath(shape.outer, shape.capW, w, capScale, capTop);
     const inner = buildClosedFramePath(shape.inner, shape.capW, w, capScale, capTop);
@@ -54,9 +59,11 @@ export function StretchFrame({
 
   if (!w || !h || w <= 0 || h <= 0 || !outerPath) return null;
 
-  const effectiveStroke = active
+  const effectiveOuterStroke = active
     ? activeStrokeColor ?? "url(#gold-stroke-bright)"
     : strokeColor ?? "url(#gold-stroke)";
+
+  const isWide = w > 300; // Wide container (Message Box) vs standard button
 
   return (
     <svg
@@ -71,92 +78,127 @@ export function StretchFrame({
       aria-hidden="true"
     >
       <defs>
-        {/* Exact clipping contour matching the outer boundary of the frame */}
-        <clipPath id={`frame-clip-${reactId}`}>
+        {/* Exact clipping contour matching the inner boundary for the interior fill */}
+        <clipPath id={`inner-clip-${reactId}`}>
+          <path d={innerPath || outerPath} />
+        </clipPath>
+        {/* Outer clipping contour for the obsidian base plate */}
+        <clipPath id={`outer-clip-${reactId}`}>
           <path d={outerPath} />
         </clipPath>
       </defs>
 
       {/* BACK COLORED CONTAINER AREA: 100% boundary-clipped to the exact ornate contour with plum/amber soul */}
       {showBackdrop && (
-        <g clipPath={`url(#frame-clip-${reactId})`}>
-          {/* Base velvety obsidian plate */}
-          <rect width={w} height={h} fill="#161514" opacity={backdropOpacity} />
+        <>
+          {/* Base velvety obsidian plate behind the entire frame */}
+          <g clipPath={`url(#outer-clip-${reactId})`}>
+            <rect width={w} height={h} fill="#161514" opacity={backdropOpacity} />
+          </g>
 
-          {/* Royal Plum ambient glow (drifting from upper-left) */}
-          <ellipse
-            cx={w * 0.28}
-            cy={h * 0.22}
-            rx={Math.max(w * 0.35, 120)}
-            ry={Math.max(h * 0.65, 45)}
-            fill="#6b3fa0"
-            filter="url(#blur-12)"
-            className="transition-opacity duration-700"
-            opacity={active ? 0.85 : 0.52}
-          />
+          {/* Inner luminous gradient fill strictly clipped to the inner ornate silhouette */}
+          <g clipPath={`url(#inner-clip-${reactId})`}>
+            <rect width={w} height={h} fill="#161514" opacity={isWide ? 0.92 : 0.85} />
 
-          {/* Warm Amber / Gold glow (drifting from lower-right) */}
-          <ellipse
-            cx={w * 0.78}
-            cy={h * 0.85}
-            rx={Math.max(w * 0.3, 100)}
-            ry={Math.max(h * 0.6, 40)}
-            fill="#c9a04a"
-            filter="url(#blur-12)"
-            className="transition-opacity duration-700"
-            opacity={active ? 0.78 : 0.44}
-          />
+            {!isWide ? (
+              /* Button Fill: Exact match of the original normal SVGs (rich, saturated, high-contrast corner pools) */
+              <>
+                <ellipse
+                  cx={w * 0.3}
+                  cy={h * 0.15}
+                  rx={w * 0.34}
+                  ry={h * 0.5}
+                  fill="#6b3fa0"
+                  filter="url(#blur-12)"
+                  className="transition-opacity duration-700"
+                  opacity={active ? 0.85 : 0.55}
+                />
+                <ellipse
+                  cx={w * 0.8}
+                  cy={h * 0.95}
+                  rx={w * 0.3}
+                  ry={h * 0.45}
+                  fill="#c9a04a"
+                  filter="url(#blur-12)"
+                  className="transition-opacity duration-700"
+                  opacity={active ? 0.75 : 0.42}
+                />
+              </>
+            ) : (
+              /* Message Box Fill: Triple ambient glowing pools (plum on left, warm amber in center, amethyst on right) */
+              <>
+                <ellipse
+                  cx={w * 0.22}
+                  cy={h * 0.85}
+                  rx={w * 0.2}
+                  ry={h * 0.7}
+                  fill="#6b3fa0"
+                  filter="url(#blur-24)"
+                  className="transition-opacity duration-700"
+                  opacity={glow || active ? 0.8 : 0.58}
+                />
+                <ellipse
+                  cx={w * 0.55}
+                  cy={h * 1.05}
+                  rx={w * 0.14}
+                  ry={h * 0.55}
+                  fill="#c9a04a"
+                  filter="url(#blur-24)"
+                  className="transition-opacity duration-700"
+                  opacity={glow || active ? 0.7 : 0.46}
+                />
+                <ellipse
+                  cx={w * 0.9}
+                  cy={h * 0.1}
+                  rx={w * 0.12}
+                  ry={h * 0.5}
+                  fill="#7a49b8"
+                  filter="url(#blur-24)"
+                  className="transition-opacity duration-700"
+                  opacity={glow || active ? 0.65 : 0.4}
+                />
+              </>
+            )}
 
-          {/* Third amethyst accent for wider frames (like the message box) */}
-          {w > 300 && (
-            <ellipse
-              cx={w * 0.9}
-              cy={h * 0.15}
-              rx={w * 0.16}
-              ry={h * 0.55}
-              fill="#7a49b8"
-              filter="url(#blur-24)"
-              className="transition-opacity duration-700"
-              opacity={active ? 0.7 : 0.38}
+            {/* Fine noise grain overlay for authentic animated grainy texture */}
+            <rect
+              width={w}
+              height={h}
+              fill="url(#grain-pattern)"
+              style={{ mixBlendMode: "overlay" }}
+              opacity={0.35}
             />
-          )}
-
-          {/* Fine noise grain overlay for the authentic animated grainy texture */}
-          <rect
-            width={w}
-            height={h}
-            fill="url(#grain-pattern)"
-            style={{ mixBlendMode: "overlay" }}
-            opacity={0.35}
-          />
-        </g>
+          </g>
+        </>
       )}
 
       {/* CONTINUOUS OUTER ORNATE FRAME: 0 gaps, 0 disconnections */}
       <path
         d={outerPath}
         fill="none"
-        stroke={effectiveStroke}
+        stroke={effectiveOuterStroke}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
         shapeRendering="geometricPrecision"
-        opacity={active ? 1 : 0.94}
+        opacity={active ? 1 : 0.92}
       />
 
-      {/* CONTINUOUS INNER ORNATE FRAME: 0 gaps, 0 disconnections */}
-      <path
-        d={innerPath}
-        fill="none"
-        stroke={effectiveStroke}
-        strokeWidth={strokeWidth * 0.85}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        shapeRendering="geometricPrecision"
-        opacity={active ? 0.95 : 0.78}
-      />
+      {/* CONTINUOUS INNER ORNATE FRAME: bright gilded highlight */}
+      {innerPath && (
+        <path
+          d={innerPath}
+          fill="none"
+          stroke={active ? "url(#gold-stroke-bright)" : "url(#gold-stroke-bright)"}
+          strokeWidth={1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          shapeRendering="geometricPrecision"
+          opacity={active ? 0.95 : 0.75}
+        />
+      )}
     </svg>
   );
 }

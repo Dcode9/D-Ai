@@ -31,9 +31,9 @@ function DisciplineButton({ mode, active, onClick, compact, delay = 0 }: Discipl
       onClick={onClick}
       style={{ animationDelay: `${delay}ms` }}
       className={cn(
-        "group relative isolate flex cursor-pointer select-none items-center justify-center outline-none rise transition-all duration-300",
+        "group relative isolate flex cursor-pointer select-none items-center justify-center outline-none rise transition-transform duration-300",
         "hover:-translate-y-1 focus-visible:-translate-y-1 active:scale-95",
-        compact ? "h-[64px] w-[112px]" : "h-[88px] w-[136px] sm:w-[146px] md:w-[154px]",
+        compact ? "h-[64px] w-[112px]" : "h-[104px] w-[158px]",
       )}
       aria-pressed={active}
       title={`${mode} discipline`}
@@ -52,12 +52,11 @@ function DisciplineButton({ mode, active, onClick, compact, delay = 0 }: Discipl
 
       <span
         className={cn(
-          "relative z-10 block font-display italic tracking-wide transition-all duration-300 leading-none select-none",
-          compact ? "text-[20px]" : "text-[26px] md:text-[29px]",
-          active
-            ? "text-[#fff3d6] drop-shadow-[0_0_12px_rgba(232,211,160,0.7)]"
-            : "text-cream group-hover:text-[#fff3d6] group-hover:drop-shadow-[0_0_8px_rgba(201,168,106,0.5)]",
+          "relative z-10 block font-display text-[30px] leading-none tracking-wide transition-colors duration-300 select-none",
+          compact ? "text-[20px]" : "text-[30px]",
+          active ? "text-[#fff3d6]" : "text-cream group-hover:text-[#fff3d6]",
         )}
+        style={{ textShadow: "0 1px 0 rgba(0,0,0,.6), 0 0 14px rgba(239,227,198,.25)" }}
       >
         {mode}
       </span>
@@ -76,7 +75,7 @@ export function ModeButtons({ mode, onSelect, compact }: Props) {
     <div
       className={cn(
         "flex flex-wrap items-center justify-center",
-        compact ? "gap-2.5" : "gap-3 sm:gap-4 md:gap-5",
+        compact ? "gap-2.5" : "gap-5 md:gap-7 max-w-4xl mx-auto",
       )}
     >
       {MODES.map((m, i) => (
