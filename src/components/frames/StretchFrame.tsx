@@ -125,7 +125,7 @@ export function StretchFrame({
           <rect
             width={w}
             height={h}
-            filter="url(#noise)"
+            fill="url(#grain-pattern)"
             style={{ mixBlendMode: "overlay" }}
             opacity={0.35}
           />

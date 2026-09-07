@@ -1,6 +1,7 @@
 /**
  * Global SVG definitions referenced by id across all the frame SVGs.
- * Also renders the full-screen grain overlay.
+ * Uses a hardware-tiled pattern for noise grain to ensure 0% GPU spikes
+ * and eliminate random browser out-of-memory crashes.
  */
 export function SvgDefs() {
   return (
@@ -17,10 +18,16 @@ export function SvgDefs() {
             <stop offset="50%" stopColor="#e8d3a0" />
             <stop offset="100%" stopColor="#c9a86a" />
           </linearGradient>
-          <filter id="noise" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+
+          {/* Optimized noise filter and repeating pattern */}
+          <filter id="noise" x="0" y="0" width="160" height="160" filterUnits="userSpaceOnUse">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
             <feColorMatrix type="saturate" values="0" />
           </filter>
+          <pattern id="grain-pattern" width="160" height="160" patternUnits="userSpaceOnUse">
+            <rect width="160" height="160" filter="url(#noise)" />
+          </pattern>
+
           <filter id="blur-12" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="12" />
           </filter>
@@ -30,20 +37,13 @@ export function SvgDefs() {
         </defs>
       </svg>
 
-      {/* Full-screen grain layer */}
+      {/* Hardware-tiled full-screen grain overlay - lightweight & crash-free */}
       <svg
         className="pointer-events-none fixed inset-0 z-[60] h-full w-full"
-        style={{ mixBlendMode: "overlay", opacity: 0.42 }}
+        style={{ mixBlendMode: "overlay", opacity: 0.38 }}
         aria-hidden
       >
-        <rect width="100%" height="100%" filter="url(#noise)" />
-      </svg>
-      <svg
-        className="pointer-events-none fixed inset-0 z-[60] h-full w-full"
-        style={{ mixBlendMode: "soft-light", opacity: 0.5 }}
-        aria-hidden
-      >
-        <rect width="100%" height="100%" filter="url(#noise)" />
+        <rect width="100%" height="100%" fill="url(#grain-pattern)" />
       </svg>
     </>
   );
