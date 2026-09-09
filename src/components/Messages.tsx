@@ -1,10 +1,300 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { marked, type Tokens } from "marked";
-import type { Message } from "../hooks/useChat";
+import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
 import { cn } from "../utils/cn";
 
 type Props = { messages: Message[]; state: AuraState };
+
+function formatDuration(sec: number): string {
+  if (!sec || sec < 1) return "a while";
+  const rounded = Math.round(sec);
+  return `${rounded} second${rounded === 1 ? "" : "s"}`;
+}
+
+/** Chevron icon helper */
+function ChevronIcon({ open, className }: { open: boolean; className?: string }) {
+  return (
+    <svg
+      className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-200", open ? "rotate-180" : "rotate-0", className)}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+/** Individual Accordion for a Thought step */
+function ThoughtStepItem({ step }: { step: WorkStep & { type: "thought" } }) {
+  const [open, setOpen] = useState(false);
+  const durationLabel = formatDuration(step.durationSec);
+
+  return (
+    <div className="rounded border border-gold/15 bg-black/20 transition-colors hover:border-gold/30">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-[12.5px] font-body text-gold-2/85 hover:text-cream transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gold/60 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+            <path d="M9 21h6" />
+          </svg>
+          <span>Thought for {durationLabel}</span>
+        </div>
+        <ChevronIcon open={open} className="text-gold/60" />
+      </button>
+
+      {open && (
+        <div className="border-t border-gold/15 px-3 py-2.5">
+          {step.content ? (
+            <div className="scroll-gold max-h-60 overflow-y-auto whitespace-pre-wrap font-mono text-[12px] italic leading-relaxed text-[#ded4bf]">
+              {step.content}
+            </div>
+          ) : (
+            <p className="font-body text-[12px] italic text-gold/50">
+              Internal strategy and reasoning deliberation.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Individual Accordion for a Search step */
+function SearchStepItem({ step }: { step: WorkStep & { type: "search" } }) {
+  const [open, setOpen] = useState(false);
+  const count = step.websitesFound;
+
+  return (
+    <div className="rounded border border-gold/15 bg-black/20 transition-colors hover:border-gold/30">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-[12.5px] font-body text-gold-2/85 hover:text-cream transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gold/60 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span>Found {count} website{count === 1 ? "" : "s"}</span>
+        </div>
+        <ChevronIcon open={open} className="text-gold/60" />
+      </button>
+
+      {open && (
+        <div className="space-y-2 border-t border-gold/15 px-3 py-2.5">
+          {step.results.length > 0 ? (
+            step.results.map((res: SearchResult, idx: number) => {
+              let domain = "";
+              try {
+                domain = new URL(res.url).hostname;
+              } catch {
+                domain = res.url;
+              }
+
+              return (
+                <a
+                  key={idx}
+                  href={res.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block rounded border border-gold/20 bg-white/[0.02] p-2.5 transition-all hover:border-gold/50 hover:bg-gold/[0.06]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="line-clamp-1 font-body text-[13px] font-medium text-cream transition-colors group-hover:text-gold">
+                      {res.title || res.url}
+                    </span>
+                    <svg
+                      className="h-3 w-3 shrink-0 text-gold/50 transition-transform group-hover:translate-x-0.5 group-hover:text-gold"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </div>
+                  {domain && (
+                    <span className="mt-0.5 block truncate font-mono text-[11px] text-gold/60">
+                      {domain}
+                    </span>
+                  )}
+                  {res.snippet && (
+                    <p className="mt-1 line-clamp-3 font-body text-[12px] leading-relaxed text-[#c7bcab]">
+                      {res.snippet}
+                    </p>
+                  )}
+                </a>
+              );
+            })
+          ) : (
+            <p className="font-body text-[12px] italic text-gold/50">
+              Searched query: “{step.query}”
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Individual Accordion for an Image Gen step */
+function ImageStepItem({ step }: { step: WorkStep & { type: "image_gen" } }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded border border-gold/15 bg-black/20 transition-colors hover:border-gold/30">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-[12.5px] font-body text-gold-2/85 hover:text-cream transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gold/60 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>Generated visual artwork</span>
+        </div>
+        <ChevronIcon open={open} className="text-gold/60" />
+      </button>
+
+      {open && (
+        <div className="border-t border-gold/15 px-3 py-2.5">
+          <p className="font-body text-[12px] leading-relaxed text-[#ded4bf]">
+            Prompt: “{step.prompt}”
+          </p>
+          {step.imageUrl && (
+            <div className="mt-2 overflow-hidden rounded border border-gold/30">
+              <img src={step.imageUrl} alt="Generated visual output" className="max-h-48 w-auto rounded object-contain" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Complete Work / Agentic Execution Accordion */
+function WorkAccordion({ work }: { work?: WorkData }) {
+  const [isMasterOpen, setIsMasterOpen] = useState(false);
+
+  if (!work || work.steps.length === 0) return null;
+
+  // 1. LIVE WORK MODE (while reasoning, searching, or generating)
+  if (work.isWorking) {
+    return (
+      <div className="mb-4 rounded-md border border-gold/25 bg-black/40 p-3 shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
+        <div className="space-y-2">
+          {work.steps.map((step) => {
+            if (step.isLive) {
+              return (
+                <div key={step.id} className="flex items-center gap-2.5 text-[13px] text-gold-2">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
+                  </span>
+                  <span className="shimmer-text font-display italic tracking-wide">
+                    {step.type === "thought"
+                      ? "Thinking…"
+                      : step.type === "search"
+                        ? `Searching the web…`
+                        : "Composing visual representation…"}
+                  </span>
+                </div>
+              );
+            }
+
+            if (step.type === "thought") {
+              return (
+                <div key={step.id} className="flex items-center gap-2 text-[12.5px] font-body text-gold/75">
+                  <svg className="h-3.5 w-3.5 text-gold/50 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+                    <path d="M9 21h6" />
+                  </svg>
+                  <span>Thought for {formatDuration(step.durationSec)}</span>
+                </div>
+              );
+            }
+
+            if (step.type === "search") {
+              return (
+                <div key={step.id} className="flex items-center gap-2 text-[12.5px] font-body text-gold/75">
+                  <svg className="h-3.5 w-3.5 text-gold/50 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <span>Found {step.websitesFound} website{step.websitesFound === 1 ? "" : "s"}</span>
+                </div>
+              );
+            }
+
+            if (step.type === "image_gen") {
+              return (
+                <div key={step.id} className="flex items-center gap-2 text-[12.5px] font-body text-gold/75">
+                  <svg className="h-3.5 w-3.5 text-gold/50 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>Generated visual artwork</span>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // 2. COMPLETED WORK MODE (Collapsed Master Accordion)
+  const totalLabel = formatDuration(work.totalDurationSec);
+
+  return (
+    <div className="mb-4 select-none">
+      <button
+        type="button"
+        onClick={() => setIsMasterOpen((prev) => !prev)}
+        className="group inline-flex cursor-pointer items-center gap-2 rounded-sm border border-gold/30 bg-gold/[0.05] px-3 py-1 font-display text-[12px] uppercase tracking-[0.16em] text-gold-2/90 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:border-gold/60 hover:bg-gold/[0.12] hover:text-cream active:scale-95"
+        aria-expanded={isMasterOpen}
+      >
+        <span>Worked for {totalLabel}</span>
+        <ChevronIcon open={isMasterOpen} className="text-gold/70 group-hover:text-cream" />
+      </button>
+
+      {isMasterOpen && (
+        <div className="mt-2.5 ml-1 space-y-2 border-l border-gold/25 pl-3.5">
+          {work.steps.map((step) => {
+            if (step.type === "thought") {
+              return <ThoughtStepItem key={step.id} step={step} />;
+            }
+            if (step.type === "search") {
+              return <SearchStepItem key={step.id} step={step} />;
+            }
+            if (step.type === "image_gen") {
+              return <ImageStepItem key={step.id} step={step} />;
+            }
+            return null;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Custom CodeBlock component with language badge and copy action */
 function CodeBlock({ lang, code }: { lang: string; code: string }) {
@@ -167,12 +457,25 @@ function AssistantRow({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isWorking = Boolean(m.work?.isWorking);
+  const auraState: AuraState = m.streaming
+    ? (isWorking ? "thinking" : "answering")
+    : "idle";
+
   return (
     <div ref={isLatest ? rowRef : undefined} className="rise flex items-start gap-4">
-      <Aura state={m.streaming ? "answering" : "idle"} size={44} className="mt-1 shrink-0" ring={false} />
+      <Aura state={auraState} size={44} className="mt-1 shrink-0" ring={false} />
 
       <div className="min-w-0 max-w-[82%] flex-1 pt-1.5 font-body">
-        <RichMarkdown text={m.content} streaming={m.streaming} imageUrl={m.imageUrl} />
+        {/* Agentic Execution / Work details */}
+        {m.work && <WorkAccordion work={m.work} />}
+
+        {/* Answer Content */}
+        <RichMarkdown
+          text={m.content}
+          streaming={m.streaming && !isWorking}
+          imageUrl={m.imageUrl}
+        />
 
         {/* Action bar on completed responses */}
         {!m.streaming && m.content && (
@@ -211,14 +514,11 @@ export function Messages({ messages, state }: Props) {
   const latestRowRef = useRef<HTMLDivElement | null>(null);
   const scrolledAssistantIdRef = useRef<string | null>(null);
 
-  // Requirement: "still not scrolling to the latest, only till the top of the answer on the top"
-  // When a new assistant response appears, smoothly scroll ONCE to the top of that answer row.
-  // During token streaming, DO NOT scroll to bottom so the user can read from line 1 comfortably!
+  // Smoothly scroll ONCE to the top of the answer row
   useEffect(() => {
     const latestAssistant = messages.findLast((m) => m.role === "assistant");
     if (latestAssistant && latestAssistant.id !== scrolledAssistantIdRef.current) {
       scrolledAssistantIdRef.current = latestAssistant.id;
-      // Scroll to the TOP of the answer
       if (latestRowRef.current) {
         latestRowRef.current.scrollIntoView({
           behavior: "smooth",
@@ -248,15 +548,7 @@ export function Messages({ messages, state }: Props) {
           />
         ),
       )}
-
-      {state === "thinking" && (
-        <div className="rise flex items-center gap-4 pt-2">
-          <Aura state="thinking" size={44} className="shrink-0" ring={false} />
-          <span className="shimmer-text font-display text-[21px] italic tracking-wide">
-            Thinking…
-          </span>
-        </div>
-      )}
     </div>
   );
 }
+

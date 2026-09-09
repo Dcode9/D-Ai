@@ -15,9 +15,8 @@ export function HeaderArch({ w, h }: Props) {
   const d = [
     `M0,${y}`,
     `H${cx - half}`,
-    `C${cx - half * 0.45},${y} ${cx - flat - 60},${top} ${cx - flat},${top}`,
-    `H${cx + flat}`,
-    `C${cx + flat + 60},${top} ${cx + half * 0.45},${y} ${cx + half},${y}`,
+    `C${cx - half * 0.42},${y} ${cx - 18},${top + 16} ${cx},${top}`,
+    `C${cx + 18},${top + 16} ${cx + half * 0.42},${y} ${cx + half},${y}`,
     `H${w}`,
   ].join(" ");
 

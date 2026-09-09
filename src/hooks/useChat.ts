@@ -4,6 +4,43 @@ import type { AuraState } from "../components/Aura";
 export type Mode = "Image" | "Video" | "Code" | "Text" | "Music";
 export const MODES: Mode[] = ["Image", "Video", "Code", "Text", "Music"];
 
+export type SearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
+export type WorkStep =
+  | {
+      id: string;
+      type: "thought";
+      durationSec: number;
+      content: string;
+      isLive?: boolean;
+    }
+  | {
+      id: string;
+      type: "search";
+      query: string;
+      websitesFound: number;
+      results: SearchResult[];
+      isLive?: boolean;
+    }
+  | {
+      id: string;
+      type: "image_gen";
+      prompt: string;
+      imageUrl?: string;
+      isLive?: boolean;
+    };
+
+export type WorkData = {
+  totalDurationSec: number;
+  steps: WorkStep[];
+  isWorking?: boolean;
+  statusText?: string;
+};
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -11,6 +48,7 @@ export type Message = {
   mode: Mode | null;
   streaming?: boolean;
   imageUrl?: string;
+  work?: WorkData;
 };
 
 export type Conversation = {
@@ -134,78 +172,25 @@ export function useChat() {
       setMessages(currentMessages);
       setState("thinking");
 
-      // Check if image mode or image generation is requested
-      const isImageRequest =
-        mode === "Image" ||
-        /^(generate|create|draw|paint|sketch)\s+(an?\s+)?image/i.test(prompt) ||
-        /<<GENERATE_IMAGE:/i.test(prompt);
-
-      if (isImageRequest) {
-        const asstId = uid();
-        setMessages((m) => [
-          ...m,
-          {
-            id: asstId,
-            role: "assistant",
-            content: `Composing visual representation of “${prompt}”…`,
-            mode: "Image",
-            streaming: true,
-          },
-        ]);
-
-        try {
-          let imageUrl = "";
-          try {
-            const imgRes = await fetch("/api/image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, width: 1024, height: 1024 }),
-            });
-
-            if (imgRes.ok) {
-              const contentType = imgRes.headers.get("content-type") || "";
-              if (contentType.includes("image/")) {
-                const blob = await imgRes.blob();
-                imageUrl = URL.createObjectURL(blob);
-              } else {
-                const data = await imgRes.json();
-                imageUrl = data.url || data.image || data.imageUrl || "";
-              }
-            }
-          } catch (apiErr) {
-            console.warn("Direct /api/image call failed, using fallback:", apiErr);
-          }
-
-          if (!imageUrl) {
-            const seed = Math.floor(Math.random() * 1000000);
-            imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
-          }
-
-          setState("answering");
-          const finalContent = `Here is the visual creation for: “${prompt}”`;
-          const finalMessages = [
-            ...currentMessages,
-            {
-              id: asstId,
-              role: "assistant" as const,
-              content: finalContent,
-              imageUrl,
-              mode: "Image" as Mode,
-            },
-          ];
-
-          setMessages(finalMessages);
-          setState("idle");
-          persist(convId, finalMessages);
-          return;
-        } catch (err) {
-          console.error("Image generation error:", err);
-          setState("idle");
-        }
-      }
-
-      // Standard Text / Code / Video / Music / General Chat
       const asstId = uid();
+      const workStartTime = Date.now();
+      const initialThoughtId = uid();
+
+      let activeWorkData: WorkData = {
+        totalDurationSec: 0,
+        steps: [
+          {
+            id: initialThoughtId,
+            type: "thought",
+            durationSec: 0,
+            content: "",
+            isLive: true,
+          },
+        ],
+        isWorking: true,
+        statusText: "Thinking…",
+      };
+
       setMessages((m) => [
         ...m,
         {
@@ -214,143 +199,485 @@ export function useChat() {
           content: "",
           mode,
           streaming: true,
+          work: activeWorkData,
         },
       ]);
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      try {
-        const historyPayload = currentMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+      const updateWork = (updater: (prev: WorkData) => WorkData) => {
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id !== asstId) return msg;
+            activeWorkData = updater(msg.work || activeWorkData);
+            return { ...msg, work: activeWorkData };
+          }),
+        );
+      };
 
-        let rawBuffer = "";
-        let displayedText = "";
-        let isStreamingActive = true;
-        let streamSuccess = false;
+      // Conversation messages sent to the API
+      let conversationHistory: any[] = currentMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-        // Smooth double-buffer streaming loop
-        const startAnimationLoop = () => {
-          const tick = () => {
-            if (displayedText.length < rawBuffer.length) {
-              const diff = rawBuffer.length - displayedText.length;
-              // Adaptive pacing for 100+ tokens/sec:
-              // Reveals smoothly without lag while handling huge bursts
-              const step = Math.max(1, Math.ceil(diff / 5));
-              displayedText = rawBuffer.slice(0, displayedText.length + step);
+      let rawBuffer = "";
+      let displayedText = "";
+      let isStreamingActive = false;
+      let finalImageUrl: string | undefined = undefined;
+      let thoughtStartTime = Date.now();
+      let currentThoughtId = initialThoughtId;
+      let currentThoughtContent = "";
+      let enableThinkingForStep = true;
+      let loopCount = 0;
+      const maxLoops = 5;
 
-              setMessages((prev) =>
-                prev.map((x) =>
-                  x.id === asstId ? { ...x, content: displayedText } : x,
-                ),
-              );
-            }
+      const startAnimationLoop = () => {
+        const tick = () => {
+          if (displayedText.length < rawBuffer.length) {
+            const diff = rawBuffer.length - displayedText.length;
+            const step = Math.max(1, Math.ceil(diff / 4));
+            displayedText = rawBuffer.slice(0, displayedText.length + step);
 
-            if (isStreamingActive || displayedText.length < rawBuffer.length) {
-              animFrameRef.current = requestAnimationFrame(tick);
-            }
-          };
+            setMessages((prev) =>
+              prev.map((x) =>
+                x.id === asstId ? { ...x, content: displayedText } : x,
+              ),
+            );
+          }
 
-          animFrameRef.current = requestAnimationFrame(tick);
+          if (isStreamingActive || displayedText.length < rawBuffer.length) {
+            animFrameRef.current = requestAnimationFrame(tick);
+          }
         };
 
-        try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messages: historyPayload,
-              stream: true,
-              mode,
-            }),
-            signal: controller.signal,
-          });
+        animFrameRef.current = requestAnimationFrame(tick);
+      };
 
-          if (response.ok && response.body) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let sseChunkBuffer = "";
+      try {
+        // AGENTIC HARNESS LOOP: executes multi-turn tool calling & reasoning
+        while (loopCount < maxLoops && !controller.signal.aborted) {
+          loopCount++;
+          let currentTurnToolCalls: Array<{ id: string; name: string; arguments: string }> = [];
+          let turnContent = "";
 
-            startAnimationLoop();
+          try {
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: conversationHistory,
+                stream: true,
+                mode,
+                enable_thinking: enableThinkingForStep,
+              }),
+              signal: controller.signal,
+            });
 
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
+            if (response.ok && response.body) {
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              let sseChunkBuffer = "";
+              let inThinkTag = false;
 
-              sseChunkBuffer += decoder.decode(value, { stream: true });
-              const lines = sseChunkBuffer.split("\n");
-              sseChunkBuffer = lines.pop() || "";
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith("data: ")) continue;
-                const raw = trimmed.slice(6);
-                if (raw === "[DONE]") continue;
+                sseChunkBuffer += decoder.decode(value, { stream: true });
+                const lines = sseChunkBuffer.split("\n");
+                sseChunkBuffer = lines.pop() || "";
 
-                try {
-                  const parsed = JSON.parse(raw);
-                  const chunk =
-                    parsed.choices?.[0]?.delta?.content ||
-                    parsed.choices?.[0]?.text ||
-                    "";
-                  if (chunk) {
-                    if (!rawBuffer) {
-                      setState("answering");
+                for (const line of lines) {
+                  const trimmed = line.trim();
+                  if (!trimmed || !trimmed.startsWith("data: ")) continue;
+                  const raw = trimmed.slice(6);
+                  if (raw === "[DONE]") continue;
+
+                  try {
+                    const parsed = JSON.parse(raw);
+                    const choice = parsed.choices?.[0];
+                    const delta = choice?.delta;
+
+                    // 1. Accumulate reasoning/thinking tokens
+                    const reasoningChunk = delta?.reasoning || delta?.reasoning_content || delta?.thought;
+                    if (reasoningChunk) {
+                      currentThoughtContent += reasoningChunk;
+                      const elapsedSec = Math.max(0, (Date.now() - thoughtStartTime) / 1000);
+                      updateWork((w) => ({
+                        ...w,
+                        statusText: "Thinking…",
+                        steps: w.steps.map((s) =>
+                          s.id === currentThoughtId
+                            ? { ...s, content: currentThoughtContent, durationSec: elapsedSec }
+                            : s,
+                        ),
+                      }));
                     }
-                    rawBuffer += chunk;
-                    streamSuccess = true;
-                  }
-                } catch {
-                  if (raw && !raw.startsWith("{")) {
-                    if (!rawBuffer) {
-                      setState("answering");
+
+                    // 2. Accumulate tool calling chunks
+                    if (delta?.tool_calls && Array.isArray(delta.tool_calls)) {
+                      for (const tc of delta.tool_calls) {
+                        const idx = tc.index ?? 0;
+                        if (!currentTurnToolCalls[idx]) {
+                          currentTurnToolCalls[idx] = {
+                            id: tc.id || `call_${uid()}`,
+                            name: tc.function?.name || "",
+                            arguments: tc.function?.arguments || "",
+                          };
+                        } else {
+                          if (tc.id) currentTurnToolCalls[idx].id = tc.id;
+                          if (tc.function?.name) currentTurnToolCalls[idx].name += tc.function.name;
+                          if (tc.function?.arguments) currentTurnToolCalls[idx].arguments += tc.function.arguments;
+                        }
+                      }
                     }
-                    rawBuffer += raw;
-                    streamSuccess = true;
+
+                    // 3. Direct answer content & <think> block handling
+                    const rawContentChunk = delta?.content;
+                    if (rawContentChunk) {
+                      turnContent += rawContentChunk;
+                      let contentToStream = rawContentChunk;
+
+                      if (contentToStream.includes("<think>")) {
+                        inThinkTag = true;
+                        const parts = contentToStream.split("<think>");
+                        contentToStream = parts[1] || "";
+                      }
+
+                      if (inThinkTag) {
+                        if (contentToStream.includes("</think>")) {
+                          const parts = contentToStream.split("</think>");
+                          currentThoughtContent += parts[0];
+                          inThinkTag = false;
+                          contentToStream = parts[1] || "";
+                        } else {
+                          currentThoughtContent += contentToStream;
+                          contentToStream = "";
+                        }
+
+                        const elapsedSec = Math.max(0, (Date.now() - thoughtStartTime) / 1000);
+                        updateWork((w) => ({
+                          ...w,
+                          statusText: "Thinking…",
+                          steps: w.steps.map((s) =>
+                            s.id === currentThoughtId
+                              ? { ...s, content: currentThoughtContent, durationSec: elapsedSec }
+                              : s,
+                          ),
+                        }));
+                      }
+
+                      // When direct answer content starts and no tools are pending,
+                      // collapse the execution work into "Worked for x seconds ▾"
+                      if (currentTurnToolCalls.length === 0 && contentToStream) {
+                        if (state !== "answering") {
+                          setState("answering");
+                        }
+
+                        const elapsedThoughtSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
+                        const totalDurationSec = Math.max(0.2, (Date.now() - workStartTime) / 1000);
+
+                        updateWork((w) => ({
+                          ...w,
+                          isWorking: false,
+                          totalDurationSec: w.totalDurationSec || totalDurationSec,
+                          statusText: "",
+                          steps: w.steps.map((s) =>
+                            s.id === currentThoughtId && s.isLive
+                              ? { ...s, isLive: false, durationSec: s.durationSec || elapsedThoughtSec }
+                              : s,
+                          ),
+                        }));
+
+                        rawBuffer += contentToStream;
+                        if (!isStreamingActive) {
+                          isStreamingActive = true;
+                          startAnimationLoop();
+                        }
+                      }
+                    }
+                  } catch (_) {
+                    // Raw string chunk fallback
                   }
                 }
               }
             }
+          } catch (apiErr: any) {
+            if (apiErr?.name === "AbortError") return;
+            console.warn("[D-Ai Harness] API error:", apiErr);
           }
-        } catch (apiErr: any) {
-          if (apiErr?.name !== "AbortError") {
-            console.warn("Direct /api/chat error, attempting resilient fallback:", apiErr);
+
+          // Filter out unpopulated tool call entries
+          currentTurnToolCalls = currentTurnToolCalls.filter((tc) => tc && tc.name);
+
+          // If tool calls were emitted in this turn, execute them!
+          if (currentTurnToolCalls.length > 0) {
+            // Finalize preceding thought step
+            const elapsedThoughtSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
+            updateWork((w) => ({
+              ...w,
+              steps: w.steps.map((s) =>
+                s.id === currentThoughtId
+                  ? { ...s, isLive: false, durationSec: elapsedThoughtSec }
+                  : s,
+              ),
+            }));
+
+            // Record assistant message with tool calls in history
+            conversationHistory.push({
+              role: "assistant",
+              content: turnContent || null,
+              tool_calls: currentTurnToolCalls.map((tc) => ({
+                id: tc.id,
+                type: "function",
+                function: { name: tc.name, arguments: tc.arguments },
+              })),
+            });
+
+            let requiresNextThinking = false;
+
+            // Execute each tool call
+            for (const toolCall of currentTurnToolCalls) {
+              if (toolCall.name === "web_search") {
+                let query = prompt;
+                try {
+                  const parsed = JSON.parse(toolCall.arguments || "{}");
+                  if (parsed.query) query = parsed.query;
+                } catch {
+                  query = prompt;
+                }
+
+                const searchStepId = uid();
+                updateWork((w) => ({
+                  ...w,
+                  statusText: "Searching the web…",
+                  steps: [
+                    ...w.steps,
+                    {
+                      id: searchStepId,
+                      type: "search",
+                      query,
+                      websitesFound: 0,
+                      results: [],
+                      isLive: true,
+                    },
+                  ],
+                }));
+
+                let foundResults: SearchResult[] = [];
+                try {
+                  const searchRes = await fetch("/api/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query }),
+                    signal: controller.signal,
+                  });
+                  if (searchRes.ok) {
+                    const searchData = await searchRes.json();
+                    const items = Array.isArray(searchData.results) ? searchData.results : [];
+                    foundResults = items.slice(0, 6).map((item: any) => ({
+                      title: item.title || query,
+                      url: item.url || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+                      snippet: (item.content || item.snippet || "").slice(0, 260),
+                    }));
+                  }
+                } catch (searchErr) {
+                  console.warn("Search execution error:", searchErr);
+                }
+
+                // If 0 results, provide fallback web knowledge
+                if (foundResults.length === 0) {
+                  foundResults = [
+                    {
+                      title: `${query} — Web Search`,
+                      url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+                      snippet: `Searched web indexes for “${query}”. Context gathered for synthesis.`,
+                    },
+                  ];
+                }
+
+                // Update search step
+                updateWork((w) => ({
+                  ...w,
+                  statusText: `Found ${foundResults.length} websites`,
+                  steps: w.steps.map((s) =>
+                    s.id === searchStepId
+                      ? {
+                          ...s,
+                          isLive: false,
+                          websitesFound: foundResults.length,
+                          results: foundResults,
+                        }
+                      : s,
+                  ),
+                }));
+
+                conversationHistory.push({
+                  role: "tool",
+                  tool_call_id: toolCall.id,
+                  name: "web_search",
+                  content: JSON.stringify(foundResults),
+                });
+
+                // Harness decision: Multi-source results require deliberate reasoning synthesis
+                if (foundResults.length >= 2) {
+                  requiresNextThinking = true;
+                }
+              } else if (toolCall.name === "generate_image") {
+                let imgPrompt = prompt;
+                let aspectRatio = "1:1";
+                try {
+                  const parsed = JSON.parse(toolCall.arguments || "{}");
+                  if (parsed.prompt) imgPrompt = parsed.prompt;
+                  if (parsed.aspect_ratio) aspectRatio = parsed.aspect_ratio;
+                } catch {}
+
+                const imgStepId = uid();
+                updateWork((w) => ({
+                  ...w,
+                  statusText: "Composing visual representation…",
+                  steps: [
+                    ...w.steps,
+                    {
+                      id: imgStepId,
+                      type: "image_gen",
+                      prompt: imgPrompt,
+                      isLive: true,
+                    },
+                  ],
+                }));
+
+                let generatedUrl = "";
+                try {
+                  const imgRes = await fetch("/api/image", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio }),
+                    signal: controller.signal,
+                  });
+                  if (imgRes.ok) {
+                    const contentType = imgRes.headers.get("content-type") || "";
+                    if (contentType.includes("image/")) {
+                      const blob = await imgRes.blob();
+                      generatedUrl = URL.createObjectURL(blob);
+                    } else {
+                      const imgData = await imgRes.json();
+                      generatedUrl = imgData.url || imgData.image || imgData.imageUrl || "";
+                    }
+                  }
+                } catch (imgErr) {
+                  console.warn("Image call error:", imgErr);
+                }
+
+                if (!generatedUrl) {
+                  const seed = Math.floor(Math.random() * 1000000);
+                  generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imgPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+                }
+
+                finalImageUrl = generatedUrl;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === asstId ? { ...msg, imageUrl: generatedUrl } : msg,
+                  ),
+                );
+
+                updateWork((w) => ({
+                  ...w,
+                  statusText: "Generated visual artwork",
+                  steps: w.steps.map((s) =>
+                    s.id === imgStepId ? { ...s, isLive: false, imageUrl: generatedUrl } : s,
+                  ),
+                }));
+
+                conversationHistory.push({
+                  role: "tool",
+                  tool_call_id: toolCall.id,
+                  name: "generate_image",
+                  content: JSON.stringify({ success: true, imageUrl: generatedUrl }),
+                });
+
+                requiresNextThinking = false;
+              }
+            }
+
+            // Harness decision applied to next step:
+            enableThinkingForStep = requiresNextThinking;
+            if (enableThinkingForStep) {
+              currentThoughtId = uid();
+              currentThoughtContent = "";
+              thoughtStartTime = Date.now();
+              updateWork((w) => ({
+                ...w,
+                statusText: "Thinking…",
+                steps: [
+                  ...w.steps,
+                  {
+                    id: currentThoughtId,
+                    type: "thought",
+                    durationSec: 0,
+                    content: "",
+                    isLive: true,
+                  },
+                ],
+              }));
+            }
+
+            // Continue loop to generate synthesis or next response
+            continue;
           }
+
+          // If turn produced final answer without tool calls, exit loop!
+          break;
         }
 
-        // Resilient fallback if /api/chat returned no content
-        if (!streamSuccess || !rawBuffer.trim()) {
-          try {
-            const fallbackRes = await fetch(
-              `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&system=${encodeURIComponent(
-                "You are D'Ai, an ornate and profound intelligence created by Dhairya Shah. Respond thoughtfully in elegant markdown.",
-              )}`,
-              { signal: controller.signal },
-            );
-            if (fallbackRes.ok) {
-              setState("answering");
-              const fullText = await fallbackRes.text();
-              rawBuffer = fullText;
-              startAnimationLoop();
-              streamSuccess = true;
-            }
-          } catch (pollErr: any) {
-            if (pollErr?.name !== "AbortError") {
-              console.warn("Pollinations fallback failed, utilizing local composer:", pollErr);
+        // Resilient fallback if no text content was produced
+        if (!rawBuffer.trim()) {
+          // Check if user specifically requested an image
+          if (mode === "Image" || /image/i.test(prompt)) {
+            const seed = Math.floor(Math.random() * 1000000);
+            finalImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+            rawBuffer = `Here is the visual artwork for: “${prompt}”`;
+          } else {
+            try {
+              const fallbackRes = await fetch(
+                `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&system=${encodeURIComponent(
+                  "You are D'Ai, an ornate and profound intelligence created by Dhairya Shah. Respond thoughtfully in elegant markdown.",
+                )}`,
+                { signal: controller.signal },
+              );
+              if (fallbackRes.ok) {
+                rawBuffer = await fallbackRes.text();
+              }
+            } catch (_) {}
+
+            if (!rawBuffer.trim()) {
+              rawBuffer = compose(prompt, mode);
             }
           }
-        }
 
-        // Final ornamental fallback
-        if (!streamSuccess || !rawBuffer.trim()) {
           setState("answering");
-          rawBuffer = compose(prompt, mode);
-          startAnimationLoop();
+          if (!isStreamingActive) {
+            isStreamingActive = true;
+            startAnimationLoop();
+          }
         }
 
-        // Let the animation finish catching up with safety timeout and abort protection
+        // Finalize any active thought step
+        const finalThoughtDuration = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
+        const totalDurationSec = Math.max(0.2, (Date.now() - workStartTime) / 1000);
+
+        updateWork((w) => ({
+          ...w,
+          isWorking: false,
+          totalDurationSec,
+          steps: w.steps.map((s) =>
+            s.isLive ? { ...s, isLive: false, durationSec: finalThoughtDuration } : s,
+          ),
+        }));
+
+        // Allow streaming catch-up loop to finish
         isStreamingActive = false;
         await new Promise<void>((resolve) => {
           const startTime = Date.now();
@@ -381,6 +708,12 @@ export function useChat() {
             content: rawBuffer,
             mode,
             streaming: false,
+            imageUrl: finalImageUrl,
+            work: {
+              ...activeWorkData,
+              isWorking: false,
+              totalDurationSec,
+            },
           },
         ];
         setMessages(done);

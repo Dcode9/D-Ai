@@ -25,7 +25,7 @@ export default function App() {
 
       <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
 
-      <main className="relative z-10 flex-1 px-3 pb-[58px] pt-2 md:px-8 md:pb-[68px]">
+      <main className="relative z-10 flex-1 px-5 pt-5 pb-[58px] md:px-7 md:pt-7 md:pb-[68px]">
         {/* Main D'Ai framed panel container */}
         <div ref={panel.ref} className="relative h-full">
           <PanelFrame w={panel.w} h={panel.h} />

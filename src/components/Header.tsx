@@ -57,9 +57,9 @@ export function Header({ onHistory, onNewChat, historyOpen }: Props) {
         </SmallButton>
       </div>
 
-      <div className="pointer-events-none absolute left-1/2 top-[28px] -translate-x-1/2 flex flex-col items-center">
+      <div className="pointer-events-none absolute left-1/2 top-[68px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
         <h1
-          className="title-glow font-display text-[48px] leading-none tracking-tight text-cream"
+          className="title-glow font-display text-[48px] leading-none tracking-tight text-cream select-none"
           aria-label="D'Ai"
         >
           D’Ai

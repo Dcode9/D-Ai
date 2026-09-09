@@ -52,9 +52,67 @@ function hasAnyVisionContent(messages) {
   return messages.some(m => Boolean(extractImageUrlFromMessage(m)));
 }
 
+const NATIVE_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description: "Search the web for real-time information, current news, factual verification, websites, documentation, and live data. Formulate specific, high-signal keyword queries.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The specific search keywords or query to find information on the web."
+          }
+        },
+        required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_image",
+      description: "Generate a rich visual artwork, image, painting, or render based on a descriptive prompt.",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: {
+            type: "string",
+            description: "Detailed description of the image to generate, including subjects, style, lighting, composition, and mood."
+          },
+          aspect_ratio: {
+            type: "string",
+            enum: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            description: "Aspect ratio of the generated image. Defaults to 1:1."
+          }
+        },
+        required: ["prompt"]
+      }
+    }
+  }
+];
+
 function normalizeMessageForProvider(message, isVision = false) {
   if (!message || typeof message !== 'object') return { role: 'user', content: '' };
-  const role = message.role === 'assistant' ? 'assistant' : (message.role === 'system' ? 'system' : 'user');
+  const role = message.role || 'user';
+
+  if (role === 'tool') {
+    return {
+      role: 'tool',
+      tool_call_id: message.tool_call_id || message.id || 'call_0',
+      content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+    };
+  }
+
+  if (role === 'assistant') {
+    const res = { role: 'assistant', content: message.content || '' };
+    if (message.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+      res.tool_calls = message.tool_calls;
+    }
+    return res;
+  }
   
   if (isVision && role === 'user') {
     const imgUrl = extractImageUrlFromMessage(message);
@@ -74,10 +132,10 @@ function normalizeMessageForProvider(message, isVision = false) {
 
   const rawText = getTextContent(message.content);
   const cleanText = stripUploadedImageMarkers(rawText, isVision) || (role === 'user' ? 'Hello' : '');
-  return { role, content: cleanText };
+  return { role: 'user', content: cleanText };
 }
 
-function buildSystemPrompt(messages, isVision = false) {
+function buildSystemPrompt(messages, isVision = false, enableThinking = true) {
   if (isVision) {
     return `You are D'Ai, a multimodal AI vision assistant powered by Qwen 3.6 27B.
 Analyze any provided images with high precision, identifying all visible objects, text, equations, code, diagrams, charts, colors, people, and details.
@@ -85,20 +143,14 @@ Answer the user's questions about the image truthfully and directly based strict
   }
 
   const systemMessages = messages.filter(m => m && m.role === 'system');
-  const baseSystemPrompt = `You are D'Ai, a scary-fast, helpful, unbiased AI assistant created by Dhairya Shah.
+  const baseSystemPrompt = `You are D'Ai, an ornate, scary-fast, helpful AI assistant created by Dhairya Shah.
 Key Guidelines:
 1. Provide concise, clear, accurate, and direct answers in well-formatted Markdown.
-2. Multi-step Web Search: When you need up-to-date facts, current real-world data, verification, or multi-faceted information across topics, you can search the web by emitting:
-   <<SEARCH: specific search query>>
-   You can search multiple times if needed. Formulate concise, high-signal search queries. Once you have enough context, synthesize a comprehensive response citing sources with [1], [2], etc.
-3. When working through complex calculations, math proofs, multi-step problem solving, or algorithms, express your thought process within <thought>...</thought> or <think>...</think> tags before providing the final answer.
-4. Adapt naturally to the user's personal context or instructions without over-explaining.
-5. If the user explicitly asks to generate images or interactive widgets, use clean directives:
-   - Image: <<GENERATE_IMAGE: prompt | aspect_ratio | filename_slug>>
-   - Interactive UI: \`\`\`dai-ui chart\`\`\` or \`\`\`dai-ui demo\`\`\` or \`\`\`dai-ui pythagoras\`\`\`
-6. If the user explicitly shares personal facts, you may optionally append:
-   [MEMORY_UPDATE: {"add": ["User's name is Dhairya", "User is in 10th standard"]}]
-7. Do not output repetitive disclaimers or forced meta-commentary. Keep your tone helpful, professional, and objective.`;
+2. Tools Available:
+   - \`web_search\`: Call this tool whenever you need up-to-date facts, current real-world data, recent news, or verification. Formulate concise, high-signal search queries (e.g. "latest AI breakthroughs September 2026"). Once you receive the search results, synthesize a comprehensive answer.
+   - \`generate_image\`: Call this tool when the user explicitly asks to generate, create, draw, or paint an image.
+3. Reasoning: ${enableThinking ? 'Reason through complex problems, calculations, multi-step synthesis, and tool outputs carefully.' : 'Synthesize the final answer directly and concisely without extra internal delay.'}
+4. Tone: Helpful, regal, objective, and articulate without repetitive disclaimers.`;
 
   const extraSystem = systemMessages.map(m => String(m.content || '')).filter(Boolean).join('\n\n');
   return `${baseSystemPrompt}\n\n${extraSystem}`.trim();
@@ -107,7 +159,8 @@ Key Guidelines:
 async function callProviderAPI({ provider, apiKey, incomingBody, isVision = false }) {
   const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
   const otherMessages = messages.filter(m => m && m.role !== 'system');
-  const fullSystemPrompt = buildSystemPrompt(messages, isVision);
+  const enableThinking = incomingBody.enable_thinking !== false;
+  const fullSystemPrompt = buildSystemPrompt(messages, isVision, enableThinking);
 
   let endpoint = '';
   let candidateModels = [];
@@ -158,10 +211,13 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
         temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
       };
 
-      // Pass-through tools and function calling parameters if provided
+      // Pass-through tools and function calling parameters
       if (Array.isArray(incomingBody.tools) && incomingBody.tools.length > 0) {
         payload.tools = incomingBody.tools;
         if (incomingBody.tool_choice) payload.tool_choice = incomingBody.tool_choice;
+      } else if (incomingBody.enable_tools !== false && !isVision) {
+        payload.tools = NATIVE_TOOLS;
+        payload.tool_choice = incomingBody.tool_choice || 'auto';
       }
 
       const response = await fetch(endpoint, {

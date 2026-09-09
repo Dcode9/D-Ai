@@ -15,22 +15,6 @@ export function PanelFrame({ w, h }: Props) {
       aria-hidden
     >
       <path d={roundRect(1, 1, w - 2, h - 2, R)} fill="none" stroke="url(#gold-stroke)" strokeWidth="1" opacity="0.9" />
-      <path
-        d={cornerArcs(1, 1, w - 2, h - 2, 10, 7)}
-        fill="none"
-        stroke="url(#gold-stroke)"
-        strokeWidth="1"
-        opacity="0.6"
-      />
-      {/* tiny corner dots */}
-      {[
-        [10, 10],
-        [w - 10, 10],
-        [w - 10, h - 10],
-        [10, h - 10],
-      ].map(([cx, cy], i) => (
-        <circle key={i} cx={cx} cy={cy} r="1.2" fill="#c9a86a" opacity="0.8" />
-      ))}
     </svg>
   );
 }
