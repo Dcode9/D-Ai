@@ -280,6 +280,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
         <div className="mt-2.5 ml-1 space-y-2 border-l border-gold/25 pl-3.5">
           {work.steps.map((step) => {
             if (step.type === "thought") {
+              if (!step.content.trim() && step.durationSec < 0.6) return null;
               return <ThoughtStepItem key={step.id} step={step} />;
             }
             if (step.type === "search") {

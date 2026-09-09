@@ -338,26 +338,32 @@ export function useChat() {
                     const rawContentChunk = delta?.content;
                     if (rawContentChunk) {
                       turnContent += rawContentChunk;
-                      let contentToStream = rawContentChunk;
+                      let chunkText = rawContentChunk;
 
-                      if (contentToStream.includes("<think>")) {
+                      const thinkStartRegex = /<(?:think|ththink|thought|reasoning)>/i;
+                      const thinkEndRegex = /<\/(?:think|ththink|thought|reasoning)>/i;
+
+                      if (!inThinkTag && thinkStartRegex.test(chunkText)) {
                         inThinkTag = true;
-                        const parts = contentToStream.split("<think>");
-                        contentToStream = parts[1] || "";
+                        const parts = chunkText.split(thinkStartRegex);
+                        if (parts[0]) {
+                          rawBuffer += parts[0];
+                        }
+                        chunkText = parts[1] || "";
                       }
 
                       if (inThinkTag) {
-                        if (contentToStream.includes("</think>")) {
-                          const parts = contentToStream.split("</think>");
+                        if (thinkEndRegex.test(chunkText)) {
+                          const parts = chunkText.split(thinkEndRegex);
                           currentThoughtContent += parts[0];
                           inThinkTag = false;
-                          contentToStream = parts[1] || "";
+                          chunkText = parts[1] || "";
                         } else {
-                          currentThoughtContent += contentToStream;
-                          contentToStream = "";
+                          currentThoughtContent += chunkText;
+                          chunkText = "";
                         }
 
-                        const elapsedSec = Math.max(0, (Date.now() - thoughtStartTime) / 1000);
+                        const elapsedSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
                         updateWork((w) => ({
                           ...w,
                           statusText: "Thinking…",
@@ -371,7 +377,7 @@ export function useChat() {
 
                       // When direct answer content starts and no tools are pending,
                       // collapse the execution work into "Worked for x seconds ▾"
-                      if (currentTurnToolCalls.length === 0 && contentToStream) {
+                      if (!inThinkTag && currentTurnToolCalls.length === 0 && chunkText) {
                         if (state !== "answering") {
                           setState("answering");
                         }
@@ -391,7 +397,7 @@ export function useChat() {
                           ),
                         }));
 
-                        rawBuffer += contentToStream;
+                        rawBuffer += chunkText;
                         if (!isStreamingActive) {
                           isStreamingActive = true;
                           startAnimationLoop();
@@ -467,6 +473,7 @@ export function useChat() {
                 }));
 
                 let foundResults: SearchResult[] = [];
+                let directSummary: string | undefined = undefined;
                 try {
                   const searchRes = await fetch("/api/search", {
                     method: "POST",
@@ -476,11 +483,12 @@ export function useChat() {
                   });
                   if (searchRes.ok) {
                     const searchData = await searchRes.json();
+                    if (searchData.answer) directSummary = searchData.answer;
                     const items = Array.isArray(searchData.results) ? searchData.results : [];
-                    foundResults = items.slice(0, 6).map((item: any) => ({
+                    foundResults = items.slice(0, 8).map((item: any) => ({
                       title: item.title || query,
                       url: item.url || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-                      snippet: (item.content || item.snippet || "").slice(0, 260),
+                      snippet: (item.content || item.snippet || "").slice(0, 360),
                     }));
                   }
                 } catch (searchErr) {
@@ -514,17 +522,28 @@ export function useChat() {
                   ),
                 }));
 
+                const toolPayload = {
+                  search_query: query,
+                  direct_summary: directSummary,
+                  sources: foundResults.map((r, idx) => ({
+                    source_number: idx + 1,
+                    title: r.title,
+                    url: r.url,
+                    snippet: r.snippet,
+                  })),
+                  grounding_instruction:
+                    "Synthesize your response STRICTLY using these verified sources. DO NOT invent fake models, benchmarks, or unverified claims. Cite each verified development with clickable Markdown links [Title](url).",
+                };
+
                 conversationHistory.push({
                   role: "tool",
                   tool_call_id: toolCall.id,
                   name: "web_search",
-                  content: JSON.stringify(foundResults),
+                  content: JSON.stringify(toolPayload),
                 });
 
-                // Harness decision: Multi-source results require deliberate reasoning synthesis
-                if (foundResults.length >= 2) {
-                  requiresNextThinking = true;
-                }
+                // Harness decision: Always trigger deliberate reasoning to evaluate search results
+                requiresNextThinking = true;
               } else if (toolCall.name === "generate_image") {
                 let imgPrompt = prompt;
                 let aspectRatio = "1:1";
@@ -664,17 +683,21 @@ export function useChat() {
           }
         }
 
-        // Finalize any active thought step
+        // Finalize any active thought step and filter out empty phantom thoughts
         const finalThoughtDuration = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
         const totalDurationSec = Math.max(0.2, (Date.now() - workStartTime) / 1000);
 
         updateWork((w) => ({
           ...w,
           isWorking: false,
-          totalDurationSec,
-          steps: w.steps.map((s) =>
-            s.isLive ? { ...s, isLive: false, durationSec: finalThoughtDuration } : s,
-          ),
+          totalDurationSec: w.totalDurationSec || totalDurationSec,
+          steps: w.steps
+            .map((s) =>
+              s.isLive
+                ? { ...s, isLive: false, durationSec: (s as any).durationSec || finalThoughtDuration }
+                : s,
+            )
+            .filter((s) => !(s.type === "thought" && !s.content.trim() && s.durationSec < 0.6)),
         }));
 
         // Allow streaming catch-up loop to finish
