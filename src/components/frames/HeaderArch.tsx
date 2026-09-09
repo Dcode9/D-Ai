@@ -10,13 +10,15 @@ export function HeaderArch({ w, h }: Props) {
   const cx = w / 2;
   const top = 22; // dome apex
   const half = Math.min(250, w * 0.28); // half-width where the dome starts
-  const flat = Math.min(80, w * 0.08); // flat top of the dome
+  const flat = Math.min(24, w * 0.03); // compressed flat top of the dome (~48px total)
+  const spread = Math.min(45, (half - flat) * 0.25);
 
   const d = [
     `M0,${y}`,
     `H${cx - half}`,
-    `C${cx - half * 0.42},${y} ${cx - 18},${top + 16} ${cx},${top}`,
-    `C${cx + 18},${top + 16} ${cx + half * 0.42},${y} ${cx + half},${y}`,
+    `C${cx - half * 0.48},${y} ${cx - flat - spread},${top} ${cx - flat},${top}`,
+    `H${cx + flat}`,
+    `C${cx + flat + spread},${top} ${cx + half * 0.48},${y} ${cx + half},${y}`,
     `H${w}`,
   ].join(" ");
 
