@@ -73,10 +73,67 @@ export default function App() {
         user={user}
       />
 
-      <main className="relative z-10 flex-1 px-5 pt-5 pb-[58px] md:px-7 md:pt-7 md:pb-[68px]">
+      <main className="relative z-10 flex-1 px-5 pt-3 pb-[58px] md:px-7 md:pt-4 md:pb-[68px]">
+        {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
+        {chat.breadcrumbs.length > 1 && (
+          <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5 backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 overflow-x-auto text-[12.5px] font-body">
+              <span className="font-mono text-[11px] text-gold/70 shrink-0">⑂ Lineage:</span>
+              {chat.breadcrumbs.map((crumb, idx) => {
+                const isCurrent = idx === chat.breadcrumbs.length - 1;
+                return (
+                  <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
+                    {idx > 0 && <span className="text-gold/40">›</span>}
+                    <button
+                      type="button"
+                      onClick={() => !isCurrent && chat.openConversation(crumb.id)}
+                      className={cn(
+                        "rounded px-1.5 py-0.5 transition-colors cursor-pointer",
+                        isCurrent
+                          ? "font-semibold text-gold bg-gold/15"
+                          : "text-cream/70 hover:text-cream hover:bg-white/[.04]",
+                      )}
+                    >
+                      {crumb.title}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sibling branch switcher */}
+            {chat.siblingBranches.length > 1 && (
+              <div className="flex items-center gap-1 text-[11px] shrink-0 font-body text-gold/60">
+                <span>Branch:</span>
+                <select
+                  value={chat.activeId || ""}
+                  onChange={(e) => chat.openConversation(e.target.value)}
+                  className="rounded border border-gold/30 bg-ink px-1.5 py-0.5 text-cream outline-none text-[11.5px] cursor-pointer"
+                >
+                  {chat.siblingBranches.map((sib) => (
+                    <option key={sib.id} value={sib.id}>
+                      {sib.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Main D'Ai framed panel container */}
         <div ref={panel.ref} className="relative h-full">
           <PanelFrame w={panel.w} h={panel.h} />
+
+          {/* Loading Shimmer Transition */}
+          {chat.isLoadingChat && (
+            <div className="absolute inset-[2px] z-30 flex items-center justify-center rounded-[15px] bg-black/40 backdrop-blur-[2px]">
+              <div className="flex items-center gap-2 rounded border border-gold/40 bg-ink px-4 py-2 text-gold shadow-lg">
+                <span className="h-2 w-2 rounded-full bg-gold animate-ping" />
+                <span className="font-display italic text-[14px]">Loading chronicle…</span>
+              </div>
+            </div>
+          )}
 
           <div
             className={cn(
@@ -97,7 +154,11 @@ export default function App() {
                 </p>
               </div>
             ) : (
-              <Messages messages={chat.messages} state={chat.state} />
+              <Messages
+                messages={chat.messages}
+                state={chat.state}
+                onBranch={(msgId) => chat.createBranch(chat.activeId || undefined, msgId)}
+              />
             )}
           </div>
 
@@ -115,9 +176,17 @@ export default function App() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         conversations={chat.conversations}
+        projects={chat.projects}
         activeId={chat.activeId}
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
+        onPin={chat.pinConversation}
+        onRename={chat.renameConversation}
+        onBranch={(id) => chat.createBranch(id)}
+        onCreateProject={chat.createProject}
+        onRenameProject={chat.renameProject}
+        onDeleteProject={chat.deleteProject}
+        onAssignToProject={chat.assignToProject}
       />
 
       {/* Google Sign-in & Account Modal */}

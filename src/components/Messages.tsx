@@ -426,9 +426,9 @@ function RichMarkdown({ text, streaming, imageUrl }: { text: string; streaming?:
   );
 }
 
-function UserBubble({ m }: { m: Message }) {
+function UserBubble({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
   return (
-    <div className="rise flex justify-end">
+    <div className="rise group flex justify-end">
       <div className="relative max-w-[85%] md:max-w-[72%] px-5 py-3.5">
         <span className="absolute inset-0 border border-gold/45" />
         {/* corner jewels */}
@@ -444,6 +444,21 @@ function UserBubble({ m }: { m: Message }) {
           <p className="whitespace-pre-wrap font-body text-[18.5px] font-light leading-relaxed text-cream">
             {m.content}
           </p>
+
+          {/* User message branch action */}
+          {onBranch && (
+            <div className="mt-2 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
+              <button
+                type="button"
+                onClick={() => onBranch(m.id)}
+                title="Branch conversation from this message"
+                className="flex cursor-pointer items-center gap-1 font-body text-[11px] text-gold/60 hover:text-cream transition-colors"
+              >
+                <span className="font-mono text-[11px]">⑂</span>
+                <span>Branch from here</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -454,10 +469,12 @@ function AssistantRow({
   m,
   isLatest,
   rowRef,
+  onBranch,
 }: {
   m: Message;
   isLatest: boolean;
   rowRef: (el: HTMLDivElement | null) => void;
+  onBranch?: (messageId: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -489,7 +506,7 @@ function AssistantRow({
 
         {/* Action bar on completed responses */}
         {!m.streaming && m.content && (
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-2">
             <button
               type="button"
               onClick={copyAll}
@@ -513,6 +530,18 @@ function AssistantRow({
                 </>
               )}
             </button>
+
+            {onBranch && (
+              <button
+                type="button"
+                onClick={() => onBranch(m.id)}
+                title="Branch conversation from this point"
+                className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-gold/25 px-2.5 py-1 font-body text-[12px] text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
+              >
+                <span className="font-mono text-[12px]">⑂</span>
+                <span>Branch</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -520,7 +549,7 @@ function AssistantRow({
   );
 }
 
-export function Messages({ messages, state }: Props) {
+export function Messages({ messages, state, onBranch }: Props & { onBranch?: (messageId: string) => void }) {
   const latestRowRef = useRef<HTMLDivElement | null>(null);
   const scrolledAssistantIdRef = useRef<string | null>(null);
 
@@ -544,7 +573,7 @@ export function Messages({ messages, state }: Props) {
     <div className="mx-auto flex w-full max-w-[880px] flex-col gap-8 px-4 py-8 md:px-10">
       {messages.map((m) =>
         m.role === "user" ? (
-          <UserBubble key={m.id} m={m} />
+          <UserBubble key={m.id} m={m} onBranch={onBranch} />
         ) : (
           <AssistantRow
             key={m.id}
@@ -555,10 +584,12 @@ export function Messages({ messages, state }: Props) {
                 latestRowRef.current = el;
               }
             }}
+            onBranch={onBranch}
           />
         ),
       )}
     </div>
   );
 }
+
 

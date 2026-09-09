@@ -19,6 +19,22 @@ import {
   onAuthStateChange,
 } from "../lib/supabase";
 
+import {
+  type Conversation,
+  type Project,
+  loadStoredConversations,
+  saveStoredConversations,
+  loadStoredProjects,
+  saveStoredProjects,
+  getResolvedBranchMessages,
+  getBranchBreadcrumb,
+  getSiblingBranches,
+  createBranchConversation,
+  getBranchAncestorCount,
+  deleteConversationWithDescendants,
+} from "../lib/chatStore";
+
+export type { Conversation, Project } from "../lib/chatStore";
 export type Mode = "Image" | "Video" | "Code" | "Text" | "Music";
 export const MODES: Mode[] = ["Image", "Video", "Code", "Text", "Music"];
 
@@ -76,15 +92,8 @@ export type Message = {
   work?: WorkData;
 };
 
-export type Conversation = {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: Message[];
-};
-
-const STORAGE_KEY = "dai.conversations.v1";
 const uid = () => Math.random().toString(36).slice(2, 10);
+
 
 const OPENERS = [
   "Certainly.",
@@ -113,31 +122,24 @@ function compose(prompt: string, mode: Mode | null): string {
   }
 }
 
-function load(): Conversation[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Conversation[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 export function useChat() {
-  const [conversations, setConversations] = useState<Conversation[]>(load);
+  const [conversations, setConversations] = useState<Conversation[]>(loadStoredConversations);
+  const [projects, setProjects] = useState<Project[]>(loadStoredProjects);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoadingChat, setIsLoadingChat] = useState<boolean>(false);
   const [mode, setMode] = useState<Mode | null>(null);
   const [state, setState] = useState<AuraState>("idle");
   const abortControllerRef = useRef<AbortController | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations.slice(0, 40)));
-    } catch (e) {
-      console.warn("Storage quota exceeded", e);
-    }
+    saveStoredConversations(conversations);
   }, [conversations]);
+
+  useEffect(() => {
+    saveStoredProjects(projects);
+  }, [projects]);
 
   // Load cloud conversations when user is logged in
   useEffect(() => {
@@ -157,11 +159,16 @@ export function useChat() {
                   id: cc.id,
                   title: cc.title || "Cloud Chat",
                   createdAt: new Date(cc.created_at).getTime() || Date.now(),
+                  updatedAt: new Date(cc.created_at).getTime() || Date.now(),
+                  pinned: false,
+                  projectId: null,
+                  rootId: cc.id,
+                  parentId: null,
                   messages: [],
                 });
               }
             });
-            return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+            return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
           });
         }
       } catch (err) {
@@ -189,14 +196,30 @@ export function useChat() {
     (id: string, msgs: Message[]) => {
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === id);
+        const existing = idx >= 0 ? prev[idx] : null;
+
+        // If this is a branch, compute how many messages are inherited from ancestors
+        const inheritedCount = existing?.parentId ? getBranchAncestorCount(id, prev) : 0;
+        const ownMessages = msgs.slice(inheritedCount).map((m) => ({ ...m, streaming: false }));
+
         const firstUser = msgs.find((m) => m.role === "user");
-        const title = firstUser ? firstUser.content.slice(0, 48) : "Untitled";
+        const defaultTitle = firstUser ? firstUser.content.slice(0, 48) : "Untitled";
+        const title = existing?.title || defaultTitle;
+
         const conv: Conversation = {
           id,
           title,
-          createdAt: idx >= 0 ? prev[idx].createdAt : Date.now(),
-          messages: msgs.map((m) => ({ ...m, streaming: false })),
+          createdAt: existing ? existing.createdAt : Date.now(),
+          updatedAt: Date.now(),
+          pinned: Boolean(existing?.pinned),
+          projectId: existing?.projectId ?? null,
+          rootId: existing?.rootId || (existing?.parentId ? undefined : id),
+          parentId: existing?.parentId ?? null,
+          forkMessageIndex: existing?.forkMessageIndex,
+          forkMessageId: existing?.forkMessageId,
+          messages: ownMessages,
         };
+
         if (idx >= 0) {
           const next = [...prev];
           next[idx] = conv;
@@ -221,6 +244,7 @@ export function useChat() {
     },
     [],
   );
+
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -951,31 +975,123 @@ export function useChat() {
   }, [stop]);
 
   const openConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const c = conversations.find((x) => x.id === id);
       if (!c) return;
       stop();
+      setIsLoadingChat(true);
       setActiveId(id);
-      setMessages(c.messages);
-      setMode(c.messages[c.messages.length - 1]?.mode ?? null);
+
+      // Resolve full ancestor message history if this is a branch
+      const resolved = getResolvedBranchMessages(id, conversations);
+      setMessages(resolved);
+      setMode(resolved[resolved.length - 1]?.mode ?? null);
       setState("idle");
+
+      // Visual loading flourish
+      setTimeout(() => {
+        setIsLoadingChat(false);
+      }, 180);
     },
     [conversations, stop],
   );
 
   const deleteConversation = useCallback(
     (id: string) => {
-      setConversations((prev) => prev.filter((c) => c.id !== id));
-      deleteCloudChat(id).catch(() => {});
-      if (id === activeId) newChat();
+      const { remainingChats, deletedIds } = deleteConversationWithDescendants(id, conversations);
+      setConversations(remainingChats);
+      deletedIds.forEach((delId) => deleteCloudChat(delId).catch(() => {}));
+      if (deletedIds.includes(activeId || "")) newChat();
     },
-    [activeId, newChat],
+    [activeId, conversations, newChat],
   );
+
+  const pinConversation = useCallback((id: string, pinned?: boolean) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, pinned: pinned ?? !c.pinned } : c)),
+    );
+  }, []);
+
+  const renameConversation = useCallback((id: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title: trimmed, updatedAt: Date.now() } : c)),
+    );
+    updateCloudChat(id, trimmed).catch(() => {});
+  }, []);
+
+  const createBranch = useCallback(
+    (sourceChatId?: string, messageIdOrIndex?: string | number, customTitle?: string) => {
+      const targetId = sourceChatId || activeId;
+      if (!targetId) return null;
+      try {
+        const { newChat, updatedChats } = createBranchConversation(
+          targetId,
+          conversations,
+          messageIdOrIndex,
+          customTitle,
+        );
+        setConversations(updatedChats);
+        openConversation(newChat.id);
+        return newChat;
+      } catch (err) {
+        console.error("Failed to create branch:", err);
+        return null;
+      }
+    },
+    [activeId, conversations, openConversation],
+  );
+
+  const createProject = useCallback((name: string, color?: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const newProj: Project = {
+      id: `proj_${uid()}`,
+      name: trimmed,
+      color: color || "#D4AF37",
+      createdAt: Date.now(),
+    };
+    setProjects((prev) => [newProj, ...prev]);
+    return newProj;
+  }, []);
+
+  const renameProject = useCallback((projectId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, name: trimmed } : p)),
+    );
+  }, []);
+
+  const deleteProject = useCallback((projectId: string) => {
+    // Remove project from store and unassign conversations
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    setConversations((prev) =>
+      prev.map((c) => (c.projectId === projectId ? { ...c, projectId: null } : c)),
+    );
+  }, []);
+
+  const assignToProject = useCallback((chatId: string, projectId: string | null) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === chatId ? { ...c, projectId } : c)),
+    );
+  }, []);
+
+  // Compute branch lineage and sibling branches for active conversation
+  const breadcrumbs = activeId ? getBranchBreadcrumb(activeId, conversations) : [];
+  const siblingBranches = activeId ? getSiblingBranches(activeId, conversations) : [];
+  const activeChat = conversations.find((c) => c.id === activeId) || null;
 
   return {
     conversations,
+    projects,
     activeId,
+    activeChat,
     messages,
+    isLoadingChat,
+    breadcrumbs,
+    siblingBranches,
     mode,
     setMode,
     state,
@@ -984,5 +1100,12 @@ export function useChat() {
     newChat,
     openConversation,
     deleteConversation,
+    pinConversation,
+    renameConversation,
+    createBranch,
+    createProject,
+    renameProject,
+    deleteProject,
+    assignToProject,
   };
 }
