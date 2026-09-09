@@ -182,31 +182,32 @@ export function buildClosedFramePath(
   rawD: string,
   _capW: number,
   width: number,
-  capScale: number,
+  scaleX: number,
   capTop: number,
+  scaleY: number = scaleX,
 ): string {
   const cmds = parsePathToCommands(rawD);
   if (cmds.length === 0) return "";
 
-  const leftStart = { x: cmds[0].endX * capScale, y: capTop + cmds[0].endY * capScale };
+  const leftStart = { x: cmds[0].endX * scaleX, y: capTop + cmds[0].endY * scaleY };
   const leftEnd = {
-    x: cmds[cmds.length - 1].endX * capScale,
-    y: capTop + cmds[cmds.length - 1].endY * capScale,
+    x: cmds[cmds.length - 1].endX * scaleX,
+    y: capTop + cmds[cmds.length - 1].endY * scaleY,
   };
 
   // 1. Left cap forward (top to bottom)
   let path = "";
   cmds.forEach((c, idx) => {
     if (idx === 0) {
-      path += `M ${c.endX * capScale} ${capTop + c.endY * capScale} `;
+      path += `M ${c.endX * scaleX} ${capTop + c.endY * scaleY} `;
     } else if (c.cmd === "L") {
-      path += `L ${c.endX * capScale} ${capTop + c.endY * capScale} `;
+      path += `L ${c.endX * scaleX} ${capTop + c.endY * scaleY} `;
     } else if (c.cmd === "H") {
-      path += `H ${c.endX * capScale} `;
+      path += `H ${c.endX * scaleX} `;
     } else if (c.cmd === "V") {
-      path += `V ${capTop + c.endY * capScale} `;
+      path += `V ${capTop + c.endY * scaleY} `;
     } else if (c.cmd === "Q") {
-      path += `Q ${(c.cx ?? 0) * capScale} ${capTop + (c.cy ?? 0) * capScale} ${c.endX * capScale} ${capTop + c.endY * capScale} `;
+      path += `Q ${(c.cx ?? 0) * scaleX} ${capTop + (c.cy ?? 0) * scaleY} ${c.endX * scaleX} ${capTop + c.endY * scaleY} `;
     }
   });
 
@@ -218,12 +219,12 @@ export function buildClosedFramePath(
   // 3. Right cap mirrored in reverse (from bottom up to top)
   for (let i = cmds.length - 1; i >= 1; i--) {
     const c = cmds[i];
-    const prevPt = { x: width - c.startX * capScale, y: capTop + c.startY * capScale };
+    const prevPt = { x: width - c.startX * scaleX, y: capTop + c.startY * scaleY };
     if (c.cmd === "L" || c.cmd === "H" || c.cmd === "V") {
       path += `L ${prevPt.x} ${prevPt.y} `;
     } else if (c.cmd === "Q") {
-      const mirroredCx = width - (c.cx ?? 0) * capScale;
-      const mirroredCy = capTop + (c.cy ?? 0) * capScale;
+      const mirroredCx = width - (c.cx ?? 0) * scaleX;
+      const mirroredCy = capTop + (c.cy ?? 0) * scaleY;
       path += `Q ${mirroredCx} ${mirroredCy} ${prevPt.x} ${prevPt.y} `;
     }
   }

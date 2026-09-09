@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuraState } from "../components/Aura";
+import { getMemory, addMemoryFact, removeMemoryFact } from "../lib/memory";
+import {
+  getUser,
+  createCloudChat,
+  updateCloudChat,
+  deleteCloudChat,
+  saveCloudMessage,
+  listCloudChats,
+  onAuthStateChange,
+} from "../lib/supabase";
 
 export type Mode = "Image" | "Video" | "Code" | "Text" | "Music";
 export const MODES: Mode[] = ["Image", "Video", "Code", "Text", "Music"];
@@ -31,6 +41,13 @@ export type WorkStep =
       type: "image_gen";
       prompt: string;
       imageUrl?: string;
+      isLive?: boolean;
+    }
+  | {
+      id: string;
+      type: "memory";
+      action: "add" | "remove" | "recall";
+      fact?: string;
       isLive?: boolean;
     };
 
@@ -114,6 +131,45 @@ export function useChat() {
     }
   }, [conversations]);
 
+  // Load cloud conversations when user is logged in
+  useEffect(() => {
+    let active = true;
+    async function syncCloud() {
+      const u = await getUser();
+      if (!u || !active) return;
+      try {
+        const cloudChats = await listCloudChats();
+        if (cloudChats.length > 0 && active) {
+          setConversations((prev) => {
+            const map = new Map<string, Conversation>();
+            prev.forEach((c) => map.set(c.id, c));
+            cloudChats.forEach((cc) => {
+              if (!map.has(cc.id)) {
+                map.set(cc.id, {
+                  id: cc.id,
+                  title: cc.title || "Cloud Chat",
+                  createdAt: new Date(cc.created_at).getTime() || Date.now(),
+                  messages: [],
+                });
+              }
+            });
+            return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+          });
+        }
+      } catch (err) {
+        console.warn("[D'Ai] Cloud chat fetch failed:", err);
+      }
+    }
+    syncCloud();
+    const sub = onAuthStateChange(() => {
+      syncCloud();
+    });
+    return () => {
+      active = false;
+      sub.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
@@ -140,6 +196,20 @@ export function useChat() {
         }
         return [conv, ...prev];
       });
+
+      // Background cloud sync for authenticated users
+      getUser().then((user) => {
+        if (!user) return;
+        const firstUser = msgs.find((m) => m.role === "user");
+        const title = firstUser ? firstUser.content.slice(0, 48) : "Untitled";
+        createCloudChat(title, { local_id: id }).then((cloudChat) => {
+          const cloudChatId = cloudChat?.id || id;
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg) {
+            saveCloudMessage(cloudChatId, lastMsg.role, lastMsg.content, { mode: lastMsg.mode });
+          }
+        }).catch(() => {});
+      }).catch(() => {});
     },
     [],
   );
@@ -207,11 +277,25 @@ export function useChat() {
         );
       };
 
-      // Conversation messages sent to the API
-      let conversationHistory: any[] = currentMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      // Conversation messages sent to the API with sovereign agent instructions and personal memory
+      const memoryFacts = getMemory();
+      let systemPrompt =
+        "You are D'Ai, an exquisite, sovereign intelligence crafted with peerless elegance, intellectual depth, and uncompromising clarity.";
+      if (memoryFacts.length > 0) {
+        systemPrompt += `\n\n## Remembered Context About the User\nYou know the following personal facts, preferences, and context about the user:\n${memoryFacts.map((f) => `• ${f}`).join("\n")}\nSeamlessly personalize your responses using these facts whenever appropriate.`;
+      }
+      systemPrompt += `\n\n## Tools & Capabilities\nYou have native capabilities:
+- \`web_search\`: Call this whenever the user asks for real-time information, recent events, market facts, technical specifications, or verification.
+- \`manage_memory\`: Call this to store ('add'), delete ('remove'), or view ('recall') important persistent user preferences, identity, tech stack, or background facts.
+- \`generate_image\`: Call this to render visual scenes, paintings, or artistic illustrations.`;
+
+      let conversationHistory: any[] = [
+        { role: "system", content: systemPrompt },
+        ...currentMessages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      ];
 
       let rawBuffer = "";
       let displayedText = "";
@@ -403,9 +487,7 @@ export function useChat() {
                       // When direct answer content starts and no tools are pending,
                       // collapse the execution work into "Worked for x seconds ▾"
                       if (!inThinkTag && currentTurnToolCalls.length === 0 && chunkText) {
-                        if (state !== "answering") {
-                          setState("answering");
-                        }
+                        setState((curr) => (curr !== "answering" ? "answering" : curr));
 
                         const elapsedThoughtSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
                         const totalDurationSec = Math.max(0.2, (Date.now() - workStartTime) / 1000);
@@ -417,7 +499,11 @@ export function useChat() {
                           statusText: "",
                           steps: w.steps.map((s) =>
                             s.id === currentThoughtId && s.isLive
-                              ? { ...s, isLive: false, durationSec: s.durationSec || elapsedThoughtSec }
+                              ? {
+                                  ...s,
+                                  isLive: false,
+                                  ...(s.type === "thought" ? { durationSec: s.durationSec || elapsedThoughtSec } : {}),
+                                }
                               : s,
                           ),
                         }));
@@ -640,6 +726,67 @@ export function useChat() {
                   name: "generate_image",
                   content: JSON.stringify({ success: true, imageUrl: generatedUrl }),
                 });
+              } else if (toolCall.name === "manage_memory") {
+                let action: "add" | "remove" | "recall" = "recall";
+                let fact = "";
+                try {
+                  const parsed = JSON.parse(toolCall.arguments || "{}");
+                  if (parsed.action) action = parsed.action;
+                  if (parsed.fact) fact = parsed.fact;
+                } catch {}
+
+                const memStepId = uid();
+                updateWork((w) => ({
+                  ...w,
+                  statusText: action === "add" ? "Remembering personal context…" : "Accessing user memory…",
+                  steps: [
+                    ...w.steps,
+                    {
+                      id: memStepId,
+                      type: "memory",
+                      action,
+                      fact,
+                      isLive: true,
+                    },
+                  ],
+                }));
+
+                let resultPayload: Record<string, unknown> = {};
+                if (action === "add" && fact) {
+                  const updated = addMemoryFact(fact);
+                  resultPayload = {
+                    status: "success",
+                    message: `Fact "${fact}" stored in user memory.`,
+                    all_facts: updated,
+                  };
+                } else if (action === "remove" && fact) {
+                  const current = getMemory();
+                  const idx = current.findIndex((f) => f.toLowerCase().includes(fact.toLowerCase()));
+                  const updated = idx !== -1 ? removeMemoryFact(idx) : current;
+                  resultPayload = {
+                    status: "success",
+                    message: `Fact removed from user memory.`,
+                    all_facts: updated,
+                  };
+                } else {
+                  resultPayload = {
+                    status: "success",
+                    all_facts: getMemory(),
+                  };
+                }
+
+                updateWork((w) => ({
+                  ...w,
+                  statusText: action === "add" ? "Personal context remembered" : "User memory recalled",
+                  steps: w.steps.map((s) => (s.id === memStepId ? { ...s, isLive: false } : s)),
+                }));
+
+                conversationHistory.push({
+                  role: "tool",
+                  tool_call_id: toolCall.id,
+                  name: "manage_memory",
+                  content: JSON.stringify(resultPayload),
+                });
               }
             }
 
@@ -780,6 +927,7 @@ export function useChat() {
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => prev.filter((c) => c.id !== id));
+      deleteCloudChat(id).catch(() => {});
       if (id === activeId) newChat();
     },
     [activeId, newChat],

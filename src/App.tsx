@@ -1,29 +1,77 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { Ambient } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
 import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { Messages } from "./components/Messages";
-import { ModeButtons } from "./components/ModeButtons";
+import { PromptSuggestions } from "./components/PromptSuggestions";
+import { AccountModal } from "./components/AccountModal";
+import { MemoryModal } from "./components/MemoryModal";
 import { SvgDefs } from "./components/SvgDefs";
 import { PanelFrame } from "./components/frames/PanelFrame";
 import { useChat } from "./hooks/useChat";
 import { useSize } from "./hooks/useSize";
+import { getMemory } from "./lib/memory";
+import { getUser, onAuthStateChange } from "./lib/supabase";
 import { cn } from "./utils/cn";
 
 export default function App() {
   const chat = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [memoryCount, setMemoryCount] = useState<number>(() => getMemory().length);
+
   const panel = useSize<HTMLDivElement>();
   const empty = chat.messages.length === 0 && chat.state === "idle";
   const busy = chat.state !== "idle";
+
+  // Auth state tracking
+  useEffect(() => {
+    getUser().then(setUser);
+    const sub = onAuthStateChange((u) => setUser(u));
+    return () => sub.unsubscribe();
+  }, []);
+
+  // Memory count listener
+  useEffect(() => {
+    const updateCount = () => setMemoryCount(getMemory().length);
+    window.addEventListener("dai:memory-updated", updateCount as EventListener);
+    return () => window.removeEventListener("dai:memory-updated", updateCount as EventListener);
+  }, []);
+
+  // Global keyboard shortcuts (Ctrl+K: New Chat, Escape: Close Modals)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        chat.newChat();
+      } else if (e.key === "Escape") {
+        setHistoryOpen(false);
+        setAccountOpen(false);
+        setMemoryOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [chat]);
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-ink text-cream">
       <SvgDefs />
       <Ambient state={chat.state} visible={empty} />
 
-      <Header onHistory={() => setHistoryOpen(true)} onNewChat={chat.newChat} historyOpen={historyOpen} />
+      <Header
+        onHistory={() => setHistoryOpen(true)}
+        onNewChat={chat.newChat}
+        onMemory={() => setMemoryOpen(true)}
+        onAccount={() => setAccountOpen(true)}
+        historyOpen={historyOpen}
+        memoryCount={memoryCount}
+        user={user}
+      />
 
       <main className="relative z-10 flex-1 px-5 pt-5 pb-[58px] md:px-7 md:pt-7 md:pb-[68px]">
         {/* Main D'Ai framed panel container */}
@@ -37,14 +85,15 @@ export default function App() {
             )}
           >
             {empty ? (
-              <div className="flex flex-col items-center justify-center gap-7 md:gap-9 px-4 text-center max-w-5xl mx-auto -translate-y-4">
-                <ModeButtons mode={chat.mode} onSelect={chat.setMode} />
+              <div className="flex flex-col items-center justify-center gap-6 px-4 text-center max-w-4xl mx-auto -translate-y-4">
+                {/* Context & History-driven prompt suggestions (blank if no prior context) */}
+                <PromptSuggestions
+                  conversations={chat.conversations}
+                  onSelectPrompt={(prompt) => chat.send(prompt)}
+                />
 
-                <p
-                  key={chat.mode ?? "none"}
-                  className="rise font-display text-[20px] md:text-[22px] italic tracking-wide text-muted"
-                >
-                  {chat.mode ? `${chat.mode} mode — ask away.` : "Choose a discipline, or simply begin."}
+                <p className="rise font-display text-[20px] md:text-[22px] italic tracking-wide text-muted select-none">
+                  “The sovereign flame of ornate intelligence.”
                 </p>
               </div>
             ) : (
@@ -61,6 +110,7 @@ export default function App() {
         </div>
       </main>
 
+      {/* Saved Chats History Drawer */}
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -68,6 +118,20 @@ export default function App() {
         activeId={chat.activeId}
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
+      />
+
+      {/* Google Sign-in & Account Modal */}
+      <AccountModal
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        savedChatsCount={chat.conversations.length}
+        memoryFactsCount={memoryCount}
+      />
+
+      {/* Personal Memory Modal */}
+      <MemoryModal
+        open={memoryOpen}
+        onClose={() => setMemoryOpen(false)}
       />
     </div>
   );

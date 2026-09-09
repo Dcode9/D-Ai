@@ -91,6 +91,28 @@ const NATIVE_TOOLS = [
         required: ["prompt"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "manage_memory",
+      description: "Store or recall important persistent facts about the user (preferences, background, name, coding stack, key projects, interests) across conversations.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: {
+            type: "string",
+            enum: ["add", "remove", "recall"],
+            description: "The memory action: 'add' to remember a new fact, 'remove' to delete a previously remembered fact, 'recall' to retrieve all remembered facts."
+          },
+          fact: {
+            type: "string",
+            description: "The concise statement or piece of knowledge about the user to remember or remove."
+          }
+        },
+        required: ["action"]
+      }
+    }
   }
 ];
 

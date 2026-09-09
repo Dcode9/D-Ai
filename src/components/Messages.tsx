@@ -3,6 +3,7 @@ import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
 import { cn } from "../utils/cn";
+import { processMathAndMarkdown } from "../lib/renderMarkdown";
 
 type Props = { messages: Message[]; state: AuraState };
 
@@ -266,6 +267,15 @@ function WorkAccordion({ work }: { work?: WorkData }) {
               );
             }
 
+            if (step.type === "memory") {
+              return (
+                <div key={step.id} className="flex items-center gap-2 text-[12.5px] font-body text-gold/75">
+                  <span className="text-xs">🧠</span>
+                  <span>{step.action === "add" ? `Remembered: "${step.fact || "context"}"` : "Accessed user memory"}</span>
+                </div>
+              );
+            }
+
             return null;
           })}
         </div>
@@ -299,6 +309,14 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             }
             if (step.type === "image_gen") {
               return <ImageStepItem key={step.id} step={step} />;
+            }
+            if (step.type === "memory") {
+              return (
+                <div key={step.id} className="flex items-center gap-2 py-1 font-body text-[12.5px] text-gold/85">
+                  <span className="text-xs">🧠</span>
+                  <span>{step.action === "add" ? `Stored memory: "${step.fact}"` : "Recalled personal memory context"}</span>
+                </div>
+              );
             }
             return null;
           })}
@@ -355,51 +373,31 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
   );
 }
 
-/** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components */
+/** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components and KaTeX math */
 function RichMarkdown({ text, streaming, imageUrl }: { text: string; streaming?: boolean; imageUrl?: string }) {
   const renderedContent = useMemo(() => {
     if (!text.trim()) return null;
 
     try {
-      const tokens = marked.lexer(text);
-      const segments: React.ReactNode[] = [];
-      let proseTokens: Tokens.Generic[] = [];
-
-      const flushProse = (keyIndex: number) => {
-        if (proseTokens.length === 0) return;
-        try {
-          const html = marked.parser(proseTokens as any);
-          segments.push(
-            <div
-              key={`prose-${keyIndex}`}
-              className="dai-prose"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />,
-          );
-        } catch {
-          // Fallback if parser encounters incomplete token
-          segments.push(
-            <div key={`prose-${keyIndex}`} className="dai-prose whitespace-pre-wrap">
-              {proseTokens.map((t) => t.raw).join("")}
-            </div>,
-          );
+      // Split on fenced code blocks to isolate executable code from prose/math
+      const parts = text.split(/(```[\s\S]*?```)/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith("```") && part.endsWith("```")) {
+          const firstLineEnd = part.indexOf("\n");
+          const lang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim();
+          const code = firstLineEnd > 0 ? part.slice(firstLineEnd + 1, -3) : "";
+          return <CodeBlock key={`code-${idx}`} lang={lang || "code"} code={code} />;
         }
-        proseTokens = [];
-      };
-
-      tokens.forEach((token, idx) => {
-        if (token.type === "code") {
-          flushProse(idx);
-          segments.push(
-            <CodeBlock key={`code-${idx}`} lang={token.lang || "code"} code={token.text} />,
-          );
-        } else {
-          proseTokens.push(token);
-        }
+        if (!part.trim()) return null;
+        const html = processMathAndMarkdown(part);
+        return (
+          <div
+            key={`prose-${idx}`}
+            className="dai-prose text-[16px] leading-[1.75] text-[#ded4bf]"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
       });
-
-      flushProse(tokens.length);
-      return segments;
     } catch {
       return (
         <div className="dai-prose whitespace-pre-wrap">
@@ -528,7 +526,7 @@ export function Messages({ messages, state }: Props) {
 
   // Smoothly scroll ONCE to the top of the answer row
   useEffect(() => {
-    const latestAssistant = messages.findLast((m) => m.role === "assistant");
+    const latestAssistant = [...messages].reverse().find((m) => m.role === "assistant");
     if (latestAssistant && latestAssistant.id !== scrolledAssistantIdRef.current) {
       scrolledAssistantIdRef.current = latestAssistant.id;
       if (latestRowRef.current) {
@@ -540,7 +538,7 @@ export function Messages({ messages, state }: Props) {
     }
   }, [messages]);
 
-  const lastAssistant = messages.findLast((m) => m.role === "assistant");
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col gap-8 px-4 py-8 md:px-10">

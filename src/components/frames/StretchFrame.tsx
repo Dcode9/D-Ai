@@ -45,14 +45,18 @@ export function StretchFrame({
     const shapeVisualCenterY = (shape.outerTopY + shape.outerBottomY) / 2;
     const shapeVisualHeight = shape.outerBottomY - shape.outerTopY;
 
-    // Scale proportionally so the visual frame fits comfortably within h
-    const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
+    const isWide = w > 300;
+    // For wide container (message box), maintain constant cap width while expanding height vertically
+    const capScaleX = isWide
+      ? Math.min((100 * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW)
+      : Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
+    const capScaleY = (h * 0.94) / shapeVisualHeight;
 
     // Position capTop so that the visual center of the shape maps EXACTLY to h / 2
-    const capTop = h / 2 - shapeVisualCenterY * capScale;
+    const capTop = h / 2 - shapeVisualCenterY * capScaleY;
 
-    const outer = buildClosedFramePath(shape.outer, shape.capW, w, capScale, capTop);
-    const inner = buildClosedFramePath(shape.inner, shape.capW, w, capScale, capTop);
+    const outer = buildClosedFramePath(shape.outer, shape.capW, w, capScaleX, capTop, capScaleY);
+    const inner = buildClosedFramePath(shape.inner, shape.capW, w, capScaleX, capTop, capScaleY);
 
     return { outerPath: outer, innerPath: inner };
   }, [shape, w, h]);
