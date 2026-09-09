@@ -55,8 +55,114 @@
     });
   }
 
+  let checkedUrlHandoff = false;
+
+  function base64UrlDecode(str) {
+    try {
+      const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+      const binary = atob(padded);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return JSON.parse(new TextDecoder().decode(bytes));
+    } catch (e) {
+      console.warn('[DVerse] Failed to decode session handoff:', e);
+      return null;
+    }
+  }
+
+  function setReturnCookie(url) {
+    if (typeof document === 'undefined') return;
+    const target = url || authRedirectUrl();
+    document.cookie = `dverse.auth.returnTo=${encodeURIComponent(target)}; domain=.d-verse.in; path=/; max-age=600; SameSite=Lax; Secure`;
+    document.cookie = `dverse_auth_return_to=${encodeURIComponent(target)}; domain=.d-verse.in; path=/; max-age=600; SameSite=Lax; Secure`;
+    try {
+      localStorage.setItem('dverse.auth.returnTo', target);
+      sessionStorage.setItem('dverse.auth.returnTo', target);
+    } catch (_) {}
+  }
+
+  function clearReturnCookie() {
+    if (typeof document === 'undefined') return;
+    document.cookie = 'dverse.auth.returnTo=; domain=.d-verse.in; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure';
+    document.cookie = 'dverse_auth_return_to=; domain=.d-verse.in; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure';
+    try {
+      localStorage.removeItem('dverse.auth.returnTo');
+      sessionStorage.removeItem('dverse.auth.returnTo');
+    } catch (_) {}
+  }
+
+  async function takeSessionHandoffFromUrl() {
+    if (checkedUrlHandoff || typeof window === 'undefined' || !client) return null;
+    checkedUrlHandoff = true;
+
+    try {
+      let sessionData = null;
+
+      // 1. Check ?dverse_session=... in query
+      const searchParams = new URLSearchParams(window.location.search);
+      const searchSession = searchParams.get('dverse_session');
+      if (searchSession) {
+        searchParams.delete('dverse_session');
+        const cleanSearch = searchParams.toString();
+        const cleanUrl = `${window.location.pathname}${cleanSearch ? `?${cleanSearch}` : ''}${window.location.hash}`;
+        try { window.history.replaceState({}, document.title, cleanUrl); } catch (_) {}
+        sessionData = base64UrlDecode(searchSession);
+      }
+
+      // 2. Check #dverse_session=... in hash
+      if (!sessionData && window.location.hash && window.location.hash.includes('dverse_session=')) {
+        const hashText = window.location.hash.slice(1);
+        const params = new URLSearchParams(hashText.startsWith('?') ? hashText.slice(1) : hashText);
+        const hashSession = params.get('dverse_session');
+        params.delete('dverse_session');
+        const cleanHash = params.toString();
+        const cleanUrl = `${window.location.pathname}${window.location.search}${cleanHash ? `#${cleanHash}` : ''}`;
+        try { window.history.replaceState({}, document.title, cleanUrl); } catch (_) {}
+        if (hashSession) {
+          sessionData = base64UrlDecode(hashSession);
+        }
+      }
+
+      // 3. Check #access_token=...&refresh_token=... in hash
+      if (!sessionData && window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('refresh_token='))) {
+        const hashText = window.location.hash.slice(1);
+        const params = new URLSearchParams(hashText.startsWith('?') ? hashText.slice(1) : hashText);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          sessionData = { access_token: accessToken, refresh_token: refreshToken };
+          try {
+            window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+          } catch (_) {}
+        }
+      }
+
+      if (sessionData?.access_token && sessionData?.refresh_token) {
+        const { data, error } = await client.auth.setSession({
+          access_token: sessionData.access_token,
+          refresh_token: sessionData.refresh_token
+        });
+        if (error) {
+          console.warn('[DVerse] Failed to restore session from URL:', error);
+        } else if (data?.session) {
+          syncSessionToPortal(data.session);
+          return data.session;
+        }
+      }
+    } catch (err) {
+      console.warn('[DVerse] Error restoring session from URL:', err);
+    }
+    return null;
+  }
+
   async function bootstrapFromPortal() {
     if (!client) return null;
+    const handoff = await takeSessionHandoffFromUrl();
+    if (handoff) return handoff;
+
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     if (data.session) return data.session;
@@ -112,11 +218,14 @@
   async function signInWithGoogle() {
     if (!client) throw new Error("D'Verse Supabase client is not configured.");
     const isIframe = window !== window.top;
+    const returnUrl = authRedirectUrl();
+    setReturnCookie(returnUrl);
+
     try {
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: authRedirectUrl(),
+          redirectTo: returnUrl,
           skipBrowserRedirect: isIframe
         }
       });
@@ -130,7 +239,7 @@
       }
     } catch (e) {
       console.warn('[DVerse] Direct OAuth failed, attempting portal redirect fallback:', e);
-      const targetUrl = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(authRedirectUrl())}`;
+      const targetUrl = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(returnUrl)}`;
       if (isIframe) {
         window.open(targetUrl, '_blank');
       } else {
@@ -141,6 +250,7 @@
 
   async function signOut() {
     if (!client) return;
+    clearReturnCookie();
     try {
       const { error } = await client.auth.signOut();
       if (error) console.warn('[DVerse] Supabase sign-out error:', error);
