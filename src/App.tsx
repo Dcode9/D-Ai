@@ -73,7 +73,7 @@ export default function App() {
         user={user}
       />
 
-      <main className="relative z-10 flex-1 px-5 pt-3 pb-[58px] md:px-7 md:pt-4 md:pb-[68px]">
+      <main className="relative z-10 flex-1 px-5 pt-5 pb-[58px] md:px-7 md:pt-7 md:pb-[68px]">
         {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
         {chat.breadcrumbs.length > 1 && (
           <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5 backdrop-blur-sm">
@@ -176,17 +176,9 @@ export default function App() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         conversations={chat.conversations}
-        projects={chat.projects}
         activeId={chat.activeId}
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
-        onPin={chat.pinConversation}
-        onRename={chat.renameConversation}
-        onBranch={(id) => chat.createBranch(id)}
-        onCreateProject={chat.createProject}
-        onRenameProject={chat.renameProject}
-        onDeleteProject={chat.deleteProject}
-        onAssignToProject={chat.assignToProject}
       />
 
       {/* Google Sign-in & Account Modal */}
