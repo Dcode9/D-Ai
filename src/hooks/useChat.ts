@@ -174,19 +174,10 @@ export function useChat() {
 
       const asstId = uid();
       const workStartTime = Date.now();
-      const initialThoughtId = uid();
 
       let activeWorkData: WorkData = {
         totalDurationSec: 0,
-        steps: [
-          {
-            id: initialThoughtId,
-            type: "thought",
-            durationSec: 0,
-            content: "",
-            isLive: true,
-          },
-        ],
+        steps: [],
         isWorking: true,
         statusText: "Thinking…",
       };
@@ -227,9 +218,8 @@ export function useChat() {
       let isStreamingActive = false;
       let finalImageUrl: string | undefined = undefined;
       let thoughtStartTime = Date.now();
-      let currentThoughtId = initialThoughtId;
+      let currentThoughtId: string | null = null;
       let currentThoughtContent = "";
-      let enableThinkingForStep = true;
       let loopCount = 0;
       const maxLoops = 5;
 
@@ -270,7 +260,6 @@ export function useChat() {
                 messages: conversationHistory,
                 stream: true,
                 mode,
-                enable_thinking: enableThinkingForStep,
               }),
               signal: controller.signal,
             });
@@ -301,10 +290,28 @@ export function useChat() {
                     const delta = choice?.delta;
 
                     // 1. Accumulate reasoning/thinking tokens
-                    const reasoningChunk = delta?.reasoning || delta?.reasoning_content || delta?.thought;
+                    const reasoningChunk = delta?.reasoning || delta?.reasoning_content || delta?.thought || parsed?.reasoning_summary?.content;
                     if (reasoningChunk) {
+                      if (!currentThoughtId) {
+                        currentThoughtId = uid();
+                        thoughtStartTime = Date.now();
+                        updateWork((w) => ({
+                          ...w,
+                          statusText: "Thinking…",
+                          steps: [
+                            ...w.steps,
+                            {
+                              id: currentThoughtId!,
+                              type: "thought",
+                              durationSec: 0,
+                              content: "",
+                              isLive: true,
+                            },
+                          ],
+                        }));
+                      }
                       currentThoughtContent += reasoningChunk;
-                      const elapsedSec = Math.max(0, (Date.now() - thoughtStartTime) / 1000);
+                      const elapsedSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
                       updateWork((w) => ({
                         ...w,
                         statusText: "Thinking…",
@@ -345,6 +352,24 @@ export function useChat() {
 
                       if (!inThinkTag && thinkStartRegex.test(chunkText)) {
                         inThinkTag = true;
+                        if (!currentThoughtId) {
+                          currentThoughtId = uid();
+                          thoughtStartTime = Date.now();
+                          updateWork((w) => ({
+                            ...w,
+                            statusText: "Thinking…",
+                            steps: [
+                              ...w.steps,
+                              {
+                                id: currentThoughtId!,
+                                type: "thought",
+                                durationSec: 0,
+                                content: "",
+                                isLive: true,
+                              },
+                            ],
+                          }));
+                        }
                         const parts = chunkText.split(thinkStartRegex);
                         if (parts[0]) {
                           rawBuffer += parts[0];
@@ -420,16 +445,20 @@ export function useChat() {
 
           // If tool calls were emitted in this turn, execute them!
           if (currentTurnToolCalls.length > 0) {
-            // Finalize preceding thought step
-            const elapsedThoughtSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
-            updateWork((w) => ({
-              ...w,
-              steps: w.steps.map((s) =>
-                s.id === currentThoughtId
-                  ? { ...s, isLive: false, durationSec: elapsedThoughtSec }
-                  : s,
-              ),
-            }));
+            // Finalize preceding thought step if one was active
+            if (currentThoughtId) {
+              const elapsedThoughtSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
+              updateWork((w) => ({
+                ...w,
+                steps: w.steps.map((s) =>
+                  s.id === currentThoughtId
+                    ? { ...s, isLive: false, durationSec: elapsedThoughtSec }
+                    : s,
+                ),
+              }));
+              currentThoughtId = null;
+              currentThoughtContent = "";
+            }
 
             // Record assistant message with tool calls in history
             conversationHistory.push({
@@ -441,8 +470,6 @@ export function useChat() {
                 function: { name: tc.name, arguments: tc.arguments },
               })),
             });
-
-            let requiresNextThinking = false;
 
             // Execute each tool call
             for (const toolCall of currentTurnToolCalls) {
@@ -541,9 +568,6 @@ export function useChat() {
                   name: "web_search",
                   content: JSON.stringify(toolPayload),
                 });
-
-                // Harness decision: Always trigger deliberate reasoning to evaluate search results
-                requiresNextThinking = true;
               } else if (toolCall.name === "generate_image") {
                 let imgPrompt = prompt;
                 let aspectRatio = "1:1";
@@ -616,31 +640,7 @@ export function useChat() {
                   name: "generate_image",
                   content: JSON.stringify({ success: true, imageUrl: generatedUrl }),
                 });
-
-                requiresNextThinking = false;
               }
-            }
-
-            // Harness decision applied to next step:
-            enableThinkingForStep = requiresNextThinking;
-            if (enableThinkingForStep) {
-              currentThoughtId = uid();
-              currentThoughtContent = "";
-              thoughtStartTime = Date.now();
-              updateWork((w) => ({
-                ...w,
-                statusText: "Thinking…",
-                steps: [
-                  ...w.steps,
-                  {
-                    id: currentThoughtId,
-                    type: "thought",
-                    durationSec: 0,
-                    content: "",
-                    isLive: true,
-                  },
-                ],
-              }));
             }
 
             // Continue loop to generate synthesis or next response
@@ -697,7 +697,12 @@ export function useChat() {
                 ? { ...s, isLive: false, durationSec: (s as any).durationSec || finalThoughtDuration }
                 : s,
             )
-            .filter((s) => !(s.type === "thought" && !s.content.trim() && s.durationSec < 0.6)),
+            .filter((s) => {
+              if (s.type === "thought") {
+                return Boolean(s.content && s.content.trim());
+              }
+              return true;
+            }),
         }));
 
         // Allow streaming catch-up loop to finish

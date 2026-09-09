@@ -34,6 +34,8 @@ function ThoughtStepItem({ step }: { step: WorkStep & { type: "thought" } }) {
   const [open, setOpen] = useState(false);
   const durationLabel = formatDuration(step.durationSec);
 
+  if (!step.content || !step.content.trim()) return null;
+
   return (
     <div className="rounded border border-gold/15 bg-black/20 transition-colors hover:border-gold/30">
       <button
@@ -191,7 +193,17 @@ function ImageStepItem({ step }: { step: WorkStep & { type: "image_gen" } }) {
 function WorkAccordion({ work }: { work?: WorkData }) {
   const [isMasterOpen, setIsMasterOpen] = useState(false);
 
-  if (!work || work.steps.length === 0) return null;
+  const visibleSteps = useMemo(() => {
+    return (work?.steps || []).filter((s) => {
+      if (s.type === "thought") return Boolean(s.content && s.content.trim());
+      if (s.type === "search") return true;
+      if (s.type === "image_gen") return true;
+      return false;
+    });
+  }, [work?.steps]);
+
+  if (!work) return null;
+  if (!work.isWorking && visibleSteps.length === 0) return null;
 
   // 1. LIVE WORK MODE (while reasoning, searching, or generating)
   if (work.isWorking) {
@@ -217,7 +229,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
               );
             }
 
-            if (step.type === "thought") {
+            if (step.type === "thought" && step.content && step.content.trim()) {
               return (
                 <div key={step.id} className="flex items-center gap-2 text-[12.5px] font-body text-gold/75">
                   <svg className="h-3.5 w-3.5 text-gold/50 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -278,9 +290,8 @@ function WorkAccordion({ work }: { work?: WorkData }) {
 
       {isMasterOpen && (
         <div className="mt-2.5 ml-1 space-y-2 border-l border-gold/25 pl-3.5">
-          {work.steps.map((step) => {
+          {visibleSteps.map((step) => {
             if (step.type === "thought") {
-              if (!step.content.trim() && step.durationSec < 0.6) return null;
               return <ThoughtStepItem key={step.id} step={step} />;
             }
             if (step.type === "search") {

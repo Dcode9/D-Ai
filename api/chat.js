@@ -135,7 +135,7 @@ function normalizeMessageForProvider(message, isVision = false) {
   return { role: 'user', content: cleanText };
 }
 
-function buildSystemPrompt(messages, isVision = false, enableThinking = true) {
+function buildSystemPrompt(messages, isVision = false) {
   if (isVision) {
     return `You are D'Ai, a multimodal AI vision assistant created by Dhairya Shah.
 Analyze any provided images with high precision, identifying all visible objects, text, equations, code, diagrams, charts, colors, people, and details.
@@ -145,26 +145,17 @@ Answer the user's questions about the image truthfully and directly based strict
   const systemMessages = messages.filter(m => m && m.role === 'system');
   const baseSystemPrompt = `You are D'Ai, an ornate, profound, and exceptionally rigorous intelligence created by Dhairya Shah.
 
-CORE OPERATIONAL MANDATES:
+CORE GUIDELINES:
 1. STRICT FACTUAL ACCURACY & ZERO HALLUCINATIONS:
    - When answering questions about current events, live news, real-world facts, benchmarks, technical releases, or products, your response must be 100% truthful and grounded in verified data.
-   - When web search results are provided via tool calls, synthesize your response SOLELY from the retrieved sources. NEVER fabricate, extrapolate, or invent model names, synthetic version numbers (e.g. do not invent fictional 'GPT-5' or 'Claude-4' unless directly reported as officially released in the provided sources), or unverified benchmark scores.
+   - When web search results are provided via tool calls, synthesize your response SOLELY from the retrieved sources. NEVER fabricate, extrapolate, or invent model names, synthetic version numbers, or unverified benchmark scores.
    - Always cite your sources with clear, clickable Markdown links like [Source Title](url) or [Reuters](url) directly next to the factual claims.
 
-2. VISIBLE STEP-BY-STEP REASONING (<think> TAGS):
-   - ${enableThinking ? `THINKING MODE IS ACTIVE. You MUST begin your response with a <think>...</think> block containing your internal deliberation.
-   Inside your <think>...</think> block:
-   - Carefully analyze the user's question, core requirements, and constraints.
-   - When search results are available, evaluate each source for recency, credibility, and relevance. Discard marketing noise and extract the exact verified facts.
-   - For mathematical, logical, or coding tasks, work out the problem step-by-step and verify the solution.
-   - Outline your answer structure, key takeaways, and source citation map.
-   - Close the </think> tag before beginning your final user-facing response.` : `Synthesize the final response directly and concisely without <think> tags.`}
-
-3. NATIVE TOOLS:
+2. NATIVE TOOLS:
    - \`web_search\`: Call this tool whenever you need up-to-date facts, current real-world data, recent news, or verification. Formulate concise, high-signal search queries (e.g. "latest AI news September 2026", "DeepSeek V3 benchmark results").
    - \`generate_image\`: Call this tool when the user explicitly asks to generate, create, draw, or paint an image.
 
-4. VOICE & REGAL PRESENTATION:
+3. VOICE & REGAL PRESENTATION:
    - Eloquent, regal, articulate, and profoundly helpful.
    - Format with elegant Markdown: structured headers, concise bullet points, comparison tables, bold key concepts, and active source links.`;
 
@@ -175,8 +166,7 @@ CORE OPERATIONAL MANDATES:
 async function callProviderAPI({ provider, apiKey, incomingBody, isVision = false }) {
   const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
   const otherMessages = messages.filter(m => m && m.role !== 'system');
-  const enableThinking = incomingBody.enable_thinking !== false;
-  const fullSystemPrompt = buildSystemPrompt(messages, isVision, enableThinking);
+  const fullSystemPrompt = buildSystemPrompt(messages, isVision);
 
   let endpoint = '';
   let candidateModels = [];
@@ -201,7 +191,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
-    candidateModels = incomingBody.model ? [incomingBody.model, 'mercury-2', 'mercury-2-coder', 'mercury'] : ['mercury-2', 'mercury-2-coder', 'mercury'];
+    candidateModels = incomingBody.model ? [incomingBody.model, 'mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'] : ['mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'];
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'cloudflare') {
     const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -226,6 +216,11 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
         max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
         temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
       };
+
+      if (provider === 'inception') {
+        payload.reasoning_effort = incomingBody.reasoning_effort || 'medium';
+        payload.reasoning_summary = true;
+      }
 
       // Pass-through tools and function calling parameters
       if (Array.isArray(incomingBody.tools) && incomingBody.tools.length > 0) {
@@ -410,8 +405,12 @@ export default async function handler(req, res) {
                 const choice = parsed.choices?.[0];
                 const delta = choice?.delta;
 
-                // Normalize reasoning tokens (Groq DeepSeek-R1 / Qwen reasoning format)
-                if (delta && delta.reasoning && !delta.content) {
+                // Handle Inception reasoning_summary in chunk
+                if (parsed.reasoning_summary && parsed.reasoning_summary.content) {
+                  if (!choice.delta) choice.delta = {};
+                  choice.delta.reasoning = parsed.reasoning_summary.content;
+                  res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+                } else if (delta && delta.reasoning && !delta.content) {
                   // Forward reasoning delta so client receives clean reasoning chunks
                   res.write(`data: ${JSON.stringify(parsed)}\n\n`);
                 } else if (delta && delta.reasoning_content && !delta.content) {
