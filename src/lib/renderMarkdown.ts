@@ -76,31 +76,7 @@ export function processMathAndMarkdown(rawText: string): string {
   // Blockquotes: Ornate gold left rail with luxury typography
   html = html.replace(
     /<blockquote>([\s\S]*?)<\/blockquote>/g,
-    '<blockquote class="my-3.5 rounded-r-md border-l-2 border-gold/70 bg-gold/[0.04] px-4 py-2.5 font-body text-[13.5px] italic text-[#ded4bf]">$1</blockquote>',
-  );
-
-  // Unordered lists with gold diamond bullets
-  html = html.replace(
-    /<ul>([\s\S]*?)<\/ul>/g,
-    '<ul class="my-2.5 space-y-1.5 pl-5 font-body text-[13.5px] leading-relaxed text-[#ded4bf] list-none">$1</ul>',
-  );
-
-  // Ordered lists
-  html = html.replace(
-    /<ol(\s+start="(\d+)")?>([\s\S]*?)<\/ol>/g,
-    '<ol$1 class="my-2.5 list-decimal space-y-1.5 pl-6 font-body text-[13.5px] leading-relaxed text-[#ded4bf] marker:text-gold">$3</ol>',
-  );
-
-  // List items inside unordered lists get diamond markers
-  html = html.replace(
-    /<ul([^>]*)>([\s\S]*?)<\/ul>/g,
-    (_full, attrs, inner) => {
-      const styledInner = inner.replace(
-        /<li>([\s\S]*?)<\/li>/g,
-        '<li class="relative pl-1"><span class="absolute -left-4 text-gold text-[10px] top-[4px]">◆</span>$1</li>',
-      );
-      return `<ul${attrs}>${styledInner}</ul>`;
-    },
+    '<blockquote class="my-3.5 rounded-r-md border-l-2 border-gold/70 bg-gold/[0.04] px-4 py-2.5 italic text-[#ded4bf]">$1</blockquote>',
   );
 
   // Links: Gold styling with external link indicator

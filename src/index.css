@@ -419,3 +419,19 @@ input::placeholder {
 .dai-prose tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.02);
 }
+
+.scroll-gold::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scroll-gold::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-gold::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 106, 0.3);
+  border-radius: 9999px;
+}
+.scroll-gold::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 106, 0.6);
+}
+

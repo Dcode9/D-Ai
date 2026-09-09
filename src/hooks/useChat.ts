@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuraState } from "../components/Aura";
-import { getMemory, addMemoryFact, removeMemoryFact } from "../lib/memory";
+import {
+  getMemory,
+  addMemoryFact,
+  removeMemoryFact,
+  getMemoryTopics,
+  addOrUpdateMemory,
+  closeMemoryTopic,
+  formatMemoryForSystemPrompt,
+} from "../lib/memory";
 import {
   getUser,
   createCloudChat,
@@ -277,16 +285,16 @@ export function useChat() {
         );
       };
 
-      // Conversation messages sent to the API with sovereign agent instructions and personal memory
-      const memoryFacts = getMemory();
+      // Conversation messages sent to the API with sovereign agent instructions and partner memory
+      const memoryPromptSection = formatMemoryForSystemPrompt();
       let systemPrompt =
         "You are D'Ai, an exquisite, sovereign intelligence crafted with peerless elegance, intellectual depth, and uncompromising clarity.";
-      if (memoryFacts.length > 0) {
-        systemPrompt += `\n\n## Remembered Context About the User\nYou know the following personal facts, preferences, and context about the user:\n${memoryFacts.map((f) => `• ${f}`).join("\n")}\nSeamlessly personalize your responses using these facts whenever appropriate.`;
+      if (memoryPromptSection) {
+        systemPrompt += `\n\n${memoryPromptSection}`;
       }
       systemPrompt += `\n\n## Tools & Capabilities\nYou have native capabilities:
 - \`web_search\`: Call this whenever the user asks for real-time information, recent events, market facts, technical specifications, or verification.
-- \`manage_memory\`: Call this to store ('add'), delete ('remove'), or view ('recall') important persistent user preferences, identity, tech stack, or background facts.
+- \`manage_memory\`: Call this to manage persistent intellectual partner continuity ('add', 'update', 'close', 'remove', 'recall') across topics, preferences, active focus, and technical domain details.
 - \`generate_image\`: Call this to render visual scenes, paintings, or artistic illustrations.`;
 
       let conversationHistory: any[] = [
@@ -727,57 +735,88 @@ export function useChat() {
                   content: JSON.stringify({ success: true, imageUrl: generatedUrl }),
                 });
               } else if (toolCall.name === "manage_memory") {
-                let action: "add" | "remove" | "recall" = "recall";
+                let action: "add" | "update" | "close" | "remove" | "recall" = "recall";
+                let topic = "";
+                let summary = "";
+                let detail = "";
                 let fact = "";
                 try {
                   const parsed = JSON.parse(toolCall.arguments || "{}");
                   if (parsed.action) action = parsed.action;
+                  if (parsed.topic) topic = parsed.topic;
+                  if (parsed.summary) summary = parsed.summary;
+                  if (parsed.detail) detail = parsed.detail;
                   if (parsed.fact) fact = parsed.fact;
                 } catch {}
+
+                const resolvedTopic = topic || (fact ? (fact.includes(":") ? fact.split(":")[0].trim() : "Focus") : "Focus");
+                const resolvedSummary = summary || fact || topic;
 
                 const memStepId = uid();
                 updateWork((w) => ({
                   ...w,
-                  statusText: action === "add" ? "Remembering personal context…" : "Accessing user memory…",
+                  statusText:
+                    action === "close"
+                      ? "Resolving context topic…"
+                      : action === "add" || action === "update"
+                        ? "Integrating partner context…"
+                        : "Recalling background continuity…",
                   steps: [
                     ...w.steps,
                     {
                       id: memStepId,
                       type: "memory",
                       action,
-                      fact,
+                      fact: `${resolvedTopic}: ${resolvedSummary}`,
                       isLive: true,
                     },
                   ],
                 }));
 
                 let resultPayload: Record<string, unknown> = {};
-                if (action === "add" && fact) {
-                  const updated = addMemoryFact(fact);
+                if (action === "add" || action === "update") {
+                  const updated = addOrUpdateMemory(resolvedTopic, resolvedSummary, detail, "active");
                   resultPayload = {
                     status: "success",
-                    message: `Fact "${fact}" stored in user memory.`,
-                    all_facts: updated,
+                    message: `Context updated for topic "${resolvedTopic}".`,
+                    topics: updated,
                   };
-                } else if (action === "remove" && fact) {
-                  const current = getMemory();
-                  const idx = current.findIndex((f) => f.toLowerCase().includes(fact.toLowerCase()));
-                  const updated = idx !== -1 ? removeMemoryFact(idx) : current;
+                } else if (action === "close") {
+                  const updated = closeMemoryTopic(resolvedTopic);
                   resultPayload = {
                     status: "success",
-                    message: `Fact removed from user memory.`,
-                    all_facts: updated,
+                    message: `Topic "${resolvedTopic}" marked resolved and distilled into core essence.`,
+                    topics: updated,
+                  };
+                } else if (action === "remove") {
+                  const current = getMemoryTopics();
+                  const targetQuery = (resolvedTopic || resolvedSummary).toLowerCase();
+                  const idx = current.findIndex(
+                    (t) =>
+                      t.topic.toLowerCase().includes(targetQuery) ||
+                      t.summary.toLowerCase().includes(targetQuery),
+                  );
+                  const updated = idx !== -1 ? removeMemoryFact(idx) : getMemory();
+                  resultPayload = {
+                    status: "success",
+                    message: `Context topic removed.`,
+                    topics: updated,
                   };
                 } else {
                   resultPayload = {
                     status: "success",
-                    all_facts: getMemory(),
+                    topics: getMemoryTopics(),
                   };
                 }
 
                 updateWork((w) => ({
                   ...w,
-                  statusText: action === "add" ? "Personal context remembered" : "User memory recalled",
+                  statusText:
+                    action === "close"
+                      ? "Topic distilled"
+                      : action === "add" || action === "update"
+                        ? "Partner context remembered"
+                        : "Partner continuity recalled",
                   steps: w.steps.map((s) => (s.id === memStepId ? { ...s, isLive: false } : s)),
                 }));
 

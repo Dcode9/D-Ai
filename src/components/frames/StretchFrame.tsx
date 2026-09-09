@@ -45,12 +45,11 @@ export function StretchFrame({
     const shapeVisualCenterY = (shape.outerTopY + shape.outerBottomY) / 2;
     const shapeVisualHeight = shape.outerBottomY - shape.outerTopY;
 
-    const isWide = w > 300;
-    // For wide container (message box), maintain constant cap width while expanding height vertically
-    const capScaleX = isWide
-      ? Math.min((100 * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW)
-      : Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
-    const capScaleY = (h * 0.94) / shapeVisualHeight;
+    // Uniform proportional scaling in both dimensions:
+    // Ensures capScaleX and capScaleY scale in lockstep to preserve the 1:1 fidelity of curves and wingtips.
+    const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
+    const capScaleX = capScale;
+    const capScaleY = capScale;
 
     // Position capTop so that the visual center of the shape maps EXACTLY to h / 2
     const capTop = h / 2 - shapeVisualCenterY * capScaleY;

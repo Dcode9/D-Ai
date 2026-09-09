@@ -96,18 +96,30 @@ const NATIVE_TOOLS = [
     type: "function",
     function: {
       name: "manage_memory",
-      description: "Store or recall important persistent facts about the user (preferences, background, name, coding stack, key projects, interests) across conversations.",
+      description: "Manage persistent intellectual continuity with the user. Store key preferences, ongoing projects, active focus, or close resolved topics so D'Ai acts as an intelligent partner.",
       parameters: {
         type: "object",
         properties: {
           action: {
             type: "string",
-            enum: ["add", "remove", "recall"],
-            description: "The memory action: 'add' to remember a new fact, 'remove' to delete a previously remembered fact, 'recall' to retrieve all remembered facts."
+            enum: ["add", "update", "close", "remove", "recall"],
+            description: "Action: 'add' to record a new insight/focus, 'update' to update an existing topic, 'close' to mark an active topic resolved/distilled, 'remove' to delete, 'recall' to inspect."
+          },
+          topic: {
+            type: "string",
+            description: "Concise domain or subject (e.g., 'React Architecture', 'Quantum Mechanics', 'User Identity', 'Active Focus')."
+          },
+          summary: {
+            type: "string",
+            description: "Distilled essence or persistent principle to remember."
+          },
+          detail: {
+            type: "string",
+            description: "Rich contextual details for active/ongoing work (kept detailed until closed)."
           },
           fact: {
             type: "string",
-            description: "The concise statement or piece of knowledge about the user to remember or remove."
+            description: "Concise statement or piece of knowledge about the user."
           }
         },
         required: ["action"]

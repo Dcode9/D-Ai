@@ -135,7 +135,7 @@ export function MemoryModal({ open, onClose }: Props) {
         {/* Footer */}
         {facts.length > 0 && (
           <div className="relative mt-4 flex items-center justify-between border-t border-gold/20 pt-3">
-            <span className="font-body text-[11.5px] text-muted">Automatically injected into reasoning</span>
+            <span className="font-body text-[11.5px] text-muted">Silently informs reasoning as subtle background context</span>
             <button
               type="button"
               onClick={handleClear}

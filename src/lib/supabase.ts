@@ -18,10 +18,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   },
 });
 
-const PORTAL_ORIGIN =
-  (typeof window !== "undefined" && (window as unknown as { DVERSE_PORTAL_ORIGIN?: string }).DVERSE_PORTAL_ORIGIN) ||
-  "https://dverse.fun";
-
 export interface DbChat {
   id: string;
   user_id: string;
@@ -84,19 +80,12 @@ export async function signInWithGoogle(): Promise<void> {
     });
 
     if (error) {
-      console.warn("[D'Ai Auth] Supabase OAuth error, falling back to DVerse portal:", error);
-      if (typeof window !== "undefined") {
-        window.location.href = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(redirectUrl)}`;
-      }
+      console.warn("[D'Ai Auth] Supabase OAuth error:", error);
     } else if (data?.url && typeof window !== "undefined") {
       window.location.href = data.url;
     }
   } catch (err) {
     console.error("[D'Ai Auth] Sign in exception:", err);
-    const redirectUrl = typeof window !== "undefined" ? window.location.origin : "/";
-    if (typeof window !== "undefined") {
-      window.location.href = `${PORTAL_ORIGIN}/?dverse_return_to=${encodeURIComponent(redirectUrl)}`;
-    }
   }
 }
 
