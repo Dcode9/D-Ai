@@ -70,7 +70,7 @@ export type WorkStep =
   | {
       id: string;
       type: "memory";
-      action: "add" | "remove" | "recall";
+      action: "add" | "update" | "close" | "remove" | "recall";
       fact?: string;
       isLive?: boolean;
     };
@@ -245,6 +245,14 @@ export function useChat() {
     [],
   );
 
+  const renameConversation = useCallback((id: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title: trimmed, updatedAt: Date.now() } : c)),
+    );
+    updateCloudChat(id, { title: trimmed }).catch(() => {});
+  }, []);
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -317,9 +325,15 @@ export function useChat() {
         systemPrompt += `\n\n${memoryPromptSection}`;
       }
       systemPrompt += `\n\n## Tools & Capabilities\nYou have native capabilities:
-- \`web_search\`: Call this whenever the user asks for real-time information, recent events, market facts, technical specifications, or verification.
-- \`manage_memory\`: Call this to manage persistent intellectual partner continuity ('add', 'update', 'close', 'remove', 'recall') across topics, preferences, active focus, and technical domain details.
-- \`generate_image\`: Call this to render visual scenes, paintings, or artistic illustrations.`;
+- 'web_search': Call this whenever the user asks for real-time information, recent events, market facts, technical specifications, or verification.
+- 'manage_memory': Call this to manage persistent intellectual partner continuity ('add', 'update', 'close', 'remove', 'recall') across topics, preferences, active focus, and technical domain details.
+- 'generate_image': Call this to render visual scenes, paintings, or artistic illustrations.
+
+## In-Chat Direct Output & Code Studio
+When the user asks to build, design, write, or demonstrate a webpage, user interface, component, calculator, simulation, tool, game, or visualization:
+- Generate complete, functional, self-contained HTML/CSS/JavaScript.
+- Adhere strictly to D'Ai's regal ornate design philosophy: dark velvet obsidian backgrounds (#1c1b1a, #232220), glowing gold borders (#c9a86a, #e8d3a0), cream typography, and predesigned component classes ('.dai-card', '.dai-btn', '.dai-btn-secondary', '.dai-badge', '.dai-input', '.dai-divider').
+- If the user wants to see the interactive result directly (e.g. they asked to create, show, or build an app/component), wrap the code in a dai-artifact or html code block. D'Ai's UI will render this as an in-chat live interactive preview with direct output and seamless one-click opening into the full Code Studio sandbox!`;
 
       let conversationHistory: any[] = [
         { role: "system", content: systemPrompt },
@@ -866,12 +880,14 @@ export function useChat() {
           // Check if user specifically requested an image
           if (mode === "Image" || /image/i.test(prompt)) {
             const seed = Math.floor(Math.random() * 1000000);
-            finalImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
-            rawBuffer = `Here is the visual artwork for: “${prompt}”`;
+            const safeImgPrompt = encodeURIComponent(prompt.slice(0, 200));
+            finalImageUrl = `https://image.pollinations.ai/prompt/${safeImgPrompt}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+            rawBuffer = `Here is the visual artwork for: “${prompt.slice(0, 100)}”`;
           } else {
             try {
+              const safeTextPrompt = encodeURIComponent(prompt.slice(0, 300));
               const fallbackRes = await fetch(
-                `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&system=${encodeURIComponent(
+                `https://text.pollinations.ai/${safeTextPrompt}?model=openai&system=${encodeURIComponent(
                   "You are D'Ai, an ornate and profound intelligence created by Dhairya Shah. Respond thoughtfully in elegant markdown.",
                 )}`,
                 { signal: controller.signal },
@@ -957,6 +973,41 @@ export function useChat() {
         setMessages(done);
         setState("idle");
         persist(convId, done);
+
+        // Auto-generate a short ~3 word title after the first user/assistant exchange
+        if (currentMessages.length === 1) {
+          fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a concise title generator. Generate an evocative, succinct 2 to 3 word title for this conversation based on the user's prompt. Reply with ONLY the 2 to 3 words. No quotation marks, no punctuation, no period.",
+                },
+                { role: "user", content: prompt.slice(0, 300) },
+              ],
+              stream: false,
+              max_tokens: 12,
+              temperature: 0.4,
+            }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              const rawTitle = data.choices?.[0]?.message?.content || "";
+              const cleaned = rawTitle
+                .replace(/[“"'.!?:#*]/g, "")
+                .trim()
+                .split(/\s+/)
+                .slice(0, 4)
+                .join(" ");
+              if (cleaned && cleaned.length >= 2) {
+                renameConversation(convId, cleaned);
+              }
+            })
+            .catch(() => {});
+        }
       } catch (err: any) {
         if (err?.name === "AbortError") return;
         console.error("Chat failure:", err);
@@ -1012,14 +1063,6 @@ export function useChat() {
     );
   }, []);
 
-  const renameConversation = useCallback((id: string, newTitle: string) => {
-    const trimmed = newTitle.trim();
-    if (!trimmed) return;
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title: trimmed, updatedAt: Date.now() } : c)),
-    );
-    updateCloudChat(id, trimmed).catch(() => {});
-  }, []);
 
   const createBranch = useCallback(
     (sourceChatId?: string, messageIdOrIndex?: string | number, customTitle?: string) => {

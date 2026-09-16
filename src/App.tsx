@@ -8,6 +8,7 @@ import { Messages } from "./components/Messages";
 import { PromptSuggestions } from "./components/PromptSuggestions";
 import { AccountModal } from "./components/AccountModal";
 import { MemoryModal } from "./components/MemoryModal";
+import { CodeStudio } from "./components/CodeStudio";
 import { SvgDefs } from "./components/SvgDefs";
 import { PanelFrame } from "./components/frames/PanelFrame";
 import { useChat } from "./hooks/useChat";
@@ -21,6 +22,9 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [codeStudioOpen, setCodeStudioOpen] = useState(false);
+  const [studioCode, setStudioCode] = useState<string>("");
+  const [studioTitle, setStudioTitle] = useState<string>("Code Studio");
   const [user, setUser] = useState<User | null>(null);
   const [memoryCount, setMemoryCount] = useState<number>(() => getMemory().length);
 
@@ -42,21 +46,38 @@ export default function App() {
     return () => window.removeEventListener("dai:memory-updated", updateCount as EventListener);
   }, []);
 
-  // Global keyboard shortcuts (Ctrl+K: New Chat, Escape: Close Modals)
+  // Global keyboard shortcuts (Ctrl+K: New Chat, Escape: Close Modals, Alt+S: Code Studio)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         chat.newChat();
+      } else if (
+        (e.altKey && e.key.toLowerCase() === "s") ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s")
+      ) {
+        e.preventDefault();
+        setCodeStudioOpen((prev) => !prev);
       } else if (e.key === "Escape") {
         setHistoryOpen(false);
         setAccountOpen(false);
         setMemoryOpen(false);
+        setCodeStudioOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [chat]);
+
+  const handleOpenStudio = (codeToOpen?: string, customTitle?: string) => {
+    if (codeToOpen) {
+      setStudioCode(codeToOpen);
+    }
+    if (customTitle) {
+      setStudioTitle(customTitle);
+    }
+    setCodeStudioOpen(true);
+  };
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-ink text-cream">
@@ -68,7 +89,9 @@ export default function App() {
         onNewChat={chat.newChat}
         onMemory={() => setMemoryOpen(true)}
         onAccount={() => setAccountOpen(true)}
+        onStudio={() => setCodeStudioOpen((prev) => !prev)}
         historyOpen={historyOpen}
+        studioOpen={codeStudioOpen}
         memoryCount={memoryCount}
         user={user}
       />
@@ -158,6 +181,7 @@ export default function App() {
                 messages={chat.messages}
                 state={chat.state}
                 onBranch={(msgId) => chat.createBranch(chat.activeId || undefined, msgId)}
+                onOpenStudio={handleOpenStudio}
               />
             )}
           </div>
@@ -165,7 +189,13 @@ export default function App() {
           {/* Message Box: Positioned so the chat container bottom border ends in the middle of the message box */}
           <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-1/2 px-3 md:px-8 pointer-events-none">
             <div className="w-full max-w-[920px] pointer-events-auto flex justify-center">
-              <ChatInput onSend={chat.send} onStop={chat.stop} busy={busy} mode={chat.mode} />
+              <ChatInput
+                onSend={chat.send}
+                onStop={chat.stop}
+                busy={busy}
+                mode={chat.mode}
+                onOpenStudio={() => handleOpenStudio()}
+              />
             </div>
           </div>
         </div>
@@ -179,6 +209,15 @@ export default function App() {
         activeId={chat.activeId}
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
+      />
+
+      {/* Full Sidebar Code Studio */}
+      <CodeStudio
+        open={codeStudioOpen}
+        onClose={() => setCodeStudioOpen(false)}
+        initialCode={studioCode}
+        title={studioTitle}
+        onSendToChat={chat.send}
       />
 
       {/* Google Sign-in & Account Modal */}

@@ -2,10 +2,16 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
+import { ArtifactPreview } from "./ArtifactPreview";
 import { cn } from "../utils/cn";
 import { processMathAndMarkdown } from "../lib/renderMarkdown";
 
-type Props = { messages: Message[]; state: AuraState };
+type Props = {
+  messages: Message[];
+  state: AuraState;
+  onOpenStudio?: (code: string, title?: string) => void;
+  onBranch?: (messageId: string) => void;
+};
 
 function formatDuration(sec: number): string {
   if (!sec || sec < 1) return "a while";
@@ -326,8 +332,16 @@ function WorkAccordion({ work }: { work?: WorkData }) {
   );
 }
 
-/** Custom CodeBlock component with language badge and copy action */
-function CodeBlock({ lang, code }: { lang: string; code: string }) {
+/** Custom CodeBlock component with language badge, copy action, and Open in Studio */
+function CodeBlock({
+  lang,
+  code,
+  onOpenStudio,
+}: {
+  lang: string;
+  code: string;
+  onOpenStudio?: (code: string, title?: string) => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -336,35 +350,54 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isWebCode = /^(html|htm|jsx?|tsx?|css|svg|vue|web)$/i.test(lang);
+
   return (
     <div className="group relative my-3 overflow-hidden rounded-md border border-gold/35 bg-[#121110] shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
       <div className="flex items-center justify-between border-b border-gold/20 bg-white/[0.03] px-4 py-1.5">
         <span className="font-display text-[13px] uppercase tracking-[0.2em] text-gold-2/80">
           {lang || "code"}
         </span>
-        <button
-          type="button"
-          onClick={copy}
-          className="flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-0.5 font-body text-[12px] text-gold/70 transition-all hover:bg-gold/15 hover:text-cream active:scale-95"
-          aria-label="Copy code"
-        >
-          {copied ? (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M20 6L9 17l-5-5" />
+        <div className="flex items-center gap-2">
+          {isWebCode && onOpenStudio && (
+            <button
+              type="button"
+              onClick={() => onOpenStudio(code, `${lang.toUpperCase()} Snippet`)}
+              className="flex cursor-pointer items-center gap-1 rounded border border-gold/30 bg-gold/10 px-2 py-0.5 font-display text-[11.5px] uppercase tracking-wider text-cream transition-all hover:border-gold hover:bg-gold/25 active:scale-95"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
               </svg>
-              <span>Copied</span>
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              <span>Copy</span>
-            </>
+              <span>Studio</span>
+            </button>
           )}
-        </button>
+
+          <button
+            type="button"
+            onClick={copy}
+            className="flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-0.5 font-body text-[12px] text-gold/70 transition-all hover:bg-gold/15 hover:text-cream active:scale-95"
+            aria-label="Copy code"
+          >
+            {copied ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <pre className="scroll-gold overflow-x-auto p-4 font-mono text-[14px] leading-relaxed text-[#f0e6d2]">
         <code>{code}</code>
@@ -373,8 +406,18 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
   );
 }
 
-/** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components and KaTeX math */
-function RichMarkdown({ text, streaming, imageUrl }: { text: string; streaming?: boolean; imageUrl?: string }) {
+/** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components, KaTeX math, and Artifact Previews */
+function RichMarkdown({
+  text,
+  streaming,
+  imageUrl,
+  onOpenStudio,
+}: {
+  text: string;
+  streaming?: boolean;
+  imageUrl?: string;
+  onOpenStudio?: (code: string, title?: string) => void;
+}) {
   const renderedContent = useMemo(() => {
     if (!text.trim()) return null;
 
@@ -384,9 +427,35 @@ function RichMarkdown({ text, streaming, imageUrl }: { text: string; streaming?:
       return parts.map((part, idx) => {
         if (part.startsWith("```") && part.endsWith("```")) {
           const firstLineEnd = part.indexOf("\n");
-          const lang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim();
+          const lang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim().toLowerCase();
           const code = firstLineEnd > 0 ? part.slice(firstLineEnd + 1, -3) : "";
-          return <CodeBlock key={`code-${idx}`} lang={lang || "code"} code={code} />;
+
+          // Check if this should render as an interactive direct output artifact
+          const isExplicitArtifact = lang === "dai-artifact" || lang === "artifact";
+          const isWebArtifact =
+            (lang === "html" || lang === "htm" || lang === "svg" || lang === "xml") &&
+            /<(!doctype|html|head|body|div|svg|button|main|header|section|style|script)[\s>]/i.test(code);
+
+          if (isExplicitArtifact || isWebArtifact) {
+            return (
+              <ArtifactPreview
+                key={`artifact-${idx}`}
+                code={code}
+                lang={lang}
+                title={isExplicitArtifact ? "Interactive Output" : "Web Prototype"}
+                onOpenStudio={onOpenStudio}
+              />
+            );
+          }
+
+          return (
+            <CodeBlock
+              key={`code-${idx}`}
+              lang={lang || "code"}
+              code={code}
+              onOpenStudio={onOpenStudio}
+            />
+          );
         }
         if (!part.trim()) return null;
         const html = processMathAndMarkdown(part);
@@ -405,7 +474,7 @@ function RichMarkdown({ text, streaming, imageUrl }: { text: string; streaming?:
         </div>
       );
     }
-  }, [text]);
+  }, [text, onOpenStudio]);
 
   return (
     <div className="space-y-2">
@@ -470,11 +539,13 @@ function AssistantRow({
   isLatest,
   rowRef,
   onBranch,
+  onOpenStudio,
 }: {
   m: Message;
   isLatest: boolean;
   rowRef: (el: HTMLDivElement | null) => void;
   onBranch?: (messageId: string) => void;
+  onOpenStudio?: (code: string, title?: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -502,6 +573,7 @@ function AssistantRow({
           text={m.content}
           streaming={m.streaming && !isWorking}
           imageUrl={m.imageUrl}
+          onOpenStudio={onOpenStudio}
         />
 
         {/* Action bar on completed responses */}
@@ -549,7 +621,7 @@ function AssistantRow({
   );
 }
 
-export function Messages({ messages, state, onBranch }: Props & { onBranch?: (messageId: string) => void }) {
+export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
   const latestRowRef = useRef<HTMLDivElement | null>(null);
   const scrolledAssistantIdRef = useRef<string | null>(null);
 
@@ -585,6 +657,7 @@ export function Messages({ messages, state, onBranch }: Props & { onBranch?: (me
               }
             }}
             onBranch={onBranch}
+            onOpenStudio={onOpenStudio}
           />
         ),
       )}
