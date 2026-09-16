@@ -423,25 +423,34 @@ function RichMarkdown({
 
     try {
       // Split on fenced code blocks to isolate executable code from prose/math
-      const parts = text.split(/(```[\s\S]*?```)/g);
+      let processedText = text;
+      // Handle streaming: if code block is currently being streamed, close it so it renders live
+      const backtickCount = (text.match(/```/g) || []).length;
+      if (backtickCount % 2 === 1) {
+        processedText = text + "\n```";
+      }
+
+      const parts = processedText.split(/(```[\s\S]*?```)/g);
       return parts.map((part, idx) => {
         if (part.startsWith("```") && part.endsWith("```")) {
           const firstLineEnd = part.indexOf("\n");
-          const lang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim().toLowerCase();
+          const rawLang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim().toLowerCase();
+          const lang = rawLang.split(/\s+/)[0] || "";
           const code = firstLineEnd > 0 ? part.slice(firstLineEnd + 1, -3) : "";
 
           // Check if this should render as an interactive direct output artifact
           const isExplicitArtifact = lang === "dai-artifact" || lang === "artifact";
-          const isWebArtifact =
-            (lang === "html" || lang === "htm" || lang === "svg" || lang === "xml") &&
-            /<(!doctype|html|head|body|div|svg|button|main|header|section|style|script)[\s>]/i.test(code);
+          const hasMarkup =
+            /<(!doctype|html|head|body|div|svg|button|main|header|section|style|script|form|canvas|table|p|span|nav|h[1-6]|input|ul|li|footer|article)[\s>]/i.test(code);
+          const isWebLang = /^(html?|svg|xml|jsx?|tsx?|vue|web)$/i.test(lang) || !lang;
+          const isWebArtifact = (isWebLang && hasMarkup) || (lang.startsWith("html") && code.includes("<"));
 
           if (isExplicitArtifact || isWebArtifact) {
             return (
               <ArtifactPreview
                 key={`artifact-${idx}`}
                 code={code}
-                lang={lang}
+                lang={lang || "html"}
                 title={isExplicitArtifact ? "Interactive Output" : "Web Prototype"}
                 onOpenStudio={onOpenStudio}
               />

@@ -205,9 +205,14 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[850px] flex-col border-l border-gold/40 bg-[#0e0c10]/98 shadow-[-16px_0_60px_rgba(0,0,0,0.85)] backdrop-blur-xl transition-transform duration-300">
-      {/* Ornate Frame rails */}
-      <div className="pointer-events-none absolute inset-2 rounded-lg border border-gold/20" />
+    <>
+      <div
+        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[3px] transition-opacity duration-300"
+        onClick={onClose}
+      />
+      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[850px] flex-col border-l border-gold/40 bg-[#0e0c10]/98 shadow-[-16px_0_60px_rgba(0,0,0,0.85)] backdrop-blur-xl transition-transform duration-300">
+        {/* Ornate Frame rails */}
+        <div className="pointer-events-none absolute inset-2 rounded-lg border border-gold/20" />
 
       {/* Header Bar */}
       <div className="relative flex flex-wrap items-center justify-between gap-3 border-b border-gold/25 bg-black/50 px-6 py-3.5">
@@ -440,6 +445,7 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }

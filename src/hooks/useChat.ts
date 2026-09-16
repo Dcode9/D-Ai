@@ -192,6 +192,30 @@ export function useChat() {
     };
   }, []);
 
+function extractCleanThreeWordTitle(text: string): string {
+  if (!text) return "New Dialogue";
+  const cleaned = text
+    .replace(/\[UPLOADED_IMAGE:[^\]]+\]/gi, "")
+    .replace(/[^\w\s-]/g, " ")
+    .replace(
+      /^(can\s+you\s+(please\s+)?|please\s+|help\s+me\s+|i\s+want\s+(to\s+)?|how\s+to\s+|build\s+me\s+|create\s+a\s+|make\s+a\s+|what\s+is\s+|explain\s+)/i,
+      "",
+    )
+    .trim();
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return words
+      .slice(0, 3)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  }
+  if (words.length === 1) {
+    return words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
+  }
+  return "Sovereign Dialogue";
+}
+
   const persist = useCallback(
     (id: string, msgs: Message[]) => {
       setConversations((prev) => {
@@ -203,7 +227,7 @@ export function useChat() {
         const ownMessages = msgs.slice(inheritedCount).map((m) => ({ ...m, streaming: false }));
 
         const firstUser = msgs.find((m) => m.role === "user");
-        const defaultTitle = firstUser ? firstUser.content.slice(0, 48) : "Untitled";
+        const defaultTitle = firstUser ? extractCleanThreeWordTitle(firstUser.content) : "New Dialogue";
         const title = existing?.title || defaultTitle;
 
         const conv: Conversation = {
@@ -232,7 +256,7 @@ export function useChat() {
       getUser().then((user) => {
         if (!user) return;
         const firstUser = msgs.find((m) => m.role === "user");
-        const title = firstUser ? firstUser.content.slice(0, 48) : "Untitled";
+        const title = firstUser ? extractCleanThreeWordTitle(firstUser.content) : "New Dialogue";
         createCloudChat(title, { local_id: id }).then((cloudChat) => {
           const cloudChatId = cloudChat?.id || id;
           const lastMsg = msgs[msgs.length - 1];
@@ -984,25 +1008,27 @@ When the user asks to build, design, write, or demonstrate a webpage, user inter
                 {
                   role: "system",
                   content:
-                    "You are a concise title generator. Generate an evocative, succinct 2 to 3 word title for this conversation based on the user's prompt. Reply with ONLY the 2 to 3 words. No quotation marks, no punctuation, no period.",
+                    "You are a succinct title generator. Provide STRICTLY a 2 or 3 word title for this conversation based on the user request. Respond with ONLY the 2 to 3 words. No quotes, no markdown, no period.",
                 },
-                { role: "user", content: prompt.slice(0, 300) },
+                { role: "user", content: prompt.slice(0, 250) },
               ],
               stream: false,
+              enable_tools: false,
               max_tokens: 12,
-              temperature: 0.4,
+              temperature: 0.3,
             }),
           })
             .then((r) => r.json())
             .then((data) => {
               const rawTitle = data.choices?.[0]?.message?.content || "";
               const cleaned = rawTitle
-                .replace(/[“"'.!?:#*]/g, "")
+                .replace(/[“"'.!?:#*`]/g, "")
                 .trim()
                 .split(/\s+/)
-                .slice(0, 4)
+                .slice(0, 3)
+                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                 .join(" ");
-              if (cleaned && cleaned.length >= 2) {
+              if (cleaned && cleaned.split(/\s+/).length >= 2) {
                 renameConversation(convId, cleaned);
               }
             })
