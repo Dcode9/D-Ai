@@ -357,7 +357,10 @@ function extractCleanThreeWordTitle(text: string): string {
 When the user asks to build, design, write, or demonstrate a webpage, user interface, component, calculator, simulation, tool, game, or visualization:
 - Generate complete, functional, self-contained HTML/CSS/JavaScript.
 - Adhere strictly to D'Ai's regal ornate design philosophy: dark velvet obsidian backgrounds (#1c1b1a, #232220), glowing gold borders (#c9a86a, #e8d3a0), cream typography, and predesigned component classes ('.dai-card', '.dai-btn', '.dai-btn-secondary', '.dai-badge', '.dai-input', '.dai-divider').
-- If the user wants to see the interactive result directly (e.g. they asked to create, show, or build an app/component), wrap the code in a dai-artifact or html code block. D'Ai's UI will render this as an in-chat live interactive preview with direct output and seamless one-click opening into the full Code Studio sandbox!`;
+- If the user wants to see the interactive result directly (e.g. they asked to create, show, or build an app/component), wrap the code in a dai-artifact or html code block. D'Ai's UI will render this as an in-chat live interactive preview with direct output and seamless one-click opening into the full Code Studio sandbox!
+
+## Links for Previewable Websites
+Whenever you create, recommend, mention, or search for previewable websites, interactive tools, web demos, live prototypes, repositories, or online pages, you MUST ALWAYS provide clear, direct, clickable Markdown links (e.g. [Preview Website](url) or [Launch Live Demo](url)). Never mention a website without embedding its active clickable link.`;
 
       let conversationHistory: any[] = [
         { role: "system", content: systemPrompt },

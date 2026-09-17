@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { wrapCodeInDaiSandboxedHtml } from "../lib/designSystemTemplate";
 import { cn } from "../utils/cn";
 
@@ -18,6 +18,21 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
   const sandboxedHtml = useMemo(() => {
     return wrapCodeInDaiSandboxedHtml(code);
   }, [code]);
+
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!sandboxedHtml) {
+      setPreviewBlobUrl("");
+      return;
+    }
+    const blob = new Blob([sandboxedHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setPreviewBlobUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [sandboxedHtml]);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(code);
@@ -109,6 +124,24 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
             </button>
+          )}
+
+          {/* Direct Previewable Website Link */}
+          {previewBlobUrl && (
+            <a
+              href={previewBlobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open previewable website in a new standalone tab"
+              className="flex items-center gap-1 rounded border border-gold/50 bg-gold/20 px-2.5 py-1 font-display text-[12px] uppercase tracking-[0.12em] text-[#fff5dc] transition-all hover:border-gold hover:bg-gold/35 active:scale-95 shadow-[0_0_12px_rgba(201,168,106,0.25)]"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span>Preview Link ↗</span>
+            </a>
           )}
 
           {/* Open in Code Studio */}
@@ -206,6 +239,25 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
               <code>{code}</code>
             </pre>
           </div>
+        )}
+      </div>
+
+      {/* Ornate Website Link Footer Banner */}
+      <div className="flex items-center justify-between border-t border-gold/20 bg-black/60 px-4 py-1.5 font-body text-[12.5px]">
+        <div className="flex items-center gap-2 text-gold/75">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-display tracking-wide">Live Previewable Website</span>
+        </div>
+        {previewBlobUrl && (
+          <a
+            href={previewBlobUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 font-body text-[12.5px] text-gold-2 hover:text-[#fff6e0] underline transition-colors"
+          >
+            <span>Open preview website in full browser tab</span>
+            <span className="text-[11px]">↗</span>
+          </a>
         )}
       </div>
     </div>

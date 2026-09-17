@@ -68,6 +68,21 @@ export function CodeStudio({ open, onClose, initialCode, title = "Code Studio", 
     return raw.replace("<head>", `<head>${consoleInterceptor}`);
   }, [code]);
 
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!sandboxedHtml) {
+      setPreviewBlobUrl("");
+      return;
+    }
+    const blob = new Blob([sandboxedHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setPreviewBlobUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [sandboxedHtml]);
+
   // Listen for iframe logs
   useEffect(() => {
     const handleMsg = (e: MessageEvent) => {
@@ -312,6 +327,24 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
             </svg>
             <span>Run</span>
           </button>
+
+          {/* Direct Preview Link in New Tab */}
+          {previewBlobUrl && (
+            <a
+              href={previewBlobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open previewable website in a new standalone browser tab"
+              className="flex items-center gap-1.5 rounded border border-gold/50 bg-gold/20 px-3 py-1 font-display text-[12.5px] uppercase tracking-[0.12em] text-[#fff5dc] transition-all hover:border-gold hover:bg-gold/35 active:scale-95 shadow-[0_0_12px_rgba(201,168,106,0.25)]"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span>Preview Link ↗</span>
+            </a>
+          )}
 
           {/* Console / Logs toggle */}
           <button
