@@ -233,6 +233,18 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
       candidateModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'deepseek-r1-distill-llama-70b', 'qwen-2.5-32b', 'gemma2-9b-it'];
     }
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'gemini') {
+    endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+    candidateModels = ['gemini-3.6-flash', 'gemini-2.5-pro', 'gemini-flash-latest'];
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'cerebras') {
+    endpoint = 'https://api.cerebras.ai/v1/chat/completions';
+    candidateModels = ['gpt-oss-120b', 'qwen-3.8-27b'];
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'pollinations') {
+    endpoint = 'https://text.pollinations.ai/openai/chat/completions';
+    candidateModels = ['openai', 'mistral', 'claude-hybridspace'];
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
     candidateModels = incomingBody.model ? [incomingBody.model, 'mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'] : ['mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'];
@@ -308,16 +320,22 @@ export default async function handler(req, res) {
 
   const inceptionKey = (process.env.INCEPTION_API || process.env.INCEPTION_API_KEY || process.env.INCEPTION_KEY || '').trim();
   const groqKey = (process.env.GROQ_API_KEY || process.env.GROQ_API || process.env.GROK_API_KEY || process.env.GROK_API || '').trim();
+  const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || '').trim();
+  const cerebrasKey = (process.env.CEREBRAS_API_KEY || '').trim();
+  const pollinationsKey = (process.env.POLLINATIONS_API || process.env.NEXT_PUBLIC_POLLINATIONS_API || '').trim();
   const cfKey = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
   const cfAccount = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 
   if (req.method === 'GET') {
     return res.status(200).json({ 
       status: 'Online', 
-      has_inception: !!inceptionKey,
       has_groq: !!groqKey,
+      has_gemini: !!geminiKey,
+      has_inception: !!inceptionKey,
+      has_cerebras: !!cerebrasKey,
+      has_pollinations: !!pollinationsKey,
       has_cloudflare: !!(cfKey && cfAccount),
-      primary_provider: inceptionKey ? 'Inception (Mercury-2)' : (groqKey ? 'Groq (Llama 3.3 / Qwen)' : 'Groq')
+      primary_provider: groqKey ? 'Groq (Llama 3.3 / Qwen)' : (geminiKey ? 'Gemini (3.6 Flash)' : (inceptionKey ? 'Inception' : 'D-Ai Engine'))
     });
   }
 
@@ -332,33 +350,49 @@ export default async function handler(req, res) {
       const providersToTry = [];
 
       if (hasVision) {
-        // Vision requests MUST route to Groq Vision (Qwen / Llama 3.2 Vision)
+        // Vision requests: Groq Vision (Qwen) primary, Gemini 3.6 Flash multimodal secondary
         if (groqKey) {
           providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: true });
         }
-        // If Inception is configured, add it as secondary fallback using conversation context
+        if (geminiKey) {
+          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: true });
+        }
         if (inceptionKey) {
           providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
         }
       } else if (isCompoundRequest) {
-        // Compound / autonomous search & code execution routes to Groq
+        // Compound / autonomous search & code execution routes to Groq or Gemini
         if (groqKey) {
           providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
         }
+        if (geminiKey) {
+          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
+        }
       } else {
-        // Standard text requests: Inception primary, Groq automatic fallback
-        if (requestedProvider === 'inception' && inceptionKey) {
-          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
-        } else if (requestedProvider === 'groq' && groqKey) {
+        // User requested provider override
+        if (requestedProvider === 'groq' && groqKey) {
           providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        } else if (requestedProvider === 'gemini' && geminiKey) {
+          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
+        } else if (requestedProvider === 'inception' && inceptionKey) {
+          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
         }
 
-        // Automatic default hierarchy: Inception -> Groq -> Cloudflare
+        // Default resilient cascade: Groq -> Gemini -> Inception -> Cerebras -> Pollinations -> Cloudflare
+        if (groqKey && !providersToTry.some(p => p.provider === 'groq')) {
+          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        }
+        if (geminiKey && !providersToTry.some(p => p.provider === 'gemini')) {
+          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
+        }
         if (inceptionKey && !providersToTry.some(p => p.provider === 'inception')) {
           providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
         }
-        if (groqKey && !providersToTry.some(p => p.provider === 'groq')) {
-          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        if (cerebrasKey && !providersToTry.some(p => p.provider === 'cerebras')) {
+          providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey, isVision: false });
+        }
+        if (pollinationsKey && !providersToTry.some(p => p.provider === 'pollinations')) {
+          providersToTry.push({ provider: 'pollinations', apiKey: pollinationsKey, isVision: false });
         }
         if (cfKey && cfAccount && !providersToTry.some(p => p.provider === 'cloudflare')) {
           providersToTry.push({ provider: 'cloudflare', apiKey: cfKey, isVision: false });
@@ -367,7 +401,7 @@ export default async function handler(req, res) {
 
       if (providersToTry.length === 0) {
         return res.status(500).json({ 
-          error: 'Configuration Error: Missing GROQ_API_KEY or INCEPTION_API in Vercel environment variables.' 
+          error: 'Configuration Error: Missing GROQ_API_KEY, GEMINI_API_KEY, or INCEPTION_API in environment variables.' 
         });
       }
 
