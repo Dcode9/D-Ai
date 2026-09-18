@@ -199,7 +199,12 @@ CORE GUIDELINES:
    - Adhere strictly to D'Ai's regal ornate design philosophy: dark velvet obsidian backgrounds (#1c1b1a, #232220), glowing gold borders (#c9a86a, #e8d3a0), cream typography, and predesigned component classes (.dai-card, .dai-btn, .dai-btn-secondary, .dai-badge, .dai-input, .dai-divider).
    - Wrap the entire application code inside a \`\`\`dai-artifact (or \`\`\`html) code block. D'Ai's interface will render it directly as an interactive live running preview in the chat!
 
-5. ALWAYS PROVIDE LINKS FOR PREVIEWABLE WEBSITES:
+5. STRICT FULL-CODE COMPLETION MANDATE (ZERO TRUNCATION):
+   - You MUST generate 100% complete, fully implemented, unbroken, working code.
+   - NEVER truncate, omit, or abbreviate code. NEVER write placeholders like "/* ...rest of code... */", "// TODO", or "<!-- add more items here -->".
+   - Implement every single feature, state variable, button listener, and CSS style from start to finish.
+
+6. ALWAYS PROVIDE LINKS FOR PREVIEWABLE WEBSITES:
    - Whenever you create, recommend, mention, or search for previewable websites, interactive tools, web demos, live prototypes, repositories, or online pages, you MUST ALWAYS provide clear, direct, clickable Markdown links (e.g. [Preview Website Name](url) or [Launch Live Demo](url)).
    - Never mention a website, tool, or demo without embedding its active clickable link.`;
 
@@ -211,6 +216,13 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
   const messages = Array.isArray(incomingBody.messages) ? incomingBody.messages : [];
   const otherMessages = messages.filter(m => m && m.role !== 'system');
   const fullSystemPrompt = buildSystemPrompt(messages, isVision);
+
+  // Detect if this is a coding or application construction task
+  const lastUserMsg = otherMessages.filter(m => m && m.role === 'user').pop();
+  const lastPromptText = getTextContent(lastUserMsg?.content);
+  const isCode = incomingBody.mode === 'Code' ||
+    Boolean(incomingBody.is_code) ||
+    /build|code|create\s+(an?\s+)?(app|web|html|tool|calculator|game|widget|simulation|interface|component|page)|write\s+(an?\s+)?(app|program|script|html|function)|javascript|typescript|react|vue|python|css|regex|algorithm/i.test(lastPromptText);
 
   let endpoint = '';
   let candidateModels = [];
@@ -225,25 +237,36 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
       candidateModels = incomingBody.model && incomingBody.model.includes('qwen')
         ? [incomingBody.model, 'qwen/qwen3.6-27b', 'qwen/qwen-3.6-27b', 'qwen-3.6-27b', 'qwen3.6-27b'] 
         : ['qwen/qwen3.6-27b', 'qwen/qwen-3.6-27b', 'qwen-3.6-27b', 'qwen3.6-27b'];
+    } else if (isCode) {
+      candidateModels = ['qwen-2.5-coder-32b', 'deepseek-r1-distill-llama-70b', 'llama-3.3-70b-versatile'];
     } else if (incomingBody.compound || incomingBody.model === 'groq/compound' || incomingBody.model === 'groq/compound-mini') {
       candidateModels = ['groq/compound', 'groq/compound-mini', 'llama-3.3-70b-versatile'];
     } else if (incomingBody.model) {
-      candidateModels = [incomingBody.model, 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'deepseek-r1-distill-llama-70b', 'qwen-2.5-32b'];
+      candidateModels = [incomingBody.model, 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
     } else {
-      candidateModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'deepseek-r1-distill-llama-70b', 'qwen-2.5-32b', 'gemma2-9b-it'];
+      candidateModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
+    }
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (provider === 'pollinations') {
+    if (apiKey && apiKey.startsWith('sk_')) {
+      endpoint = 'https://gen.pollinations.ai/v1/chat/completions';
+      if (isCode) {
+        candidateModels = ['qwen/qwen3-coder-30b-a3b-instruct', 'moonshotai/kimi-k2.7-code', 'openai/gpt-oss-20b', 'deepseek/deepseek-v4.1-flash'];
+      } else {
+        candidateModels = ['openai/gpt-5.4-mini', 'meta/llama-3.3-70b-instruct', 'openai/gpt-oss-20b'];
+      }
+    } else {
+      endpoint = 'https://text.pollinations.ai/openai/chat/completions';
+      candidateModels = ['openai-fast', 'openai', 'mistral'];
     }
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'gemini') {
     endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-    candidateModels = ['gemini-3.6-flash', 'gemini-2.5-pro', 'gemini-flash-latest'];
+    candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest'];
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'cerebras') {
     endpoint = 'https://api.cerebras.ai/v1/chat/completions';
     candidateModels = ['gpt-oss-120b', 'qwen-3.8-27b'];
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (provider === 'pollinations') {
-    endpoint = 'https://text.pollinations.ai/openai/chat/completions';
-    candidateModels = ['openai', 'mistral', 'claude-hybridspace'];
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
@@ -259,6 +282,11 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
   let lastRes = null;
   let lastModelUsed = candidateModels[0] || '';
 
+  // Max completion tokens: 16384 for code to prevent truncations, 4096 for normal chat
+  const effectiveMaxTokens = incomingBody.max_tokens ||
+    incomingBody.max_completion_tokens ||
+    (isCode ? 16384 : 4096);
+
   for (const model of candidateModels) {
     lastModelUsed = model;
     try {
@@ -269,20 +297,28 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
           ...otherMessages.map(m => normalizeMessageForProvider(m, isVision))
         ],
         stream: incomingBody.stream !== false,
-        max_tokens: incomingBody.max_tokens || incomingBody.max_completion_tokens || 4096,
-        temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : 0.7
+        max_tokens: effectiveMaxTokens,
+        temperature: typeof incomingBody.temperature === 'number' ? incomingBody.temperature : (isCode ? 0.3 : 0.7)
       };
 
-      if (provider === 'inception') {
+      // Control reasoning effort:
+      // - If coding: allow medium/high reasoning so coder thinks through complex state/architecture
+      // - If normal chat: explicitly set reasoning_effort = 'none' (user wants instant response, NO thinking)
+      if (isCode) {
         payload.reasoning_effort = incomingBody.reasoning_effort || 'medium';
-        payload.reasoning_summary = true;
+      } else {
+        payload.reasoning_effort = 'none';
+      }
+
+      if (provider === 'inception') {
+        payload.reasoning_summary = isCode;
       }
 
       // Pass-through tools and function calling parameters
       if (Array.isArray(incomingBody.tools) && incomingBody.tools.length > 0) {
         payload.tools = incomingBody.tools;
         if (incomingBody.tool_choice) payload.tool_choice = incomingBody.tool_choice;
-      } else if (incomingBody.enable_tools !== false && !isVision) {
+      } else if (incomingBody.enable_tools !== false && !isVision && !isCode) {
         payload.tools = NATIVE_TOOLS;
         payload.tool_choice = incomingBody.tool_choice || 'auto';
       }
@@ -291,7 +327,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(45000)
+        signal: AbortSignal.timeout(isCode ? 90000 : 45000)
       });
 
       if (response.ok) {
@@ -346,6 +382,13 @@ export default async function handler(req, res) {
       const isCompoundRequest = req.body?.compound === true || req.body?.model === 'groq/compound' || req.body?.model === 'groq/compound-mini';
       const requestedProvider = req.body?.provider;
 
+      const otherMsgs = messages.filter(m => m && m.role !== 'system');
+      const lastUserMsg = otherMsgs.filter(m => m && m.role === 'user').pop();
+      const lastPromptText = getTextContent(lastUserMsg?.content);
+      const isCode = req.body?.mode === 'Code' ||
+        Boolean(req.body?.is_code) ||
+        /build|code|create\s+(an?\s+)?(app|web|html|tool|calculator|game|widget|simulation|interface|component|page)|write\s+(an?\s+)?(app|program|script|html|function)|javascript|typescript|react|vue|python|css|regex|algorithm/i.test(lastPromptText);
+
       // Tiered Provider Cascade Assembly
       const providersToTry = [];
 
@@ -360,41 +403,44 @@ export default async function handler(req, res) {
         if (inceptionKey) {
           providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
         }
-      } else if (isCompoundRequest) {
-        // Compound / autonomous search & code execution routes to Groq or Gemini
-        if (groqKey) {
-          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+      } else if (requestedProvider) {
+        // User requested provider override
+        if (requestedProvider === 'groq' && groqKey) providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        if (requestedProvider === 'pollinations' && pollinationsKey) providersToTry.push({ provider: 'pollinations', apiKey: pollinationsKey, isVision: false });
+        if (requestedProvider === 'gemini' && geminiKey) providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
+        if (requestedProvider === 'inception' && inceptionKey) providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
+      } else if (isCode) {
+        // Coding & Web App Construction: route to specialized coder models first
+        if (pollinationsKey) {
+          providersToTry.push({ provider: 'pollinations', apiKey: pollinationsKey, isVision: false });
         }
         if (geminiKey) {
           providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
         }
+        if (groqKey) {
+          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        }
+        if (inceptionKey) {
+          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
+        }
       } else {
-        // User requested provider override
-        if (requestedProvider === 'groq' && groqKey) {
-          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
-        } else if (requestedProvider === 'gemini' && geminiKey) {
-          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
-        } else if (requestedProvider === 'inception' && inceptionKey) {
-          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
-        }
-
-        // Default resilient cascade: Groq -> Gemini -> Inception -> Cerebras -> Pollinations -> Cloudflare
-        if (groqKey && !providersToTry.some(p => p.provider === 'groq')) {
-          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
-        }
-        if (geminiKey && !providersToTry.some(p => p.provider === 'gemini')) {
+        // Normal Chat: Gemini 3.6 Flash with reasoning_effort='none' for instant answers without thinking
+        if (geminiKey) {
           providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
         }
-        if (inceptionKey && !providersToTry.some(p => p.provider === 'inception')) {
-          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
-        }
-        if (cerebrasKey && !providersToTry.some(p => p.provider === 'cerebras')) {
-          providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey, isVision: false });
-        }
-        if (pollinationsKey && !providersToTry.some(p => p.provider === 'pollinations')) {
+        if (pollinationsKey) {
           providersToTry.push({ provider: 'pollinations', apiKey: pollinationsKey, isVision: false });
         }
-        if (cfKey && cfAccount && !providersToTry.some(p => p.provider === 'cloudflare')) {
+        if (groqKey) {
+          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
+        }
+        if (inceptionKey) {
+          providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
+        }
+        if (cerebrasKey) {
+          providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey, isVision: false });
+        }
+        if (cfKey && cfAccount) {
           providersToTry.push({ provider: 'cloudflare', apiKey: cfKey, isVision: false });
         }
       }
@@ -488,11 +534,8 @@ export default async function handler(req, res) {
                   if (!choice.delta) choice.delta = {};
                   choice.delta.reasoning = parsed.reasoning_summary.content;
                   res.write(`data: ${JSON.stringify(parsed)}\n\n`);
-                } else if (delta && delta.reasoning && !delta.content) {
-                  // Forward reasoning delta so client receives clean reasoning chunks
-                  res.write(`data: ${JSON.stringify(parsed)}\n\n`);
-                } else if (delta && delta.reasoning_content && !delta.content) {
-                  delta.reasoning = delta.reasoning_content;
+                } else if (delta && (delta.reasoning || delta.reasoning_content || delta.thought)) {
+                  delta.reasoning = delta.reasoning || delta.reasoning_content || delta.thought;
                   res.write(`data: ${JSON.stringify(parsed)}\n\n`);
                 } else {
                   res.write(`${line}\n\n`);

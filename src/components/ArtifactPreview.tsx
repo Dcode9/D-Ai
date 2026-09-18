@@ -59,40 +59,43 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
   return (
     <div
       className={cn(
-        "group relative my-4 overflow-hidden rounded-lg border border-gold/40 bg-black/60 shadow-[0_8px_32px_rgba(0,0,0,0.55)] transition-all duration-300",
+        "group relative my-5 overflow-hidden rounded-md border border-gold/45 bg-ink-2/95 shadow-[0_8px_36px_rgba(0,0,0,0.65)] transition-all duration-300",
         isFullscreen && "fixed inset-4 z-50 my-0 border-gold bg-[#151413]/98 shadow-[0_0_80px_rgba(0,0,0,0.95)]",
       )}
     >
-      {/* Corner jewels */}
+      {/* SIGNATURE INNER CONCENTRIC BORDER RAIL */}
+      <div className="pointer-events-none absolute inset-[3px] rounded-[3px] border border-gold/20 z-20" />
+
+      {/* 4 Corner Diamond Jewels */}
       {["-top-[2px] -left-[2px]", "-top-[2px] -right-[2px]", "-bottom-[2px] -left-[2px]", "-bottom-[2px] -right-[2px]"].map((pos) => (
         <span
           key={pos}
-          className={cn("pointer-events-none absolute z-20 h-2 w-2 rotate-45 border border-gold/80 bg-ink", pos)}
+          className={cn("pointer-events-none absolute z-30 h-2 w-2 rotate-45 border border-gold/80 bg-ink", pos)}
         />
       ))}
 
       {/* Ornate Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gold/25 bg-black/50 px-4 py-2">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-gold/25 bg-black/50 px-5 py-2.5">
         <div className="flex items-center gap-2.5">
           <span className="text-gold text-sm">✦</span>
-          <span className="font-display text-[15px] font-medium tracking-[0.05em] text-cream">
+          <span className="font-display text-[17px] font-medium tracking-[0.04em] text-cream">
             {title}
           </span>
-          <span className="rounded border border-gold/20 bg-gold/10 px-1.5 py-0.2 font-mono text-[10.5px] uppercase tracking-wider text-gold-2">
+          <span className="rounded border border-gold/30 bg-gold/10 px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-wider text-gold-2">
             {lang || "preview"}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 font-body">
-          {/* View Switcher: Direct Output vs Code */}
-          <div className="flex items-center rounded-sm border border-gold/30 bg-black/40 p-0.5">
+        <div className="flex items-center gap-2 font-body">
+          {/* Segmented View Switcher: Output | Code */}
+          <div className="flex items-center rounded border border-gold/30 bg-black/40 p-0.5">
             <button
               type="button"
               onClick={() => setActiveTab("preview")}
               className={cn(
-                "cursor-pointer rounded-[2px] px-2.5 py-0.5 font-display text-[12px] uppercase tracking-[0.14em] transition-colors",
+                "cursor-pointer rounded px-2.5 py-0.5 font-display text-[12px] uppercase tracking-[0.14em] transition-colors",
                 activeTab === "preview"
-                  ? "bg-gold/20 text-cream font-semibold shadow-inner"
+                  ? "bg-gold/25 text-cream font-semibold shadow-inner"
                   : "text-muted hover:text-cream",
               )}
             >
@@ -102,9 +105,9 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
               type="button"
               onClick={() => setActiveTab("code")}
               className={cn(
-                "cursor-pointer rounded-[2px] px-2.5 py-0.5 font-display text-[12px] uppercase tracking-[0.14em] transition-colors",
+                "cursor-pointer rounded px-2.5 py-0.5 font-display text-[12px] uppercase tracking-[0.14em] transition-colors",
                 activeTab === "code"
-                  ? "bg-gold/20 text-cream font-semibold shadow-inner"
+                  ? "bg-gold/25 text-cream font-semibold shadow-inner"
                   : "text-muted hover:text-cream",
               )}
             >
@@ -112,13 +115,13 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             </button>
           </div>
 
-          {/* Reload Sandbox */}
+          {/* Reload Output */}
           {activeTab === "preview" && (
             <button
               type="button"
               onClick={handleReload}
-              title="Refresh output"
-              className="cursor-pointer rounded border border-gold/20 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream"
+              title="Refresh prototype output"
+              className="cursor-pointer rounded border border-gold/20 bg-black/30 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
@@ -126,16 +129,16 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             </button>
           )}
 
-          {/* Direct Previewable Website Link */}
+          {/* Standalone Live Preview Link */}
           {previewBlobUrl && (
             <a
               href={previewBlobUrl}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open previewable website in a new standalone tab"
-              className="flex items-center gap-1 rounded border border-gold/50 bg-gold/20 px-2.5 py-1 font-display text-[12px] uppercase tracking-[0.12em] text-[#fff5dc] transition-all hover:border-gold hover:bg-gold/35 active:scale-95 shadow-[0_0_12px_rgba(201,168,106,0.25)]"
+              title="Open previewable website in a dedicated browser tab"
+              className="flex items-center gap-1.5 rounded-sm border border-gold/55 bg-gold/20 px-2.5 py-1 font-display text-[11.5px] uppercase tracking-[0.12em] text-[#fff6e0] transition-all hover:border-gold hover:bg-gold/35 active:scale-95 shadow-[0_0_10px_rgba(201,168,106,0.25)]"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" />
                 <line x1="10" y1="14" x2="21" y2="3" />
@@ -150,9 +153,9 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
               type="button"
               onClick={() => onOpenStudio(code, title)}
               title="Open in Code Studio Sidebar"
-              className="flex cursor-pointer items-center gap-1 rounded border border-gold/40 bg-gold/10 px-2.5 py-1 font-display text-[12px] uppercase tracking-[0.12em] text-cream transition-all hover:border-gold hover:bg-gold/25 active:scale-95"
+              className="flex cursor-pointer items-center gap-1 rounded-sm border border-gold/40 bg-gold/10 px-2.5 py-1 font-display text-[11.5px] uppercase tracking-[0.12em] text-cream transition-all hover:border-gold hover:bg-gold/25 active:scale-95"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" />
                 <line x1="10" y1="14" x2="21" y2="3" />
@@ -166,7 +169,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             type="button"
             onClick={handleCopy}
             title="Copy code"
-            className="cursor-pointer rounded border border-gold/20 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream"
+            className="cursor-pointer rounded border border-gold/20 bg-black/30 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
           >
             {copied ? (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -185,7 +188,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             type="button"
             onClick={handleDownload}
             title="Download standalone HTML file"
-            className="cursor-pointer rounded border border-gold/20 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream"
+            className="cursor-pointer rounded border border-gold/20 bg-black/30 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -199,7 +202,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-            className="cursor-pointer rounded border border-gold/20 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream"
+            className="cursor-pointer rounded border border-gold/20 bg-black/30 p-1 text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
           >
             {isFullscreen ? (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -214,8 +217,8 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className={cn("relative w-full bg-[#121110]", isFullscreen ? "h-[calc(100%-48px)]" : "h-[420px]")}>
+      {/* Main Content Viewport */}
+      <div className={cn("relative w-full bg-[#121110]", isFullscreen ? "h-[calc(100%-80px)]" : "h-[440px]")}>
         {/* Direct Output (Iframe Preview) */}
         <div
           className={cn(
@@ -234,7 +237,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
 
         {/* Source Code View */}
         {activeTab === "code" && (
-          <div className="scroll-gold h-full w-full overflow-auto p-4 font-mono text-[13.5px] leading-relaxed text-[#f0e6d2]">
+          <div className="scroll-gold h-full w-full overflow-auto p-4 font-mono text-[13px] leading-relaxed text-[#f0e6d2]">
             <pre className="whitespace-pre-wrap">
               <code>{code}</code>
             </pre>
@@ -243,8 +246,8 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
       </div>
 
       {/* Ornate Website Link Footer Banner */}
-      <div className="flex items-center justify-between border-t border-gold/20 bg-black/60 px-4 py-1.5 font-body text-[12.5px]">
-        <div className="flex items-center gap-2 text-gold/75">
+      <div className="relative z-20 flex items-center justify-between border-t border-gold/25 bg-black/70 px-5 py-2 font-body text-[12.5px]">
+        <div className="flex items-center gap-2 text-gold/85">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-display tracking-wide">Live Previewable Website</span>
         </div>

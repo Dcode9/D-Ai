@@ -226,6 +226,128 @@ body,
   animation: quill-glow 1.1s ease-in-out infinite;
 }
 
+/* ---------- DISTINCT STAGE ANIMATIONS ---------- */
+
+/* 1. Thinking / Deliberation */
+@keyframes thought-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px 1px rgba(201, 168, 106, 0.15), inset 0 0 12px rgba(201, 168, 106, 0.06);
+    border-color: rgba(201, 168, 106, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(232, 211, 160, 0.35), inset 0 0 18px rgba(201, 168, 106, 0.14);
+    border-color: rgba(232, 211, 160, 0.65);
+  }
+}
+
+.animate-thought-stage {
+  animation: thought-pulse 2.2s ease-in-out infinite;
+}
+
+/* 2. Web Search Radar Scan */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes search-ping-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.radar-sweep {
+  animation: radar-sweep 2.6s linear infinite;
+}
+
+.radar-ping {
+  animation: search-ping-ring 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 3. Code Building / Blueprint Shimmer */
+@keyframes blueprint-draft {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-blueprint {
+  background: linear-gradient(135deg, rgba(201, 168, 106, 0.1) 0%, rgba(232, 211, 160, 0.22) 50%, rgba(201, 168, 106, 0.08) 100%);
+  background-size: 200% 200%;
+  animation: blueprint-draft 3s ease infinite;
+}
+
+@keyframes code-spark {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+    text-shadow: 0 0 10px rgba(232, 211, 160, 0.8);
+  }
+}
+
+.code-spark-text {
+  animation: code-spark 1.4s ease-in-out infinite;
+}
+
+/* 4. Image Synthesis Bloom */
+@keyframes aperture-bloom {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(122, 73, 184, 0.4)) drop-shadow(0 0 16px rgba(201, 160, 74, 0.3));
+    transform: scale(0.97);
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(122, 73, 184, 0.75)) drop-shadow(0 0 30px rgba(201, 160, 74, 0.6));
+    transform: scale(1.03);
+  }
+}
+
+.animate-aperture-bloom {
+  animation: aperture-bloom 3s ease-in-out infinite;
+}
+
+/* ---------- SIGNATURE SIDEBAR DOUBLE-RAIL FRAME UTILITIES ---------- */
+.dai-sidebar-frame {
+  position: relative;
+  background-color: rgba(35, 34, 32, 0.96);
+}
+
+.dai-sidebar-frame::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(201, 168, 106, 0.4);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.dai-sidebar-frame::after {
+  content: "";
+  position: absolute;
+  inset: 15px;
+  border: 1px solid rgba(201, 168, 106, 0.15);
+  pointer-events: none;
+  z-index: 10;
+}
+
 .scroll-gold {
   scrollbar-width: thin;
   scrollbar-color: rgba(201, 168, 106, 0.35) transparent;

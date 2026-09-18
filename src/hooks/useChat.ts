@@ -301,19 +301,38 @@ function extractCleanThreeWordTitle(text: string): string {
       const convId = activeId ?? uid();
       if (!activeId) setActiveId(convId);
 
+      // Detect if user intent is writing code / building web app or widget
+      const isCodePrompt = mode === "Code" ||
+        /build|code|create\s+(an?\s+)?(app|web|html|tool|calculator|game|widget|simulation|interface|component|page)|write\s+(an?\s+)?(app|program|script|html|function)|javascript|typescript|react|vue|python|css|algorithm/i.test(prompt);
+
       const userMsg: Message = { id: uid(), role: "user", content: prompt, mode };
       const currentMessages = [...messages, userMsg];
       setMessages(currentMessages);
-      setState("thinking");
+
+      // Normal chat: NO thinking delay (start directly answering). Code mode: architectural thinking!
+      setState(isCodePrompt ? "thinking" : "answering");
 
       const asstId = uid();
       const workStartTime = Date.now();
+      let thoughtStartTime = Date.now();
+      let currentThoughtId: string | null = null;
+      let currentThoughtContent = "";
 
       let activeWorkData: WorkData = {
         totalDurationSec: 0,
-        steps: [],
-        isWorking: true,
-        statusText: "Thinking…",
+        steps: isCodePrompt
+          ? [
+              {
+                id: (currentThoughtId = uid()),
+                type: "thought",
+                durationSec: 0,
+                content: "Analyzing architectural blueprint and interface state hierarchy…",
+                isLive: true,
+              },
+            ]
+          : [],
+        isWorking: isCodePrompt,
+        statusText: isCodePrompt ? "Architecting code solution…" : "",
       };
 
       setMessages((m) => [
@@ -322,7 +341,7 @@ function extractCleanThreeWordTitle(text: string): string {
           id: asstId,
           role: "assistant",
           content: "",
-          mode,
+          mode: mode || (isCodePrompt ? "Code" : null),
           streaming: true,
           work: activeWorkData,
         },
@@ -374,9 +393,6 @@ Whenever you create, recommend, mention, or search for previewable websites, int
       let displayedText = "";
       let isStreamingActive = false;
       let finalImageUrl: string | undefined = undefined;
-      let thoughtStartTime = Date.now();
-      let currentThoughtId: string | null = null;
-      let currentThoughtContent = "";
       let loopCount = 0;
       const maxLoops = 5;
 
@@ -416,7 +432,9 @@ Whenever you create, recommend, mention, or search for previewable websites, int
               body: JSON.stringify({
                 messages: conversationHistory,
                 stream: true,
-                mode,
+                mode: mode || (isCodePrompt ? "Code" : undefined),
+                is_code: isCodePrompt,
+                max_tokens: isCodePrompt ? 16384 : 4096,
               }),
               signal: controller.signal,
             });
@@ -452,29 +470,38 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                       if (!currentThoughtId) {
                         currentThoughtId = uid();
                         thoughtStartTime = Date.now();
+                        currentThoughtContent = reasoningChunk;
                         updateWork((w) => ({
                           ...w,
-                          statusText: "Thinking…",
+                          isWorking: true,
+                          statusText: "Deliberating…",
                           steps: [
                             ...w.steps,
                             {
                               id: currentThoughtId!,
                               type: "thought",
                               durationSec: 0,
-                              content: "",
+                              content: currentThoughtContent,
                               isLive: true,
                             },
                           ],
                         }));
+                      } else {
+                        // If it had placeholder initial text, replace with real reasoning tokens
+                        if (currentThoughtContent.startsWith("Analyzing architectural blueprint")) {
+                          currentThoughtContent = reasoningChunk;
+                        } else {
+                          currentThoughtContent += reasoningChunk;
+                        }
                       }
-                      currentThoughtContent += reasoningChunk;
                       const elapsedSec = Math.max(0.1, (Date.now() - thoughtStartTime) / 1000);
                       updateWork((w) => ({
                         ...w,
-                        statusText: "Thinking…",
+                        isWorking: true,
+                        statusText: "Deliberating…",
                         steps: w.steps.map((s) =>
                           s.id === currentThoughtId
-                            ? { ...s, content: currentThoughtContent, durationSec: elapsedSec }
+                            ? { ...s, content: currentThoughtContent, durationSec: elapsedSec, isLive: true }
                             : s,
                         ),
                       }));
