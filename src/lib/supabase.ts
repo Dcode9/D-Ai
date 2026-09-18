@@ -53,6 +53,123 @@ function base64UrlDecode(str: string): Record<string, unknown> | null {
   }
 }
 
+const DVERSE_TOKENS_COOKIE = "dverse_auth_tokens";
+const DVERSE_SESSION_CACHE = "dverse_session_cache";
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp("(?:^|;\\s*)" + encodeURIComponent(name) + "=([^;]*)"));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setCookie(name: string, value: string, days = 365) {
+  if (typeof document === "undefined") return;
+  if (typeof value === "string" && value.length > 3500) return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+  const isDverse = typeof window !== "undefined" && window.location.hostname.endsWith("d-verse.in");
+  const domainAttr = isDverse ? "; domain=.d-verse.in" : "";
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; expires=${expires}; path=/${domainAttr}; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+}
+
+function deleteCookie(name: string) {
+  if (typeof document === "undefined") return;
+  const isDverse = typeof window !== "undefined" && window.location.hostname.endsWith("d-verse.in");
+  const domainAttr = isDverse ? "; domain=.d-verse.in" : "";
+  document.cookie = `${encodeURIComponent(name)}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainAttr}; SameSite=Lax; Secure`;
+}
+
+export function persistTokens(session: Session | null): void {
+  if (!session?.refresh_token) return;
+  try {
+    const tokens = {
+      access_token: session.access_token || "",
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at || null,
+      user_id: session.user?.id || null,
+      email: session.user?.email || null,
+    };
+    const serialized = JSON.stringify(tokens);
+    try { localStorage.setItem(DVERSE_SESSION_CACHE, serialized); } catch (_) {}
+    try { localStorage.setItem(DVERSE_TOKENS_COOKIE, serialized); } catch (_) {}
+    try { sessionStorage.setItem(DVERSE_SESSION_CACHE, serialized); } catch (_) {}
+    setCookie(DVERSE_TOKENS_COOKIE, serialized, 365);
+  } catch (e) {
+    console.warn("[D'Ai Auth] Failed to persist auth tokens:", e);
+  }
+}
+
+export function readPersistedTokens(): { access_token?: string; refresh_token: string; expires_at?: number } | null {
+  // 1. Try cross-subdomain memory cookie (.d-verse.in)
+  try {
+    const rawCookie = getCookie(DVERSE_TOKENS_COOKIE);
+    if (rawCookie) {
+      const parsed = JSON.parse(rawCookie);
+      if (parsed?.refresh_token) return parsed;
+    }
+  } catch (_) {}
+
+  // 2. Try localStorage
+  try {
+    const raw = localStorage.getItem(DVERSE_SESSION_CACHE) || localStorage.getItem(DVERSE_TOKENS_COOKIE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.refresh_token) return parsed;
+    }
+  } catch (_) {}
+
+  // 3. Try sessionStorage
+  try {
+    const raw = sessionStorage.getItem(DVERSE_SESSION_CACHE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.refresh_token) return parsed;
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+export function clearPersistedTokens(): void {
+  deleteCookie(DVERSE_TOKENS_COOKIE);
+  try { localStorage.removeItem(DVERSE_SESSION_CACHE); } catch (_) {}
+  try { localStorage.removeItem(DVERSE_TOKENS_COOKIE); } catch (_) {}
+  try { sessionStorage.removeItem(DVERSE_SESSION_CACHE); } catch (_) {}
+}
+
+export async function restoreOrRefreshSession(tokens: { access_token?: string; refresh_token: string }): Promise<Session | null> {
+  if (!tokens?.refresh_token) return null;
+
+  // 1. If access token exists, try setSession
+  if (tokens.access_token) {
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      });
+      if (!error && data?.session) {
+        persistTokens(data.session);
+        return data.session;
+      }
+    } catch (_) {}
+  }
+
+  // 2. Fallback to refreshing session with refresh_token
+  try {
+    const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession({
+      refresh_token: tokens.refresh_token,
+    });
+    if (!refreshErr && refreshed?.session) {
+      persistTokens(refreshed.session);
+      return refreshed.session;
+    }
+  } catch (err) {
+    console.warn("[D'Ai Auth] Failed to refresh session from persistent memory:", err);
+  }
+
+  return null;
+}
+
 let checkedUrlHandoff = false;
 
 /**
@@ -112,6 +229,7 @@ export async function restoreSessionFromUrl(): Promise<Session | null> {
       if (error) {
         console.warn("[D'Ai Auth] Failed to restore session from handoff:", error);
       } else if (data?.session) {
+        persistTokens(data.session);
         return data.session;
       }
     }
@@ -143,20 +261,42 @@ function clearReturnCookie() {
   } catch (_) {}
 }
 
+let isRestoringSession = false;
+
 /**
  * Get the current active session
  */
 export async function getSession(): Promise<Session | null> {
   try {
+    // 1. Check URL handoff
     const handoff = await restoreSessionFromUrl();
-    if (handoff) return handoff;
-
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.warn("[D'Ai Auth] getSession error:", error);
-      return null;
+    if (handoff) {
+      persistTokens(handoff);
+      return handoff;
     }
-    return data.session;
+
+    // 2. Check active Supabase client session
+    const { data, error } = await supabase.auth.getSession();
+    if (!error && data?.session) {
+      persistTokens(data.session);
+      return data.session;
+    }
+
+    // 3. Check persistent memory (.d-verse.in cookie + localStorage)
+    if (!isRestoringSession) {
+      isRestoringSession = true;
+      try {
+        const persisted = readPersistedTokens();
+        if (persisted?.refresh_token) {
+          const restored = await restoreOrRefreshSession(persisted);
+          if (restored) return restored;
+        }
+      } finally {
+        isRestoringSession = false;
+      }
+    }
+
+    return null;
   } catch (err) {
     console.warn("[D'Ai Auth] Failed to fetch session:", err);
     return null;
@@ -212,6 +352,7 @@ export async function signInWithGoogle(): Promise<void> {
 export async function signOut(): Promise<void> {
   try {
     clearReturnCookie();
+    clearPersistedTokens();
     await supabase.auth.signOut();
   } catch (err) {
     console.warn("[D'Ai Auth] Sign out error:", err);
@@ -222,7 +363,10 @@ export async function signOut(): Promise<void> {
  * Listen for auth state changes
  */
 export function onAuthStateChange(callback: (user: User | null, session: Session | null) => void) {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+      persistTokens(session);
+    }
     callback(session?.user || null, session);
   });
   return data.subscription;
