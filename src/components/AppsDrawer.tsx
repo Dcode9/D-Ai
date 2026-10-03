@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "../utils/cn";
 import { Plate } from "./frames/Plate";
+import { supabase } from "../lib/supabase";
 
 export type AppId = "tunes" | "quest";
 
@@ -136,7 +137,19 @@ export function AppsDrawer({ open, onClose, initialApp }: Props) {
                 title={active.name}
                 className="h-full w-full border-0"
                 allow="autoplay; clipboard-write; fullscreen; microphone"
-                onLoad={() => setLoaded(true)}
+                onLoad={(e) => {
+                  setLoaded(true);
+                  // Shared login: hand the signed-in session to the app (exact origin only).
+                  try {
+                    const origin = new URL(src, window.location.href).origin;
+                    if (origin === window.location.origin) return;
+                    const win = e.currentTarget.contentWindow;
+                    void supabase.auth.getSession().then(({ data }) => {
+                      const sess = data?.session;
+                      if (sess && win) win.postMessage({ type: "dverse-auth:handoff", access_token: sess.access_token, refresh_token: sess.refresh_token }, origin);
+                    });
+                  } catch { /* ignore */ }
+                }}
               />
             </div>
           )}
