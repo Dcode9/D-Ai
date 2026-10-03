@@ -1,4 +1,2 @@
-error: patch failed: src/components/AppsDrawer.tsx:1
-error: src/components/AppsDrawer.tsx: patch does not apply
-948078a Merge feat/auth
-END_J1576923798
+8b9221a fix: handoff uses D'Ai session helper
+END_J1448418519
