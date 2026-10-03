@@ -22,12 +22,12 @@ export default function App() {
   const chat = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(false);
-  const [appLaunch, setAppLaunch] = useState<{ app: AppId; query?: string; n: number } | null>(null);
+  const [appLaunch, setAppLaunch] = useState<{ app: AppId; query?: string; play?: boolean; n: number } | null>(null);
   useEffect(() => {
     const onOpen = (e: Event) => {
-      const d = (e as CustomEvent).detail as { app: AppId; query?: string };
+      const d = (e as CustomEvent).detail as { app: AppId; query?: string; play?: boolean };
       if (!d?.app) return;
-      setAppLaunch({ app: d.app, query: d.query, n: Date.now() });
+      setAppLaunch({ app: d.app, query: d.query, play: d.play, n: Date.now() });
       setAppsOpen(true);
     };
     window.addEventListener("dai:open-app", onOpen);

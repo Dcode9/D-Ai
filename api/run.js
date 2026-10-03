@@ -159,9 +159,9 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
           result = s.text;
         } else if (c.name === 'open_app' && (args.app === 'tunes' || args.app === 'quest')) {
           const q = args.query ? String(args.query).slice(0, 120) : undefined;
-          emit({ type: 'app', app: args.app, query: q });
+          emit({ type: 'app', app: args.app, query: q, play: !!args.play });
           toolLog.push({ name: 'open_app', query: `${args.app}${q ? ': ' + q : ''}`, results: 0 });
-          result = JSON.stringify({ opened: args.app, note: 'Opened in the Apps sidebar. Tell the user briefly, and mention the song or topic to look for there.' });
+          result = JSON.stringify({ opened: args.app, note: 'Opened in the Apps sidebar with the search started. Tell the user briefly.' });
         } else {
           toolLog.push({ name: c.name, skipped: true });
           result = JSON.stringify({ note: `${c.name} is not available in background mode yet. Answer without it.` });
