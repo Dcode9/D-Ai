@@ -1,3 +1,4 @@
+import { Plate } from "./frames/Plate";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getUser, signInWithGoogle, signOut, onAuthStateChange } from "../lib/supabase";
@@ -58,10 +59,7 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
       />
 
       {/* Ornate Modal Frame */}
-      <div className="relative w-full max-w-[440px] overflow-hidden rounded-xl border border-gold/40 bg-[#0c0910]/95 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.85)] sm:p-7">
-        {/* Double-rail heraldic borders */}
-        <div className="pointer-events-none absolute inset-2 rounded-lg border border-gold/25" />
-        <div className="pointer-events-none absolute inset-[11px] rounded border border-gold/10" />
+      <Plate variant="text" className="w-full max-w-[440px] max-h-[88vh] p-7 drop-shadow-[0_12px_48px_rgba(0,0,0,0.85)] sm:p-10">
 
         {/* Header */}
         <div className="relative mb-5 flex items-center justify-between">
@@ -172,7 +170,7 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
             </div>
           )}
         </div>
-      </div>
+      </Plate>
     </div>
   );
 }

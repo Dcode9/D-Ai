@@ -15,15 +15,15 @@ import {
 
 export type FrameVariant = "image" | "video" | "code" | "text" | "music";
 
-type Stroke = { d: string; dash?: string; width?: number; opacity?: number; bright?: boolean };
+export type Stroke = { d: string; dash?: string; width?: number; opacity?: number; bright?: boolean };
 
-type Geometry = {
+export type Geometry = {
   clip: string; // inner shape used for the gradient fill
   strokes: Stroke[];
   dots?: { cx: number; cy: number }[];
 };
 
-function build(variant: FrameVariant, w: number, h: number): Geometry {
+export function build(variant: FrameVariant, w: number, h: number): Geometry {
   const p = 1; // outer inset (stroke half-width)
   const g = 7; // gap between outer and inner lines
   const W = w - 2 * p;

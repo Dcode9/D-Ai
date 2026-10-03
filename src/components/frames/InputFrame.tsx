@@ -8,6 +8,7 @@ type Props = {
   focused?: boolean;
   busy?: boolean;
   mode?: Mode | null;
+  maxCapScale?: number;
 };
 
 export const INPUT_CAP = 78;
@@ -17,7 +18,7 @@ export const INPUT_DIAMOND = 14;
 const MESSAGE_BOX_SHAPE: StretchShape =
   STRETCH_SHAPES.find((s) => s.id === 8) ?? STRETCH_SHAPES[7];
 
-export function InputFrame({ w, h, focused, busy }: Props) {
+export function InputFrame({ w, h, focused, busy, maxCapScale }: Props) {
   if (!w || !h || w <= 0 || h <= 0) return null;
 
   return (
@@ -31,6 +32,7 @@ export function InputFrame({ w, h, focused, busy }: Props) {
       showBackdrop={true}
       backdropOpacity={0.94}
       className="transition-all duration-300"
+      maxCapScale={maxCapScale}
     />
   );
 }
