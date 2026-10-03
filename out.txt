@@ -1,0 +1,76 @@
+CONFLICT (content): Merge conflict in package.json
+Auto-merging scripts/dverseClient.js
+Auto-merging server.js
+CONFLICT (content): Merge conflict in server.js
+---
+e1ffc6019be3c30fb05dfb8db0f54ad20212884c
+---
+   569 api/chat.js
+  1210 src/hooks/useChat.ts
+   317 src/lib/chatStore.ts
+   231 src/lib/designSystemTemplate.ts
+   381 src/lib/memory.ts
+   130 src/lib/renderMarkdown.ts
+   539 src/lib/supabase.ts
+  3377 total
+.env.example
+.gitignore
+DAi.ico
+README.md
+answer.txt
+api/chat.js
+api/image.js
+api/interface.js
+api/search.js
+api/upload.js
+head.js
+index.html
+metadata.json
+mock.js
+package-lock.json
+package.json
+robots.txt
+scripts/codeStudio.js
+scripts/dverseClient.js
+scripts/personalContext.js
+scripts/sidebarUX.js
+server.js
+src/App.tsx
+src/components/AccountModal.tsx
+src/components/Ambient.tsx
+src/components/ArtifactPreview.tsx
+src/components/Aura.tsx
+src/components/ChatInput.tsx
+src/components/CodeStudio.tsx
+src/components/ErrorBoundary.tsx
+src/components/Header.tsx
+src/components/HistoryDrawer.tsx
+src/components/MemoryModal.tsx
+src/components/Messages.tsx
+src/components/PromptSuggestions.tsx
+src/components/SvgDefs.tsx
+src/components/frames/HeaderArch.tsx
+src/components/frames/InputFrame.tsx
+src/components/frames/OrnateFrame.tsx
+src/components/frames/PanelFrame.tsx
+src/components/frames/StretchFrame.tsx
+src/components/frames/paths.ts
+src/components/frames/stretchShapes.ts
+src/hooks/useChat.ts
+src/hooks/useSize.ts
+src/index.css
+src/lib/chatStore.ts
+src/lib/designSystemTemplate.ts
+src/lib/memory.ts
+src/lib/renderMarkdown.ts
+src/lib/supabase.ts
+src/main.tsx
+src/utils/cn.ts
+styles/input.css
+styles/tailwind.css
+tailwind.config.js
+test.js
+test2.js
+test3.js
+tsconfig.json
+END_J300565502
