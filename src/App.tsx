@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Ambient } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
@@ -6,9 +6,9 @@ import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { Messages } from "./components/Messages";
 import { PromptSuggestions } from "./components/PromptSuggestions";
-import { AccountModal } from "./components/AccountModal";
-import { MemoryModal } from "./components/MemoryModal";
-import { CodeStudio } from "./components/CodeStudio";
+const AccountModal = lazy(() => import("./components/AccountModal").then((m) => ({ default: m.AccountModal })));
+const MemoryModal = lazy(() => import("./components/MemoryModal").then((m) => ({ default: m.MemoryModal })));
+const CodeStudio = lazy(() => import("./components/CodeStudio").then((m) => ({ default: m.CodeStudio })));
 import { SvgDefs } from "./components/SvgDefs";
 import { PanelFrame } from "./components/frames/PanelFrame";
 import { useChat } from "./hooks/useChat";
@@ -99,7 +99,7 @@ export default function App() {
       <main className="relative z-10 flex-1 px-2.5 pt-3 pb-[calc(58px+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 md:px-7 md:pt-7 md:pb-[68px]">
         {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
         {chat.breadcrumbs.length > 1 && (
-          <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5 backdrop-blur-sm">
+          <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5">
             <div className="flex items-center gap-1.5 overflow-x-auto text-[12.5px] font-body">
               <span className="font-mono text-[11px] text-gold/70 shrink-0">⑂ Lineage:</span>
               {chat.breadcrumbs.map((crumb, idx) => {
@@ -150,7 +150,7 @@ export default function App() {
 
           {/* Loading Shimmer Transition */}
           {chat.isLoadingChat && (
-            <div className="absolute inset-[2px] z-30 flex items-center justify-center rounded-[15px] bg-black/40 backdrop-blur-[2px]">
+            <div className="absolute inset-[2px] z-30 flex items-center justify-center rounded-[15px] bg-black/40">
               <div className="flex items-center gap-2 rounded border border-gold/40 bg-ink px-4 py-2 text-gold shadow-lg">
                 <span className="h-2 w-2 rounded-full bg-gold animate-ping" />
                 <span className="font-display italic text-[14px]">Loading chronicle…</span>
@@ -212,7 +212,8 @@ export default function App() {
       />
 
       {/* Full Sidebar Code Studio */}
-      <CodeStudio
+      <Suspense fallback={null}>
+<CodeStudio
         open={codeStudioOpen}
         onClose={() => setCodeStudioOpen(false)}
         initialCode={studioCode}
@@ -233,6 +234,7 @@ export default function App() {
         open={memoryOpen}
         onClose={() => setMemoryOpen(false)}
       />
+</Suspense>
     </div>
   );
 }

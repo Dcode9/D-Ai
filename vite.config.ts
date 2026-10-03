@@ -25,5 +25,6 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: { output: { manualChunks: { katex: ["katex"], supabase: ["@supabase/supabase-js"] } } },
   },
 });

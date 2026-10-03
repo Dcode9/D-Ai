@@ -113,8 +113,7 @@ export function StretchFrame({
                   cy={h * 0.15}
                   rx={w * 0.34}
                   ry={h * 0.5}
-                  fill="#6b3fa0"
-                  filter="url(#blur-12)"
+                  fill="url(#glow-plum)"
                   className="transition-opacity duration-700"
                   opacity={active ? 0.85 : 0.55}
                 />
@@ -123,8 +122,7 @@ export function StretchFrame({
                   cy={h * 0.95}
                   rx={w * 0.3}
                   ry={h * 0.45}
-                  fill="#c9a04a"
-                  filter="url(#blur-12)"
+                  fill="url(#glow-amber)"
                   className="transition-opacity duration-700"
                   opacity={active ? 0.75 : 0.42}
                 />
@@ -137,8 +135,7 @@ export function StretchFrame({
                   cy={h * 0.85}
                   rx={w * 0.2}
                   ry={h * 0.7}
-                  fill="#6b3fa0"
-                  filter="url(#blur-24)"
+                  fill="url(#glow-plum)"
                   className="transition-opacity duration-700"
                   opacity={glow || active ? 0.8 : 0.58}
                 />
@@ -147,8 +144,7 @@ export function StretchFrame({
                   cy={h * 1.05}
                   rx={w * 0.14}
                   ry={h * 0.55}
-                  fill="#c9a04a"
-                  filter="url(#blur-24)"
+                  fill="url(#glow-amber)"
                   className="transition-opacity duration-700"
                   opacity={glow || active ? 0.7 : 0.46}
                 />
@@ -157,8 +153,7 @@ export function StretchFrame({
                   cy={h * 0.1}
                   rx={w * 0.12}
                   ry={h * 0.5}
-                  fill="#7a49b8"
-                  filter="url(#blur-24)"
+                  fill="url(#glow-amethyst)"
                   className="transition-opacity duration-700"
                   opacity={glow || active ? 0.65 : 0.4}
                 />
@@ -170,7 +165,7 @@ export function StretchFrame({
               width={w}
               height={h}
               fill="url(#grain-pattern)"
-              style={{ mixBlendMode: "overlay" }}
+             
               opacity={0.35}
             />
           </g>

@@ -237,12 +237,12 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300"
+        className="fixed inset-0 z-40 bg-black/60 transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Main Drawer with Left-Sidebar Double Concentric Rails */}
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[920px] flex-col bg-ink-2/95 shadow-[0_0_60px_rgba(0,0,0,.6)] backdrop-blur-xl transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]">
+      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[920px] flex-col bg-ink-2/95 shadow-[0_0_60px_rgba(0,0,0,.6)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]">
         {/* SIGNATURE DOUBLE CONCENTRIC BORDER RAILS */}
         <div className="pointer-events-none absolute inset-3 border border-gold/40 z-20" />
         <div className="pointer-events-none absolute inset-[15px] border border-gold/15 z-20" />
