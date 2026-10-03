@@ -138,7 +138,7 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
                     </span>
                   </div>
                   <div className="mt-1 line-clamp-1 font-body text-[14px] font-light text-muted">
-                    {(c.messages.find((m) => m.role === "assistant") ?? c.messages[0])?.content.replace(/```[\s\S]*?```/g, "[code]") || "New chronicle"}
+                    {(c.messages.find((m) => m.role === "assistant") ?? c.messages[0])?.content.replace(/```[\s\S]*?```/g, "[code]") || c.preview || "New chronicle"}
                   </div>
                 </button>
                 <button

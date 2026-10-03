@@ -537,3 +537,25 @@ export async function listCloudMessages(chatId: string): Promise<DbMessage[]> {
     return [];
   }
 }
+
+/** One-line preview (latest assistant reply) per chat, in a single query. */
+export async function listCloudPreviews(chatIds: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  try {
+    const session = await getSession();
+    if (!session?.user || chatIds.length === 0) return out;
+    const { data } = await supabase
+      .from("ai_messages")
+      .select("chat_id, role, content, created_at")
+      .eq("user_id", session.user.id)
+      .in("chat_id", chatIds.slice(0, 80))
+      .eq("role", "assistant")
+      .order("created_at", { ascending: false })
+      .limit(400);
+    for (const r of (data as any[]) || []) {
+      if (out[r.chat_id] || !r.content) continue;
+      out[r.chat_id] = String(r.content).replace(/```[\s\S]*?```/g, "[code]").replace(/[#*_`>]/g, "").replace(/\s+/g, " ").trim().slice(0, 140);
+    }
+  } catch {}
+  return out;
+}

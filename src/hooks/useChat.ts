@@ -16,6 +16,7 @@ import {
   deleteCloudChat,
   saveCloudMessage,
   listCloudChats,
+  listCloudPreviews,
   onAuthStateChange,
   getSession,
 } from "../lib/supabase";
@@ -241,6 +242,10 @@ export function useChat() {
               }
             });
             return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+          });
+          listCloudPreviews(cloudChats.map((c) => c.id)).then((pv) => {
+            if (!active) return;
+            setConversations((prev) => prev.map((c) => (pv[c.id] && c.messages.length === 0 ? { ...c, preview: pv[c.id] } : c)));
           });
         }
       } catch (err) {
