@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "../utils/cn";
 import { Plate } from "./frames/Plate";
-import { supabase } from "../lib/supabase";
+import { getSession } from "../lib/supabase";
 
 export type AppId = "tunes" | "quest";
 
@@ -144,8 +144,7 @@ export function AppsDrawer({ open, onClose, initialApp }: Props) {
                     const origin = new URL(src, window.location.href).origin;
                     if (origin === window.location.origin) return;
                     const win = e.currentTarget.contentWindow;
-                    void supabase.auth.getSession().then(({ data }) => {
-                      const sess = data?.session;
+                    void getSession().then((sess) => {
                       if (sess && win) win.postMessage({ type: "dverse-auth:handoff", access_token: sess.access_token, refresh_token: sess.refresh_token }, origin);
                     });
                   } catch { /* ignore */ }
