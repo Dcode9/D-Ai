@@ -1,4 +1,3 @@
-remote: 
-566f97c feat(identity): ornate Plate panels, ornate phone composer, cleaner history
+af9c29e feat(identity): ornate Plate panels, ornate phone composer, cleaner history
 12b0f93 Merge pull request #33 from Dcode9/fix/mobile-ui
-END_J429328682
+END_J90551390
