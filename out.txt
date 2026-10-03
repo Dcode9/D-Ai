@@ -1,7 +1,7 @@
-## feat/dai-bridge...origin/main
-error: patch failed: src/js/main.js:1095
-error: src/js/main.js: patch does not apply
-src/js/main.js: JavaScript source, ASCII text
-1098 src/js/main.js
-50af7feefc3b9dfd586517ed5fd6eb766149ad15
-END_J877329095
+ src/js/main.js | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+remote:      https://github.com/Dcode9/D-Tunes/pull/new/feat/dai-bridge        
+remote: 
+cb0406d feat: D'Ai bridge (?q=song&play=1 and postMessage search/play)
+50af7fe feat(auth): add standalone auth handoff page with Android Intent and custom scheme support
+END_J2555022773
