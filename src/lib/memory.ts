@@ -83,10 +83,11 @@ export function getMemoryTopics(): MemoryTopic[] {
   return topics.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function saveMemoryTopics(topics: MemoryTopic[]): MemoryTopic[] {
+export function saveMemoryTopics(topics: MemoryTopic[], opts: { remote?: boolean } = {}): MemoryTopic[] {
   try {
     localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(topics));
     window.dispatchEvent(new CustomEvent("dai:memory-updated", { detail: topics }));
+    if (!opts.remote) void import("./memorySync").then((m) => m.schedulePush());
     return topics;
   } catch {
     return topics;
