@@ -555,4 +555,4 @@ input::placeholder {
 }
 
 
-.grain-overlay{position:fixed;inset:0;z-index:60;pointer-events:none;background-image:url(/grain.png);background-size:128px 128px;opacity:.5}
+.grain-overlay{position:fixed;inset:0;z-index:60;pointer-events:none;background-image:url(/grain.png);background-size:128px 128px;opacity:.16}
