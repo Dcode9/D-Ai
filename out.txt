@@ -1,3 +1,3 @@
-remote: 
+ba5a89b Merge feat/mem
 00be2d0 feat: memory syncs to the account
-END_J211855943
+END_J576021197
