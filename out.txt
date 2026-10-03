@@ -1,13 +1,4 @@
-error: patch failed: src/components/HistoryDrawer.tsx:138
-error: src/components/HistoryDrawer.tsx: patch does not apply
-error: patch failed: src/components/Messages.tsx:518
-error: src/components/Messages.tsx: patch does not apply
-error: patch failed: src/hooks/useChat.ts:16
-error: src/hooks/useChat.ts: patch does not apply
-error: patch failed: src/lib/chatStore.ts:19
-error: src/lib/chatStore.ts: patch does not apply
-error: patch failed: src/lib/supabase.ts:537
-error: src/lib/supabase.ts: patch does not apply
+remote: 
+7d47484 feat: instant glyph-decode animation
 ac2611d Merge polish/previews
-9ead60f feat: real history previews, wider desktop column, scroll lands on question
-END_J231526880
+END_J427323807
