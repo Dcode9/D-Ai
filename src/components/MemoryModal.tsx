@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plate } from "./frames/Plate";
 import { getMemory, addMemoryFact, removeMemoryFact, clearMemory } from "../lib/memory";
 
 type Props = {
@@ -50,10 +51,7 @@ export function MemoryModal({ open, onClose }: Props) {
       />
 
       {/* Ornate Modal Frame */}
-      <div className="relative flex max-h-[85vh] w-full max-w-[500px] flex-col overflow-hidden rounded-xl border border-gold/40 bg-[#0c0910]/95 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.85)] sm:p-7">
-        {/* Double-rail heraldic borders */}
-        <div className="pointer-events-none absolute inset-2 rounded-lg border border-gold/25" />
-        <div className="pointer-events-none absolute inset-[11px] rounded border border-gold/10" />
+      <Plate variant="text" className="flex w-full max-w-[500px] flex-col max-h-[88vh] p-7 drop-shadow-[0_12px_48px_rgba(0,0,0,0.85)] sm:p-10">
 
         {/* Header */}
         <div className="relative mb-4 flex items-center justify-between">
@@ -85,7 +83,7 @@ export function MemoryModal({ open, onClose }: Props) {
             value={newFact}
             onChange={(e) => setNewFact(e.target.value)}
             placeholder="e.g. 'My preferred tech stack is TypeScript and Next.js'..."
-            className="flex-1 rounded-lg border border-gold/30 bg-black/50 px-3.5 py-2 font-body text-[13.5px] text-cream placeholder-gold/35 focus:border-gold focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-gold/30 bg-black/50 px-3.5 py-2 font-body text-cream text-[16px] sm:text-[13.5px] placeholder-gold/35 focus:border-gold focus:outline-none"
           />
           <button
             type="submit"
@@ -145,7 +143,7 @@ export function MemoryModal({ open, onClose }: Props) {
             </button>
           </div>
         )}
-      </div>
+      </Plate>
     </div>
   );
 }

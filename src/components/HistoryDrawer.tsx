@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import type { Conversation } from "../hooks/useChat";
 import { cn } from "../utils/cn";
+import { Plate } from "./frames/Plate";
 
 type Props = {
   open: boolean;
@@ -46,15 +47,14 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
       />
       <aside
         className={cn(
-          "absolute left-0 top-0 z-40 flex h-full w-[340px] flex-col bg-ink-2/95 shadow-[0_0_60px_rgba(0,0,0,.6)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]",
+          "absolute left-0 top-0 z-40 h-full w-[min(360px,90vw)] pb-[env(safe-area-inset-bottom)] drop-shadow-[0_0_40px_rgba(0,0,0,.7)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="pointer-events-none absolute inset-3 border border-gold/40" />
-        <div className="pointer-events-none absolute inset-[15px] border border-gold/15" />
+        <Plate variant="text" className="flex h-full flex-col">
 
         {/* Header */}
-        <div className="relative flex items-center justify-between px-8 pb-3 pt-8">
+        <div className="relative flex items-center justify-between px-9 pb-3 pt-9">
           <h2 className="font-display text-[30px] text-cream">History</h2>
           <button
             type="button"
@@ -69,7 +69,7 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
         </div>
 
         {/* History Search Bar */}
-        <div className="relative mx-7 mb-2">
+        <div className="relative mx-8 mb-2">
           <div className="relative flex items-center rounded border border-gold/30 bg-black/40 transition-colors focus-within:border-gold">
             <svg
               className="ml-3 h-3.5 w-3.5 shrink-0 text-gold/60"
@@ -102,9 +102,9 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
           </div>
         </div>
 
-        <div className="relative mx-8 h-px bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
+        <div className="relative mx-9 h-px bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
 
-        <div className="scroll-gold relative flex-1 overflow-y-auto px-6 py-4">
+        <div className="scroll-gold relative min-h-0 flex-1 overflow-y-auto px-7 py-4">
           {conversations.length === 0 && (
             <p className="px-2 pt-4 font-body text-[16px] italic leading-relaxed text-muted">
               No conversations yet. Your exchanges with D’Ai will be kept here.
@@ -138,7 +138,7 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
                     </span>
                   </div>
                   <div className="mt-1 line-clamp-1 font-body text-[14px] font-light text-muted">
-                    {c.messages.find((m) => m.role === "assistant")?.content.replace(/```[\s\S]*?```/g, "[code]") ?? "—"}
+                    {(c.messages.find((m) => m.role === "assistant") ?? c.messages[0])?.content.replace(/```[\s\S]*?```/g, "[code]") || "New chronicle"}
                   </div>
                 </button>
                 <button
@@ -158,6 +158,7 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
             ))}
           </ul>
         </div>
+        </Plate>
       </aside>
     </>
   );

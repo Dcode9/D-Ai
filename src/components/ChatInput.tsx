@@ -12,6 +12,8 @@ type Props = {
   onOpenStudio?: () => void;
 };
 
+const NARROW_CAP = 0.62;
+
 export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
   const { ref, w, h } = useSize<HTMLFormElement>();
   const [value, setValue] = useState("");
@@ -99,25 +101,16 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
       ref={ref}
       onSubmit={submit}
       style={{
-        height: narrow ? "auto" : `${boxHeight + (attachedImage ? 42 : 0)}px`,
+        height: `${(narrow ? boxHeight - 38 : boxHeight) + (attachedImage ? 42 : 0)}px`,
         maxWidth: narrow ? "100%" : `min(${boxWidth}px, calc(100vw - 2rem))`,
       }}
       className="relative mx-auto w-full transition-[height,max-width] duration-250 ease-out"
     >
-      {narrow ? (
-        <span
-          className={cn(
-            "absolute inset-0 rounded-xl border bg-ink/95 shadow-[0_0_18px_rgba(0,0,0,0.6)] transition-colors",
-            focused ? "border-gold-2/80" : "border-gold/55",
-          )}
-        />
-      ) : (
-        <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} />
-      )}
+      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : undefined} />
 
       {/* Content strictly padded inside heraldic caps and rails */}
       <div
-        style={narrow ? { paddingLeft: 14, paddingRight: 8 } : {
+        style={narrow ? { paddingLeft: Math.round(94 * NARROW_CAP) + 4, paddingRight: Math.round(94 * NARROW_CAP) - 6 } : {
           paddingLeft: `${Math.max(76, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
           paddingRight: `${Math.max(68, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
         }}

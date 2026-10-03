@@ -14,6 +14,7 @@ export interface StretchFrameProps {
   showBackdrop?: boolean;
   backdropOpacity?: number;
   className?: string;
+  maxCapScale?: number;
 }
 
 export function StretchFrame({
@@ -28,6 +29,7 @@ export function StretchFrame({
   showBackdrop = true,
   backdropOpacity = 0.9,
   className,
+  maxCapScale,
 }: StretchFrameProps) {
   const reactId = useId().replace(/:/g, "");
 
@@ -47,7 +49,7 @@ export function StretchFrame({
 
     // Uniform proportional scaling in both dimensions:
     // Ensures capScaleX and capScaleY scale in lockstep to preserve the 1:1 fidelity of curves and wingtips.
-    const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW);
+    const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW, maxCapScale ?? Infinity);
     const capScaleX = capScale;
     const capScaleY = capScale;
 
@@ -58,7 +60,7 @@ export function StretchFrame({
     const inner = buildClosedFramePath(shape.inner, shape.capW, w, capScaleX, capTop, capScaleY);
 
     return { outerPath: outer, innerPath: inner };
-  }, [shape, w, h]);
+  }, [shape, w, h, maxCapScale]);
 
   if (!w || !h || w <= 0 || h <= 0 || !outerPath) return null;
 
