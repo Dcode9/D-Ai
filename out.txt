@@ -1,2 +1,3 @@
-85c65d5 handoff: stop auto refresh, drop borrowed session on pagehide
-END_J1212415659
+remote: 
+00be2d0 feat: memory syncs to the account
+END_J211855943
