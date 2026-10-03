@@ -23,9 +23,7 @@ import {
   isUuid,
   newId,
   rowToMessage,
-  ensureCloudChat,
-  insertUserRow,
-  startRun,
+  streamRun,
   fetchRow,
   loadChatMessages,
   subscribeMessages,
@@ -148,6 +146,7 @@ export function useChat() {
   const messagesRef = useRef<Message[]>([]);
   const activeIdRef = useRef<string | null>(null);
   const localRunRef = useRef(false);
+  const liveMessageIdRef = useRef<string | null>(null);
   messagesRef.current = messages;
   activeIdRef.current = activeId;
 
@@ -158,6 +157,8 @@ export function useChat() {
     let cancelled = false;
     const applyRow = (row: DbRow) => {
       if (row.chat_id !== activeIdRef.current) return;
+      // This tab is already streaming this reply directly; the saved copy lags behind.
+      if (liveMessageIdRef.current === row.id) return;
       const m = rowToMessage(row);
       if (!m) return;
       setMessages((prev) => {
@@ -471,50 +472,121 @@ Whenever you create, recommend, mention, or search for previewable websites, int
 
       if (durable && session) {
         localRunRef.current = true;
+        // Live copy of the reply, rebuilt into a message on every animation frame.
+        const live = { content: "", thinking: "", phase: "" as string, tools: [] as any[], sources: [] as any[] };
+        let realId = asstId;
+        let frame: number | null = null;
+        const render = (streaming = true) => {
+          frame = null;
+          const msg = rowToMessage({
+            id: realId,
+            chat_id: convId,
+            user_id: session.user.id,
+            role: "assistant",
+            content: live.content,
+            metadata: {
+              status: streaming ? "streaming" : "done",
+              thinking: live.thinking || undefined,
+              sources: live.sources,
+              tools: live.tools,
+              phase: streaming ? live.phase : "",
+              updated_at: new Date().toISOString(),
+            },
+          });
+          if (!msg) return;
+          msg.mode = mode || (isCodePrompt ? "Code" : null);
+          msg.streaming = streaming;
+          setMessages((prev) => prev.map((x) => (x.id === realId || x.id === asstId ? { ...x, ...msg } : x)));
+        };
+        const schedule = () => {
+          if (frame == null) frame = requestAnimationFrame(() => render(true));
+        };
+        let result: { finished: boolean; messageId: string | null } = { finished: false, messageId: null };
         try {
           const title = extractCleanThreeWordTitle(prompt);
-          await ensureCloudChat(convId, title, session.user.id);
-          await insertUserRow(userMsg.id, convId, session.user.id, prompt, mode);
-          const run = await startRun(convId, conversationHistory, {
-            mode: mode || (isCodePrompt ? "Code" : undefined),
-            is_code: isCodePrompt,
-            max_tokens: isCodePrompt ? 16384 : 4096,
-          });
-          // The server's reply row replaces the local placeholder.
-          setMessages((prev) => {
-            const hasReal = prev.some((x) => x.id === run.message_id);
-            return hasReal
-              ? prev.filter((x) => x.id !== asstId)
-              : prev.map((x) => (x.id === asstId ? { ...x, id: run.message_id } : x));
-          });
-          persist(convId, [...currentMessages]);
-          // Realtime delivers updates; this poll is the safety net and the finish line.
-          const deadline = Date.now() + 6 * 60 * 1000;
-          let finished = false;
-          while (!finished && Date.now() < deadline && activeIdRef.current === convId) {
-            await new Promise((r) => setTimeout(r, 2500));
-            const row = await fetchRow(run.message_id);
-            if (!row) continue;
-            const m = rowToMessage(row);
-            if (m) {
-              setMessages((prev) => prev.map((x) => (x.id === run.message_id ? { ...x, ...m } : x)));
+          setState(isCodePrompt ? "thinking" : "answering");
+          result = await streamRun(
+            convId,
+            conversationHistory,
+            {
+              mode: mode || (isCodePrompt ? "Code" : undefined),
+              is_code: isCodePrompt,
+              max_tokens: isCodePrompt ? 16384 : 4096,
+              title,
+              user_message: { id: userMsg.id, content: prompt, mode },
+            },
+            (evt) => {
+              if (evt.type === "meta") {
+                realId = evt.message_id;
+                liveMessageIdRef.current = realId;
+                setMessages((prev) => {
+                  const hasReal = prev.some((x) => x.id === realId);
+                  return hasReal ? prev.filter((x) => x.id !== asstId) : prev.map((x) => (x.id === asstId ? { ...x, id: realId } : x));
+                });
+              } else if (evt.type === "timing") {
+                (window as any).__daiTiming = evt.first_token_ms;
+              } else if (evt.type === "content") {
+                live.content += evt.delta;
+                live.phase = "";
+                setState("answering");
+                schedule();
+              } else if (evt.type === "thinking") {
+                live.thinking += evt.delta;
+                live.phase = "thinking";
+                schedule();
+              } else if (evt.type === "tool_start") {
+                live.phase = "searching";
+                schedule();
+              } else if (evt.type === "tool_query") {
+                live.tools = [...live.tools, { name: evt.name, query: evt.query, results: 0 }];
+                live.phase = "searching";
+                schedule();
+              } else if (evt.type === "tool_done") {
+                live.tools = live.tools.map((t, k) => (k === live.tools.length - 1 && t.query === evt.query ? { ...t, results: evt.sources.length } : t));
+                live.sources = [...live.sources, ...evt.sources];
+                live.phase = "";
+                schedule();
+              } else if (evt.type === "error" && evt.message && !live.content) {
+                live.content = evt.message;
+                schedule();
+              }
+            },
+            controller.signal,
+          );
+          if (frame != null) cancelAnimationFrame(frame);
+          if (result.finished) {
+            render(false);
+          } else if (result.messageId) {
+            // Connection dropped; the server is still writing. Follow the saved row.
+            const deadline = Date.now() + 6 * 60 * 1000;
+            let finished = false;
+            while (!finished && Date.now() < deadline && activeIdRef.current === convId) {
+              await new Promise((r) => setTimeout(r, 1500));
+              const row = await fetchRow(result.messageId);
+              if (!row) continue;
+              const m = rowToMessage(row);
+              if (m) setMessages((prev) => prev.map((x) => (x.id === result.messageId ? { ...x, ...m } : x)));
+              finished = row.metadata?.status !== "streaming";
             }
-            finished = row.metadata?.status !== "streaming";
           }
-          if (activeIdRef.current === convId) {
+          if (activeIdRef.current === convId || !activeIdRef.current) {
             persist(convId, messagesRef.current.map((x) => ({ ...x, streaming: false })));
           }
-        } catch (err) {
-          console.error("Durable run failure:", err);
-          setMessages((prev) =>
-            prev.map((x) =>
-              x.id === asstId
-                ? { ...x, streaming: false, content: "I could not start this reply. Please try again.", work: undefined }
-                : x,
-            ),
-          );
+        } catch (err: any) {
+          if (frame != null) cancelAnimationFrame(frame);
+          if (err?.name !== "AbortError") {
+            console.error("Durable run failure:", err);
+            setMessages((prev) =>
+              prev.map((x) =>
+                x.id === realId || x.id === asstId
+                  ? { ...x, streaming: false, content: x.content || "I could not start this reply. Please try again.", work: undefined }
+                  : x,
+              ),
+            );
+          }
         } finally {
           localRunRef.current = false;
+          liveMessageIdRef.current = null;
           setState("idle");
         }
         return;

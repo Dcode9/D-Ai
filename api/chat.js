@@ -424,18 +424,18 @@ export default async function handler(req, res) {
           providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
         }
       } else {
-        // Normal Chat: Gemini 3.6 Flash with reasoning_effort='none' for instant answers without thinking
-        if (geminiKey) {
-          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
-        }
+        // Normal Chat: fastest first-token providers lead (measured ~0.9s), Gemini is the slower fallback (~1.5-5s)
         if (pollinationsKey) {
           providersToTry.push({ provider: 'pollinations', apiKey: pollinationsKey, isVision: false });
         }
-        if (groqKey) {
-          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
-        }
         if (inceptionKey) {
           providersToTry.push({ provider: 'inception', apiKey: inceptionKey, isVision: false });
+        }
+        if (geminiKey) {
+          providersToTry.push({ provider: 'gemini', apiKey: geminiKey, isVision: false });
+        }
+        if (groqKey) {
+          providersToTry.push({ provider: 'groq', apiKey: groqKey, isVision: false });
         }
         if (cerebrasKey) {
           providersToTry.push({ provider: 'cerebras', apiKey: cerebrasKey, isVision: false });

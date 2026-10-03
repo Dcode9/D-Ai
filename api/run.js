@@ -87,7 +87,7 @@ async function runSearch(query) {
   }
 }
 
-export async function runGeneration({ token, messageId, userId, body, patch = patchRow }) {
+export async function runGeneration({ token, messageId, userId, body, patch = patchRow, emit = () => {} }) {
   const history = Array.isArray(body.messages) ? [...body.messages] : [];
   let content = '';
   let thinking = '';
@@ -95,12 +95,16 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
   const toolLog = [];
   let lastFlush = 0;
   let status = 'streaming';
+  const startedAt = Date.now();
+  let firstAt = 0;
 
   const flush = async (force = false, extra = {}) => {
     const now = Date.now();
     if (!force && now - lastFlush < FLUSH_MS) return;
     lastFlush = now;
-    await patch(token, messageId, userId, {
+    let mid;
+    try { mid = await messageId; } catch { return; }
+    await patch(token, mid, userId, {
       content,
       metadata: { status, thinking: thinking || undefined, sources: sources.length ? sources : undefined, tools: toolLog.length ? toolLog : undefined, updated_at: new Date().toISOString(), ...extra },
     });
@@ -114,13 +118,15 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
         const delta = evt?.choices?.[0]?.delta;
         if (!delta) return;
         const think = delta.reasoning || delta.reasoning_content || delta.reasoning_text;
-        if (think) thinking += think;
-        if (delta.content) { turnText += delta.content; content += delta.content; }
+        if (think) { thinking += think; emit({ type: 'thinking', delta: think }); }
+        if ((delta.content || think) && !firstAt) { firstAt = Date.now(); emit({ type: 'timing', first_token_ms: firstAt - startedAt }); }
+        if (delta.content) { turnText += delta.content; content += delta.content; emit({ type: 'content', delta: delta.content }); }
         for (const tc of delta.tool_calls || []) {
           const i = tc.index ?? 0;
           calls[i] = calls[i] || { id: tc.id || `call_${loop}_${i}`, name: '', arguments: '' };
           if (tc.id) calls[i].id = tc.id;
-          if (tc.function?.name) calls[i].name = tc.function.name;
+          if (tc.function?.name && !calls[i].name) { calls[i].name = tc.function.name; emit({ type: 'tool_start', name: tc.function.name }); }
+          else if (tc.function?.name) calls[i].name = tc.function.name;
           if (tc.function?.arguments) calls[i].arguments += tc.function.arguments;
         }
       });
@@ -145,9 +151,11 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
         try { args = JSON.parse(c.arguments || '{}'); } catch { /* keep empty */ }
         let result = '';
         if (c.name === 'web_search' && args.query) {
+          emit({ type: 'tool_query', name: 'web_search', query: String(args.query) });
           const s = await runSearch(String(args.query));
           sources.push(...s.sources);
           toolLog.push({ name: 'web_search', query: String(args.query), results: s.sources.length });
+          emit({ type: 'tool_done', name: 'web_search', query: String(args.query), sources: s.sources });
           result = s.text;
         } else {
           toolLog.push({ name: c.name, skipped: true });
@@ -158,12 +166,14 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
       await flush(true);
     }
     status = 'done';
-    if (!content.trim()) content = 'I could not produce a reply this time. Please try again.';
+    if (!content.trim()) { content = 'I could not produce a reply this time. Please try again.'; emit({ type: 'content', delta: content }); }
     await flush(true);
+    emit({ type: 'done' });
   } catch (e) {
     status = 'error';
     if (!content.trim()) content = 'Something went wrong while generating this reply. Please try again.';
     await flush(true, { error: String(e?.message || e).slice(0, 300) });
+    emit({ type: 'error', message: content });
   }
 }
 
@@ -189,23 +199,70 @@ export default async function handler(req, res) {
   const { chat_id: chatId, messages } = req.body || {};
   if (!chatId || !Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'chat_id and messages are required' });
 
-  // The placeholder row is what every device watches.
-  const ins = await sb('/rest/v1/ai_messages', token, {
-    method: 'POST',
-    body: JSON.stringify({ chat_id: chatId, user_id: user.id, role: 'assistant', content: '', metadata: { status: 'streaming', started_at: new Date().toISOString() } }),
-  });
-  if (!ins.ok) return res.status(502).json({ error: 'Could not start run', detail: (await ins.text()).slice(0, 200) });
-  const row = (await ins.json())[0];
+  const wantsStream = req.body?.stream_events === true;
+  const um = req.body?.user_message;
+  const hasUm = !!(um && um.id && typeof um.content === 'string');
+  const now = Date.now();
 
-  const work = runGeneration({ token, messageId: row.id, userId: user.id, body: req.body });
+  let emit = () => {};
+  let clientGone = false;
+  if (wantsStream) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    emit = (evt) => {
+      if (clientGone) return;
+      try { res.write(`data: ${JSON.stringify(evt)}\n\n`); } catch { clientGone = true; }
+    };
+    res.on?.('close', () => { clientGone = true; });
+  }
+
+  // Saving the chat, the user's row and the placeholder reply runs alongside the model call.
+  const rowP = (async () => {
+    if (hasUm) {
+      const chatIns = await sb('/rest/v1/ai_chats?on_conflict=id', token, {
+        method: 'POST',
+        headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+        body: JSON.stringify({ id: chatId, user_id: user.id, title: String(req.body?.title || 'New chat').slice(0, 80), metadata: {} }),
+      });
+      if (!chatIns.ok) throw new Error('Could not open chat: ' + (await chatIns.text()).slice(0, 160));
+    }
+    const userRowP = hasUm
+      ? sb('/rest/v1/ai_messages?on_conflict=id', token, {
+          method: 'POST',
+          headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+          body: JSON.stringify({ id: um.id, chat_id: chatId, user_id: user.id, role: 'user', content: um.content, metadata: um.mode ? { mode: um.mode } : {}, created_at: new Date(now - 100).toISOString() }),
+        })
+      : Promise.resolve(null);
+    const insP = sb('/rest/v1/ai_messages', token, {
+      method: 'POST',
+      body: JSON.stringify({ chat_id: chatId, user_id: user.id, role: 'assistant', content: '', metadata: { status: 'streaming', started_at: new Date(now).toISOString() } }),
+    });
+    const [userRes, ins] = await Promise.all([userRowP, insP]);
+    if (userRes && !userRes.ok) throw new Error('Could not save message');
+    if (!ins.ok) throw new Error('Could not start run');
+    const row = (await ins.json())[0];
+    emit({ type: 'meta', message_id: row.id });
+    return row.id;
+  })();
+  rowP.catch(() => {});
+
+  if (!wantsStream) {
+    try { await rowP; } catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
+  }
+  const work = runGeneration({ token, messageId: rowP, userId: user.id, body: req.body, emit });
   let usedWaitUntil = false;
   try {
     const mod = await import('@vercel/functions');
     if (mod.waitUntil) { mod.waitUntil(work); usedWaitUntil = true; }
   } catch { /* not on Vercel or package missing */ }
 
-  if (usedWaitUntil) return res.status(202).json({ message_id: row.id, status: 'streaming' });
+  if (wantsStream) {
+    await work;
+    try { res.end(); } catch { /* closed */ }
+    return;
+  }
+  const messageId = await rowP;
+  if (usedWaitUntil) return res.status(202).json({ message_id: messageId, status: 'streaming' });
   // Fallback: hold the request open until the run finishes (still survives tab close).
   await work;
-  return res.status(200).json({ message_id: row.id, status: 'done' });
+  return res.status(200).json({ message_id: messageId, status: 'done' });
 }

@@ -46,20 +46,29 @@ export function rowToMessage(row: DbRow): Message | null {
   };
   if (row.role === "assistant") {
     const steps: WorkStep[] = [];
+    const phase: string = m.phase || "";
+    const working = live && (phase ? phase !== "" : !row.content);
     if (m.thinking) {
-      steps.push({ id: `${row.id}-t`, type: "thought", durationSec: 0, content: String(m.thinking), isLive: live });
+      steps.push({ id: `${row.id}-t`, type: "thought", durationSec: 0, content: String(m.thinking), isLive: live && !row.content });
     }
     const sources: any[] = Array.isArray(m.sources) ? m.sources : [];
+    const tools: any[] = Array.isArray(m.tools) ? m.tools : [];
     let cursor = 0;
-    (Array.isArray(m.tools) ? m.tools : []).forEach((t: any, i: number) => {
+    tools.forEach((t: any, i: number) => {
       if (t?.name !== "web_search") return;
       const n = Number(t.results) || 0;
       const results = sources.slice(cursor, cursor + n).map((s) => ({ title: s.title, url: s.url, snippet: s.snippet || "" }));
       cursor += n;
-      steps.push({ id: `${row.id}-s${i}`, type: "search", query: String(t.query || ""), websitesFound: results.length, results });
+      const pending = live && phase === "searching" && n === 0 && i === tools.length - 1;
+      steps.push({ id: `${row.id}-s${i}`, type: "search", query: String(t.query || ""), websitesFound: results.length, results, isLive: pending });
     });
-    if (steps.length || live) {
-      msg.work = { totalDurationSec: 0, steps, isWorking: live, statusText: live ? (m.tools?.length ? "Working…" : "") : "" };
+    if (steps.length || working) {
+      msg.work = {
+        totalDurationSec: 0,
+        steps,
+        isWorking: working,
+        statusText: working ? (phase === "searching" ? "Searching the web…" : phase === "thinking" ? "Thinking…" : tools.length ? "Working…" : "") : "",
+      };
     }
     if (m.status === "error" && !row.content) msg.content = "Something went wrong while generating this reply.";
   }
@@ -118,4 +127,66 @@ export function subscribeMessages(userId: string, onRow: (row: DbRow) => void, o
     })
     .subscribe();
   return () => { supabase.removeChannel(ch); };
+}
+
+export type RunEvent =
+  | { type: "meta"; message_id: string }
+  | { type: "content"; delta: string }
+  | { type: "thinking"; delta: string }
+  | { type: "tool_start"; name: string }
+  | { type: "tool_query"; name: string; query: string }
+  | { type: "tool_done"; name: string; query: string; sources: { title: string; url: string; snippet?: string }[] }
+  | { type: "timing"; first_token_ms: number }
+  | { type: "done" }
+  | { type: "error"; message?: string };
+
+// Starts a run and streams its events straight from the server (no database hop),
+// while the server still saves everything so other devices and later reloads see it.
+export async function streamRun(
+  chatId: string,
+  messages: unknown[],
+  extra: Record<string, unknown>,
+  onEvent: (e: RunEvent) => void,
+  signal?: AbortSignal,
+): Promise<{ finished: boolean; messageId: string | null }> {
+  const session = await getSession();
+  if (!session?.access_token) throw new Error("Not signed in");
+  const res = await fetch("/api/run", {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ chat_id: chatId, messages, stream_events: true, ...extra }),
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || `Run failed (${res.status})`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let messageId: string | null = null;
+  let finished = false;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop() || "";
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const evt = JSON.parse(line.slice(6)) as RunEvent;
+          if (evt.type === "meta") messageId = evt.message_id;
+          if (evt.type === "done" || evt.type === "error") finished = true;
+          onEvent(evt);
+        } catch { /* partial */ }
+      }
+    }
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw err;
+    /* connection dropped: caller falls back to the saved row */
+  }
+  return { finished, messageId };
 }
