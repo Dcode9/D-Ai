@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState, useMemo } from "react";
+import { useDecodeAll, useDecodeTail } from "../lib/decode";
 import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
@@ -12,6 +13,28 @@ type Props = {
   onOpenStudio?: (code: string, title?: string) => void;
   onBranch?: (messageId: string) => void;
 };
+
+/** Short label that glyph-decodes into place the moment it appears. */
+function Decoded({ text, className }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  useDecodeAll(ref, text);
+  return (
+    <span ref={ref} className={className}>
+      {text}
+    </span>
+  );
+}
+
+/** Streaming thought text: the newest characters decode as they arrive. */
+function DecodedTail({ text, className }: { text: string; className?: string }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useDecodeTail(ref, true, text, 22, 200);
+  return (
+    <div ref={ref} className={className}>
+      {text}
+    </div>
+  );
+}
 
 function formatDuration(sec: number): string {
   if (!sec || sec < 1) return "a while";
@@ -216,7 +239,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
+                className="decode-in animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
               >
                 <div className="flex items-center justify-between gap-2 border-b border-gold/20 pb-2 mb-2">
                   <div className="flex items-center gap-2 text-[13px] text-gold-2">
@@ -224,9 +247,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-75" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
                     </span>
-                    <span className="shimmer-text font-display italic tracking-wide">
-                      Deliberating architectural reasoning…
-                    </span>
+                    <Decoded className="shimmer-text font-display italic tracking-wide" text="Deliberating architectural reasoning…" />
                   </div>
                   <span className="font-mono text-[11px] text-gold/70">
                     {formatDuration(step.durationSec)}
@@ -234,9 +255,11 @@ function WorkAccordion({ work }: { work?: WorkData }) {
                 </div>
 
                 {step.content && (
-                  <div className="scroll-gold max-h-36 overflow-y-auto whitespace-pre-wrap font-mono text-[11.5px] italic leading-relaxed text-[#ded4bf]/90 border-l border-gold/30 pl-2.5">
-                    {step.content}
-                    <span className="inline-block h-2 w-1 ml-1 bg-gold animate-pulse" />
+                  <div className="border-l border-gold/30 pl-2.5">
+                    <DecodedTail
+                      className="scroll-gold max-h-36 overflow-y-auto whitespace-pre-wrap font-mono text-[11.5px] italic leading-relaxed text-[#ded4bf]/90"
+                      text={step.content}
+                    />
                   </div>
                 )}
               </div>
@@ -248,7 +271,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
+                className="decode-in rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-cyan-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
@@ -259,12 +282,8 @@ function WorkAccordion({ work }: { work?: WorkData }) {
                     </svg>
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-display italic tracking-wide text-cyan-300">
-                      Scanning live web archives…
-                    </span>
-                    <span className="font-mono text-[11px] text-cyan-400/70 truncate max-w-[340px]">
-                      Query: “{step.query}”
-                    </span>
+                    <Decoded className="font-display italic tracking-wide text-cyan-300" text="Scanning live web archives…" />
+                    <Decoded className="font-mono text-[11px] text-cyan-400/70 truncate max-w-[340px]" text={`Query: “${step.query}”`} />
                   </div>
                 </div>
               </div>
@@ -276,19 +295,15 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
+                className="decode-in animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-purple-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
                     <span className="h-2 w-2 rounded-full bg-purple-400 animate-ping" />
                   </div>
                   <div>
-                    <span className="font-display italic tracking-wide text-purple-300">
-                      Synthesizing visual artwork…
-                    </span>
-                    <span className="block font-body text-[11.5px] text-purple-400/70 italic truncate max-w-[340px]">
-                      “{step.prompt}”
-                    </span>
+                    <Decoded className="font-display italic tracking-wide text-purple-300" text="Synthesizing visual artwork…" />
+                    <Decoded className="block font-body text-[11.5px] text-purple-400/70 italic truncate max-w-[340px]" text={`“${step.prompt}”`} />
                   </div>
                 </div>
               </div>
@@ -581,6 +596,9 @@ function AssistantRowInner({
     ? (isWorking ? "thinking" : "answering")
     : "idle";
 
+  const answerRef = useRef<HTMLDivElement | null>(null);
+  useDecodeTail(answerRef, Boolean(m.streaming && !isWorking), m.content);
+
   return (
     <div ref={isLatest ? rowRef : undefined} className="rise flex items-start gap-2 sm:gap-4">
       <Aura state={auraState} size={44} className="mt-1 hidden shrink-0 sm:block" ring={false} />
@@ -590,12 +608,14 @@ function AssistantRowInner({
         {m.work && <WorkAccordion work={m.work} />}
 
         {/* Answer Content */}
-        <RichMarkdown
-          text={m.content}
-          streaming={m.streaming && !isWorking}
-          imageUrl={m.imageUrl}
-          onOpenStudio={onOpenStudio}
-        />
+        <div ref={answerRef}>
+          <RichMarkdown
+            text={m.content}
+            streaming={m.streaming && !isWorking}
+            imageUrl={m.imageUrl}
+            onOpenStudio={onOpenStudio}
+          />
+        </div>
 
         {/* Action bar on completed responses */}
         {!m.streaming && m.content && (
