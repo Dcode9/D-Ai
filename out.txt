@@ -1,3 +1,3 @@
-8287518 Merge feat/apps2
-942777a feat: apps deep links
-END_J290848608
+remote: 
+b6dccf5 feat: accept login handoff from D'Ai (origin-checked)
+END_J252235007
