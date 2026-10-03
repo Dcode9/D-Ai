@@ -21,6 +21,12 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
   const [boxHeight, setBoxHeight] = useState(100);
   const [boxWidth, setBoxWidth] = useState(780);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const on = () => setNarrow(window.innerWidth < 640);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
 
   // Proportional multi-dimensional scaling for multi-line prompts
   useEffect(() => {
@@ -93,20 +99,29 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
       ref={ref}
       onSubmit={submit}
       style={{
-        height: `${boxHeight + (attachedImage ? 42 : 0)}px`,
-        maxWidth: `min(${boxWidth}px, calc(100vw - 2rem))`,
+        height: narrow ? "auto" : `${boxHeight + (attachedImage ? 42 : 0)}px`,
+        maxWidth: narrow ? "100%" : `min(${boxWidth}px, calc(100vw - 2rem))`,
       }}
       className="relative mx-auto w-full transition-[height,max-width] duration-250 ease-out"
     >
-      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} />
+      {narrow ? (
+        <span
+          className={cn(
+            "absolute inset-0 rounded-xl border bg-ink/95 shadow-[0_0_18px_rgba(0,0,0,0.6)] transition-colors",
+            focused ? "border-gold-2/80" : "border-gold/55",
+          )}
+        />
+      ) : (
+        <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} />
+      )}
 
       {/* Content strictly padded inside heraldic caps and rails */}
       <div
-        style={{
+        style={narrow ? { paddingLeft: 14, paddingRight: 8 } : {
           paddingLeft: `${Math.max(76, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
           paddingRight: `${Math.max(68, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
         }}
-        className="relative z-10 flex h-full flex-col justify-center gap-1.5 py-3"
+        className="relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3"
       >
         {/* Attached thumbnail preview if uploaded */}
         {attachedImage && (
@@ -171,8 +186,8 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
             onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder={busy ? "D’Ai is composing…" : "Message D’Ai… (Shift+Enter for newline)"}
-            className="scroll-gold max-h-[115px] min-h-[34px] w-full resize-none bg-transparent font-body text-[17px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60"
+            placeholder={busy ? "D’Ai is composing…" : narrow ? "Message D’Ai…" : "Message D’Ai… (Shift+Enter for newline)"}
+            className="scroll-gold max-h-[115px] min-h-[34px] w-full resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60"
             autoComplete="off"
             spellCheck={false}
           />
@@ -183,7 +198,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               onClick={onStop}
               title="Stop composing"
               aria-label="Stop composing"
-              className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-center"
+              className="group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-center"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/70 bg-gold/15 shadow-[0_0_12px_rgba(201,168,106,0.35)]">
                 <span className="h-2.5 w-2.5 rounded-[2px] bg-[#e8d3a0]" />
@@ -195,7 +210,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               disabled={!value.trim() && !attachedImage}
               aria-label="Send"
               className={cn(
-                "group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-center",
+                "group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-center",
                 "disabled:cursor-default disabled:opacity-40",
                 "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
               )}
