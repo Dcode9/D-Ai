@@ -142,8 +142,7 @@ export function OrnateFrame({ variant, active, className, children, onClick }: P
               cy={h * 0.15}
               rx={w * 0.34}
               ry={h * 0.5}
-              fill="#6b3fa0"
-              filter="url(#blur-12)"
+              fill="url(#glow-plum)"
               className={cn("transition-opacity duration-700", active ? "opacity-80" : "opacity-45 group-hover:opacity-70")}
             />
             <ellipse
@@ -151,11 +150,10 @@ export function OrnateFrame({ variant, active, className, children, onClick }: P
               cy={h * 0.95}
               rx={w * 0.3}
               ry={h * 0.45}
-              fill="#c9a04a"
-              filter="url(#blur-12)"
+              fill="url(#glow-amber)"
               className={cn("transition-opacity duration-700", active ? "opacity-70" : "opacity-35 group-hover:opacity-60")}
             />
-            <rect width={w} height={h} fill="url(#grain-pattern)" style={{ mixBlendMode: "overlay" }} opacity="0.35" />
+            <rect width={w} height={h} fill="url(#grain-pattern)" opacity="0.35" />
           </g>
 
           {geo.strokes.map((s, i) => (

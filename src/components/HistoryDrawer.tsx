@@ -40,7 +40,7 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
     <>
       <div
         className={cn(
-          "absolute inset-0 z-30 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
+          "absolute inset-0 z-30 bg-black/40 transition-opacity duration-300",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onClose}

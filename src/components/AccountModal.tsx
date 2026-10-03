@@ -54,7 +54,7 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Dark glass backdrop */}
       <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 bg-black/75 transition-opacity"
         onClick={onClose}
       />
 

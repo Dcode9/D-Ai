@@ -36,9 +36,9 @@ export function Plate({ variant = "text", className, children, glow = false }: P
           </defs>
           <g clipPath={`url(#pl-${id})`}>
             <rect width={w} height={h} fill="#12100f" opacity="0.97" />
-            <ellipse cx={w * 0.12} cy={0} rx={Math.min(w * 0.5, 170)} ry={Math.min(h * 0.3, 90)} fill="#6b3fa0" filter="url(#blur-24)" opacity="0.32" />
-            <ellipse cx={w * 0.9} cy={h} rx={Math.min(w * 0.45, 150)} ry={Math.min(h * 0.25, 70)} fill="#c9a04a" filter="url(#blur-24)" opacity="0.2" />
-            <rect width={w} height={h} fill="url(#grain-pattern)" style={{ mixBlendMode: "overlay" }} opacity="0.3" />
+            <ellipse cx={w * 0.12} cy={0} rx={Math.min(w * 0.5, 170)} ry={Math.min(h * 0.3, 90)} fill="url(#glow-plum)" opacity="0.32" />
+            <ellipse cx={w * 0.9} cy={h} rx={Math.min(w * 0.45, 150)} ry={Math.min(h * 0.25, 70)} fill="url(#glow-amber)" opacity="0.2" />
+            <rect width={w} height={h} fill="url(#grain-pattern)" opacity="0.3" />
           </g>
           {geo.strokes.map((s, i) => (
             <path

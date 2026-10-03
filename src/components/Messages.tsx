@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { memo, useEffect, useRef, useState, useMemo } from "react";
 import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
@@ -216,7 +216,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)] backdrop-blur-sm"
+                className="animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
               >
                 <div className="flex items-center justify-between gap-2 border-b border-gold/20 pb-2 mb-2">
                   <div className="flex items-center gap-2 text-[13px] text-gold-2">
@@ -248,7 +248,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)] backdrop-blur-sm"
+                className="rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-cyan-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
@@ -276,7 +276,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)] backdrop-blur-sm"
+                className="animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-purple-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
@@ -516,7 +516,7 @@ function RichMarkdown({
   );
 }
 
-function UserBubble({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
+function UserBubbleInner({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
   return (
     <div className="rise group flex justify-end">
       <div className="relative max-w-[88%] md:max-w-[72%] px-4 sm:px-5 py-3.5">
@@ -555,7 +555,7 @@ function UserBubble({ m, onBranch }: { m: Message; onBranch?: (messageId: string
   );
 }
 
-function AssistantRow({
+function AssistantRowInner({
   m,
   isLatest,
   rowRef,
@@ -641,6 +641,12 @@ function AssistantRow({
     </div>
   );
 }
+
+const UserBubble = memo(UserBubbleInner, (a, b) => a.m === b.m && a.onBranch === b.onBranch);
+const AssistantRow = memo(
+  AssistantRowInner,
+  (a, b) => a.m === b.m && a.isLatest === b.isLatest && a.onBranch === b.onBranch && a.onOpenStudio === b.onOpenStudio,
+);
 
 export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
   const latestRowRef = useRef<HTMLDivElement | null>(null);

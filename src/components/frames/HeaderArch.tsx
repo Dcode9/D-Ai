@@ -32,7 +32,7 @@ export function HeaderArch({ w, h }: Props) {
     >
       <path d={d} fill="none" stroke="url(#gold-stroke)" strokeWidth="1" opacity="0.85" />
       {/* soft light under the dome */}
-      <ellipse cx={cx} cy={y} rx={half * 0.8} ry={40} fill="#c9a04a" opacity="0.06" filter="url(#blur-24)" />
+      <ellipse cx={cx} cy={y} rx={half * 0.8} ry={40} fill="url(#glow-amber)" opacity="0.06" />
     </svg>
   );
 }
