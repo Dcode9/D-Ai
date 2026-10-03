@@ -1,3 +1,4 @@
+import { openAppEvent } from "../components/AppsDrawer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuraState } from "../components/Aura";
 import {
@@ -528,6 +529,8 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   const hasReal = prev.some((x) => x.id === realId);
                   return hasReal ? prev.filter((x) => x.id !== asstId) : prev.map((x) => (x.id === asstId ? { ...x, id: realId } : x));
                 });
+              } else if ((evt as any).type === "app") {
+                openAppEvent((evt as any).app, (evt as any).query);
               } else if (evt.type === "timing") {
                 (window as any).__daiTiming = evt.first_token_ms;
               } else if (evt.type === "content") {
@@ -1125,6 +1128,16 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   tool_call_id: toolCall.id,
                   name: "manage_memory",
                   content: JSON.stringify(resultPayload),
+                });
+              } else if (toolCall.name === "open_app") {
+                let a: any = {};
+                try { a = JSON.parse(toolCall.arguments || "{}"); } catch { /* ignore */ }
+                if (a.app === "tunes" || a.app === "quest") openAppEvent(a.app, a.query ? String(a.query).slice(0, 120) : undefined);
+                conversationHistory.push({
+                  role: "tool",
+                  tool_call_id: toolCall.id,
+                  name: "open_app",
+                  content: JSON.stringify({ opened: a.app, note: "Opened in the Apps sidebar. Tell the user briefly." }),
                 });
               }
             }

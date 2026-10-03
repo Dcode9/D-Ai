@@ -4,6 +4,7 @@ import { Ambient } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
 import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
+import { AppsDrawer, type AppId } from "./components/AppsDrawer";
 import { Messages } from "./components/Messages";
 import { PromptSuggestions } from "./components/PromptSuggestions";
 const AccountModal = lazy(() => import("./components/AccountModal").then((m) => ({ default: m.AccountModal })));
@@ -20,6 +21,18 @@ import { cn } from "./utils/cn";
 export default function App() {
   const chat = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const [appLaunch, setAppLaunch] = useState<{ app: AppId; query?: string; n: number } | null>(null);
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent).detail as { app: AppId; query?: string };
+      if (!d?.app) return;
+      setAppLaunch({ app: d.app, query: d.query, n: Date.now() });
+      setAppsOpen(true);
+    };
+    window.addEventListener("dai:open-app", onOpen);
+    return () => window.removeEventListener("dai:open-app", onOpen);
+  }, []);
   const [accountOpen, setAccountOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [codeStudioOpen, setCodeStudioOpen] = useState(false);
@@ -90,6 +103,8 @@ export default function App() {
         onMemory={() => setMemoryOpen(true)}
         onAccount={() => setAccountOpen(true)}
         onStudio={() => setCodeStudioOpen((prev) => !prev)}
+        onApps={() => setAppsOpen((p) => !p)}
+        appsOpen={appsOpen}
         historyOpen={historyOpen}
         studioOpen={codeStudioOpen}
         memoryCount={memoryCount}
@@ -210,6 +225,8 @@ export default function App() {
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
       />
+
+      <AppsDrawer open={appsOpen} onClose={() => setAppsOpen(false)} initialApp={appLaunch} />
 
       {/* Full Sidebar Code Studio */}
       <Suspense fallback={null}>
