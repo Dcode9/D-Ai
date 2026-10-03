@@ -1,4 +1,3 @@
-remote: 
+2141ef3 Merge feat/apps
 6c2fbcb feat: Apps sidebar (D'Tunes, D'Quest) with open_app tool
-d048433 Merge feat/decode
-END_J1173528070
+END_J2258125586
