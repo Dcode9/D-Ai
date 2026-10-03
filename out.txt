@@ -1,3 +1,4 @@
+remote: 
+6c2fbcb feat: Apps sidebar (D'Tunes, D'Quest) with open_app tool
 d048433 Merge feat/decode
-7d47484 feat: instant glyph-decode animation
-END_J2761511016
+END_J1173528070
