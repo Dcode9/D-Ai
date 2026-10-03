@@ -5,6 +5,7 @@ import { ChatInput } from "./components/ChatInput";
 import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { AppsDrawer, type AppId } from "./components/AppsDrawer";
+import { WikiDrawer, wikiTitleFromHref } from "./components/WikiDrawer";
 import { Messages } from "./components/Messages";
 import { PromptSuggestions } from "./components/PromptSuggestions";
 const AccountModal = lazy(() => import("./components/AccountModal").then((m) => ({ default: m.AccountModal })));
@@ -32,6 +33,29 @@ export default function App() {
     };
     window.addEventListener("dai:open-app", onOpen);
     return () => window.removeEventListener("dai:open-app", onOpen);
+  }, []);
+  const [wikiOpen, setWikiOpen] = useState(false);
+  const [wikiReq, setWikiReq] = useState<{ title: string; n: number } | null>(null);
+  useEffect(() => {
+    const onWiki = (e: Event) => {
+      const t = (e as CustomEvent).detail?.title as string | undefined;
+      if (!t) return;
+      setWikiReq({ title: t, n: Date.now() });
+      setWikiOpen(true);
+    };
+    // Wikipedia links inside answers open the sidebar page instead of leaving the chat
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const a = (e.target as HTMLElement | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.closest("aside")) return;
+      const t = wikiTitleFromHref(a.href);
+      if (!t) return;
+      e.preventDefault();
+      onWiki(new CustomEvent("x", { detail: { title: t } }));
+    };
+    window.addEventListener("dai:open-wiki", onWiki);
+    document.addEventListener("click", onClick);
+    return () => { window.removeEventListener("dai:open-wiki", onWiki); document.removeEventListener("click", onClick); };
   }, []);
   const [accountOpen, setAccountOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -231,6 +255,7 @@ export default function App() {
         onDelete={chat.deleteConversation}
       />
 
+      <WikiDrawer open={wikiOpen} onClose={() => setWikiOpen(false)} request={wikiReq} />
       <AppsDrawer open={appsOpen} onClose={() => setAppsOpen(false)} initialApp={appLaunch} />
 
       {/* Full Sidebar Code Studio */}
