@@ -1,2 +1,4 @@
-scheduled-stop
-END_J1445816570
+remote: 
+566f97c feat(identity): ornate Plate panels, ornate phone composer, cleaner history
+12b0f93 Merge pull request #33 from Dcode9/fix/mobile-ui
+END_J429328682
