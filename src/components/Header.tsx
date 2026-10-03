@@ -8,6 +8,8 @@ type Props = {
   onMemory: () => void;
   onAccount: () => void;
   onStudio?: () => void;
+  onApps?: () => void;
+  appsOpen?: boolean;
   historyOpen: boolean;
   studioOpen?: boolean;
   memoryCount: number;
@@ -50,6 +52,8 @@ export function Header({
   onMemory,
   onAccount,
   onStudio,
+  onApps,
+  appsOpen = false,
   historyOpen,
   studioOpen = false,
   memoryCount,
@@ -85,6 +89,17 @@ export function Header({
               <polyline points="8 6 2 12 8 18" />
             </svg>
             <span className="hidden sm:inline">Studio</span>
+          </SmallButton>
+        )}
+        {onApps && (
+          <SmallButton onClick={onApps} active={appsOpen}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+              <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+              <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+              <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+              <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+            </svg>
+            <span className="hidden sm:inline">Apps</span>
           </SmallButton>
         )}
       </div>
