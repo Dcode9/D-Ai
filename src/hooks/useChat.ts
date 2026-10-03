@@ -17,7 +17,20 @@ import {
   saveCloudMessage,
   listCloudChats,
   onAuthStateChange,
+  getSession,
 } from "../lib/supabase";
+import {
+  isUuid,
+  newId,
+  rowToMessage,
+  ensureCloudChat,
+  insertUserRow,
+  startRun,
+  fetchRow,
+  loadChatMessages,
+  subscribeMessages,
+  type DbRow,
+} from "../lib/durable";
 
 import {
   type Conversation,
@@ -132,6 +145,64 @@ export function useChat() {
   const [state, setState] = useState<AuraState>("idle");
   const abortControllerRef = useRef<AbortController | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const activeIdRef = useRef<string | null>(null);
+  const localRunRef = useRef(false);
+  messagesRef.current = messages;
+  activeIdRef.current = activeId;
+
+  // Live sync: any device's messages (including a reply still being written by
+  // the server) show up here, for the chat that is open.
+  useEffect(() => {
+    let off: (() => void) | null = null;
+    let cancelled = false;
+    const applyRow = (row: DbRow) => {
+      if (row.chat_id !== activeIdRef.current) return;
+      const m = rowToMessage(row);
+      if (!m) return;
+      setMessages((prev) => {
+        const i = prev.findIndex((x) => x.id === row.id);
+        if (i >= 0) {
+          const next = [...prev];
+          next[i] = { ...next[i], ...m };
+          return next;
+        }
+        return [...prev, m];
+      });
+      if (!localRunRef.current && row.role === "assistant") {
+        setState(m.streaming ? "answering" : "idle");
+      }
+    };
+    const applyChat = (c: any) => {
+      setConversations((prev) => {
+        const i = prev.findIndex((x) => x.id === c.id);
+        if (i >= 0) {
+          if (!c.title || prev[i].title === c.title) return prev;
+          const next = [...prev];
+          next[i] = { ...next[i], title: c.title };
+          return next;
+        }
+        return [
+          { id: c.id, title: c.title || "Cloud Chat", createdAt: Date.parse(c.created_at) || Date.now(), updatedAt: Date.parse(c.updated_at) || Date.now(), pinned: false, projectId: null, rootId: c.id, parentId: null, messages: [] },
+          ...prev,
+        ];
+      });
+    };
+    const start = async () => {
+      off?.();
+      off = null;
+      const u = await getUser();
+      if (!u || cancelled) return;
+      off = subscribeMessages(u.id, applyRow, applyChat);
+    };
+    start();
+    const sub = onAuthStateChange(() => { start(); });
+    return () => {
+      cancelled = true;
+      off?.();
+      sub.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     saveStoredConversations(conversations);
@@ -252,7 +323,8 @@ function extractCleanThreeWordTitle(text: string): string {
         return [conv, ...prev];
       });
 
-      // Background cloud sync for authenticated users
+      // Background cloud sync for authenticated users (durable chats sync themselves)
+      if (isUuid(id)) return;
       getUser().then((user) => {
         if (!user) return;
         const firstUser = msgs.find((m) => m.role === "user");
@@ -298,14 +370,22 @@ function extractCleanThreeWordTitle(text: string): string {
       const prompt = text.trim();
       if (!prompt || state !== "idle") return;
 
-      const convId = activeId ?? uid();
+      // Signed-in chats run on the server so they finish even if this tab closes.
+      const session = await getSession();
+      const durable =
+        !!session?.access_token &&
+        !/\[UPLOADED_IMAGE/i.test(prompt) &&
+        (mode === null || mode === "Text" || mode === "Code") &&
+        (!activeId || isUuid(activeId));
+
+      const convId = activeId ?? (durable ? newId() : uid());
       if (!activeId) setActiveId(convId);
 
       // Detect if user intent is writing code / building web app or widget
       const isCodePrompt = mode === "Code" ||
         /build|code|create\s+(an?\s+)?(app|web|html|tool|calculator|game|widget|simulation|interface|component|page)|write\s+(an?\s+)?(app|program|script|html|function)|javascript|typescript|react|vue|python|css|algorithm/i.test(prompt);
 
-      const userMsg: Message = { id: uid(), role: "user", content: prompt, mode };
+      const userMsg: Message = { id: durable ? newId() : uid(), role: "user", content: prompt, mode };
       const currentMessages = [...messages, userMsg];
       setMessages(currentMessages);
 
@@ -388,6 +468,57 @@ Whenever you create, recommend, mention, or search for previewable websites, int
           content: m.content,
         })),
       ];
+
+      if (durable && session) {
+        localRunRef.current = true;
+        try {
+          const title = extractCleanThreeWordTitle(prompt);
+          await ensureCloudChat(convId, title, session.user.id);
+          await insertUserRow(userMsg.id, convId, session.user.id, prompt, mode);
+          const run = await startRun(convId, conversationHistory, {
+            mode: mode || (isCodePrompt ? "Code" : undefined),
+            is_code: isCodePrompt,
+            max_tokens: isCodePrompt ? 16384 : 4096,
+          });
+          // The server's reply row replaces the local placeholder.
+          setMessages((prev) => {
+            const hasReal = prev.some((x) => x.id === run.message_id);
+            return hasReal
+              ? prev.filter((x) => x.id !== asstId)
+              : prev.map((x) => (x.id === asstId ? { ...x, id: run.message_id } : x));
+          });
+          persist(convId, [...currentMessages]);
+          // Realtime delivers updates; this poll is the safety net and the finish line.
+          const deadline = Date.now() + 6 * 60 * 1000;
+          let finished = false;
+          while (!finished && Date.now() < deadline && activeIdRef.current === convId) {
+            await new Promise((r) => setTimeout(r, 2500));
+            const row = await fetchRow(run.message_id);
+            if (!row) continue;
+            const m = rowToMessage(row);
+            if (m) {
+              setMessages((prev) => prev.map((x) => (x.id === run.message_id ? { ...x, ...m } : x)));
+            }
+            finished = row.metadata?.status !== "streaming";
+          }
+          if (activeIdRef.current === convId) {
+            persist(convId, messagesRef.current.map((x) => ({ ...x, streaming: false })));
+          }
+        } catch (err) {
+          console.error("Durable run failure:", err);
+          setMessages((prev) =>
+            prev.map((x) =>
+              x.id === asstId
+                ? { ...x, streaming: false, content: "I could not start this reply. Please try again.", work: undefined }
+                : x,
+            ),
+          );
+        } finally {
+          localRunRef.current = false;
+          setState("idle");
+        }
+        return;
+      }
 
       let rawBuffer = "";
       let displayedText = "";
@@ -1094,6 +1225,17 @@ Whenever you create, recommend, mention, or search for previewable websites, int
       setMessages(resolved);
       setMode(resolved[resolved.length - 1]?.mode ?? null);
       setState("idle");
+
+      if (isUuid(id)) {
+        loadChatMessages(id)
+          .then((cloud) => {
+            if (activeIdRef.current !== id || cloud.length === 0) return;
+            setMessages(cloud);
+            setMode(cloud[cloud.length - 1]?.mode ?? null);
+            setState(cloud.some((m) => m.streaming) ? "answering" : "idle");
+          })
+          .catch(() => {});
+      }
 
       // Visual loading flourish
       setTimeout(() => {

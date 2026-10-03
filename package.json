@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
     "@vercel/blob": "^2.4.0",
+    "@vercel/functions": "^3.9.11",
     "clsx": "2.1.1",
     "express": "^5.2.1",
     "katex": "^0.18.7",
