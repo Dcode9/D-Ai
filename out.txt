@@ -1,4 +1,3 @@
-remote: 
+8287518 Merge feat/apps2
 942777a feat: apps deep links
-2141ef3 Merge feat/apps
-END_J426517225
+END_J290848608
