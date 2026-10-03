@@ -1,3 +1,5 @@
-2141ef3 Merge feat/apps
-6c2fbcb feat: Apps sidebar (D'Tunes, D'Quest) with open_app tool
-END_J2258125586
+ js/main.js | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+eda47e5 feat: open a quiz topic from a ?q= link or D'Ai message
+64f4e95 Live quiz redesign, score-aware suggestions, original sounds, AI usage guard
+END_J80143250
