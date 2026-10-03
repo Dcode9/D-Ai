@@ -518,7 +518,7 @@ function RichMarkdown({
 
 function UserBubbleInner({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
   return (
-    <div className="rise group flex justify-end">
+    <div data-role="user" className="rise group flex justify-end">
       <div className="relative max-w-[88%] md:max-w-[72%] px-4 sm:px-5 py-3.5">
         <span className="absolute inset-0 border border-gold/45" />
         {/* corner jewels */}
@@ -585,7 +585,7 @@ function AssistantRowInner({
     <div ref={isLatest ? rowRef : undefined} className="rise flex items-start gap-2 sm:gap-4">
       <Aura state={auraState} size={44} className="mt-1 hidden shrink-0 sm:block" ring={false} />
 
-      <div className="min-w-0 max-w-full flex-1 sm:max-w-[82%] pt-1.5 font-body">
+      <div className="min-w-0 max-w-full flex-1 sm:max-w-[90%] pt-1.5 font-body">
         {/* Agentic Execution / Work details */}
         {m.work && <WorkAccordion work={m.work} />}
 
@@ -658,10 +658,10 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
     if (latestAssistant && latestAssistant.id !== scrolledAssistantIdRef.current) {
       scrolledAssistantIdRef.current = latestAssistant.id;
       if (latestRowRef.current) {
-        latestRowRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        // Land on the question that led to this answer so it is never hidden above the fold.
+        const users = latestRowRef.current.parentElement?.querySelectorAll('[data-role="user"]');
+        const target = (users && users.length ? users[users.length - 1] : latestRowRef.current) as HTMLElement;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
   }, [messages]);
@@ -669,7 +669,7 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
-    <div className="mx-auto flex w-full max-w-[880px] flex-col gap-8 px-3 py-6 sm:px-4 sm:py-8 md:px-10">
+    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-8 px-3 py-6 sm:px-4 sm:py-8 md:px-10">
       {messages.map((m) =>
         m.role === "user" ? (
           <UserBubble key={m.id} m={m} onBranch={onBranch} />

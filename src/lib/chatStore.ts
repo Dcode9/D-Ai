@@ -19,6 +19,7 @@ export interface Conversation {
   forkMessageIndex?: number; // Index in parent conversation where the fork occurred
   forkMessageId?: string | null; // Message ID in parent where the fork occurred
   messages: Message[];
+  preview?: string; // one-line snippet for cloud chats whose messages are not loaded yet
 }
 
 export const CHATS_STORAGE_KEY = "dai.conversations.v2";
