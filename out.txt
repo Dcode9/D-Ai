@@ -1,3 +1,4 @@
+error: patch failed: src/components/AppsDrawer.tsx:1
+error: src/components/AppsDrawer.tsx: patch does not apply
 948078a Merge feat/auth
-cb83bb2 feat: share login with embedded apps (origin-restricted)
-END_J3027122411
+END_J1576923798
