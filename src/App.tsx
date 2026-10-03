@@ -96,7 +96,7 @@ export default function App() {
         user={user}
       />
 
-      <main className="relative z-10 flex-1 px-5 pt-5 pb-[58px] md:px-7 md:pt-7 md:pb-[68px]">
+      <main className="relative z-10 flex-1 px-2.5 pt-3 pb-[calc(58px+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 md:px-7 md:pt-7 md:pb-[68px]">
         {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
         {chat.breadcrumbs.length > 1 && (
           <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5 backdrop-blur-sm">
@@ -187,7 +187,7 @@ export default function App() {
           </div>
 
           {/* Message Box: Positioned so the chat container bottom border ends in the middle of the message box */}
-          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-1/2 px-3 md:px-8 pointer-events-none">
+          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-1/2 px-2.5 md:px-8 pointer-events-none">
             <div className="w-full max-w-[920px] pointer-events-auto flex justify-center">
               <ChatInput
                 onSend={chat.send}

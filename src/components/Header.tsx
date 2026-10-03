@@ -28,7 +28,7 @@ function SmallButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative flex h-[38px] cursor-pointer items-center gap-2 px-3.5 font-body text-[16px] text-cream/90 outline-none transition-colors",
+        "group relative flex h-[40px] min-w-[40px] cursor-pointer items-center justify-center gap-2 px-2.5 sm:px-3.5 font-body text-[16px] text-cream/90 outline-none transition-colors",
         "hover:text-[#fff3d6] focus-visible:text-[#fff3d6]",
       )}
     >
@@ -59,11 +59,11 @@ export function Header({
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
 
   return (
-    <header ref={ref} className="relative z-20 h-[96px] shrink-0">
+    <header ref={ref} className="relative z-20 h-[96px] shrink-0" style={{ marginTop: "env(safe-area-inset-top)" }}>
       <HeaderArch w={w} h={h} />
 
       {/* Left controls */}
-      <div className="absolute left-6 top-6 flex items-center gap-3">
+      <div className="absolute left-3 sm:left-6 top-6 flex items-center gap-1.5 sm:gap-3">
         <SmallButton onClick={onHistory} active={historyOpen}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
             <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
@@ -92,7 +92,7 @@ export function Header({
       {/* Center Title */}
       <div className="pointer-events-none absolute left-1/2 top-[68px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
         <h1
-          className="title-glow font-display text-[48px] leading-none tracking-tight text-cream select-none"
+          className="title-glow font-display text-[38px] sm:text-[48px] leading-none tracking-tight text-cream select-none"
           aria-label="D'Ai"
         >
           D’Ai
@@ -100,7 +100,7 @@ export function Header({
       </div>
 
       {/* Right controls */}
-      <div className="absolute right-6 top-6 flex items-center gap-3">
+      <div className="absolute right-3 sm:right-6 top-6 flex items-center gap-1.5 sm:gap-3">
         <SmallButton onClick={onMemory} active={false}>
           <span className="text-[16px]">🧠</span>
           <span className="hidden sm:inline">Memory</span>

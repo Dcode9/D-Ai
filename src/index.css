@@ -23,6 +23,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
   margin: 0;
   background: #1c1b1a;
   color: #efe3c6;
