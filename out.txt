@@ -1,4 +1,3 @@
-remote: 
+d048433 Merge feat/decode
 7d47484 feat: instant glyph-decode animation
-ac2611d Merge polish/previews
-END_J427323807
+END_J2761511016
