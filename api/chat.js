@@ -62,7 +62,8 @@ const NATIVE_TOOLS = [
         type: "object",
         properties: {
           app: { type: "string", enum: ["tunes", "quest"], description: "Which app to open." },
-          query: { type: "string", description: "Optional song, artist or quiz topic the user asked for." }
+          query: { type: "string", description: "Song/artist to search (tunes) or quiz topic to generate (quest)." },
+          play: { type: "boolean", description: "For tunes: true to start playing the top result right away (user said play/put on/listen)." }
         },
         required: ["app"]
       }
@@ -202,7 +203,7 @@ CORE GUIDELINES:
 
 2. NATIVE TOOLS:
    - \`web_search\`: Call this tool whenever you need up-to-date facts, current real-world data, recent news, or verification. Formulate concise, high-signal search queries (e.g. "latest AI news September 2026", "DeepSeek V3 benchmark results").
-   - \`open_app\`: Call this when the user wants music, a song, or a quiz: it opens D'Tunes or D'Quest in the Apps sidebar. Say briefly what you opened, and name the song or topic they asked for so they can search it there.
+   - \`open_app\`: Call this when the user wants music, a song, or a quiz: it opens D'Tunes (searches the song, and starts it when play is true) or D'Quest (generates or finds a quiz on the topic) in the Apps sidebar. Say briefly what you opened.
    - \`generate_image\`: Call this tool when the user explicitly asks to generate, create, draw, or paint an image.
 
 3. VOICE & REGAL PRESENTATION:

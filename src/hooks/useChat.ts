@@ -530,7 +530,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   return hasReal ? prev.filter((x) => x.id !== asstId) : prev.map((x) => (x.id === asstId ? { ...x, id: realId } : x));
                 });
               } else if ((evt as any).type === "app") {
-                openAppEvent((evt as any).app, (evt as any).query);
+                openAppEvent((evt as any).app, (evt as any).query, !!(evt as any).play);
               } else if (evt.type === "timing") {
                 (window as any).__daiTiming = evt.first_token_ms;
               } else if (evt.type === "content") {
@@ -1132,12 +1132,12 @@ Whenever you create, recommend, mention, or search for previewable websites, int
               } else if (toolCall.name === "open_app") {
                 let a: any = {};
                 try { a = JSON.parse(toolCall.arguments || "{}"); } catch { /* ignore */ }
-                if (a.app === "tunes" || a.app === "quest") openAppEvent(a.app, a.query ? String(a.query).slice(0, 120) : undefined);
+                if (a.app === "tunes" || a.app === "quest") openAppEvent(a.app, a.query ? String(a.query).slice(0, 120) : undefined, !!a.play);
                 conversationHistory.push({
                   role: "tool",
                   tool_call_id: toolCall.id,
                   name: "open_app",
-                  content: JSON.stringify({ opened: a.app, note: "Opened in the Apps sidebar. Tell the user briefly." }),
+                  content: JSON.stringify({ opened: a.app, note: "Opened in the Apps sidebar with the search started. Tell the user briefly." }),
                 });
               }
             }

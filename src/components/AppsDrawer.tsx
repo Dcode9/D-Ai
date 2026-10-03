@@ -35,27 +35,27 @@ const APPS: AppDef[] = [
   },
 ];
 
-export function openAppEvent(app: AppId, query?: string) {
-  window.dispatchEvent(new CustomEvent("dai:open-app", { detail: { app, query } }));
+export function openAppEvent(app: AppId, query?: string, play?: boolean) {
+  window.dispatchEvent(new CustomEvent("dai:open-app", { detail: { app, query, play } }));
 }
 
-type Props = { open: boolean; onClose: () => void; initialApp?: { app: AppId; query?: string; n: number } | null };
+type Props = { open: boolean; onClose: () => void; initialApp?: { app: AppId; query?: string; play?: boolean; n: number } | null };
 
 export function AppsDrawer({ open, onClose, initialApp }: Props) {
   const [active, setActive] = useState<AppDef | null>(null);
   const [src, setSrc] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  const launch = (app: AppDef, query?: string) => {
+  const launch = (app: AppDef, query?: string, play?: boolean) => {
     setLoaded(false);
     setActive(app);
-    setSrc(query ? `${app.url}?q=${encodeURIComponent(query)}` : app.url);
+    setSrc(query ? `${app.url}?q=${encodeURIComponent(query)}${play && app.id === "tunes" ? "&play=1" : ""}` : app.url);
   };
 
   useEffect(() => {
     if (!initialApp) return;
     const def = APPS.find((a) => a.id === initialApp.app);
-    if (def) launch(def, initialApp.query);
+    if (def) launch(def, initialApp.query, initialApp.play);
   }, [initialApp?.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -105,7 +105,7 @@ export function AppsDrawer({ open, onClose, initialApp }: Props) {
           {!active ? (
             <div className="relative flex-1 space-y-3 overflow-y-auto px-8 pb-9 sm:px-9 scroll-gold">
               <p className="pb-1 font-body text-[14px] font-light text-muted">
-                Your D’Verse apps, right here. You can also just ask D’Ai to open one.
+                Your D’Verse apps, right here. Ask D’Ai to play a song or start a quiz and it opens here.
               </p>
               {APPS.map((a) => (
                 <button

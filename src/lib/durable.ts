@@ -136,7 +136,7 @@ export type RunEvent =
   | { type: "tool_start"; name: string }
   | { type: "tool_query"; name: string; query: string }
   | { type: "tool_done"; name: string; query: string; sources: { title: string; url: string; snippet?: string }[] }
-  | { type: "app"; app: "tunes" | "quest"; query?: string }
+  | { type: "app"; app: "tunes" | "quest"; query?: string; play?: boolean }
   | { type: "timing"; first_token_ms: number }
   | { type: "done" }
   | { type: "error"; message?: string };
