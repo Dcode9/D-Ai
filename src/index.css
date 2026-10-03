@@ -556,3 +556,13 @@ input::placeholder {
 
 
 .grain-overlay{position:fixed;inset:0;z-index:60;pointer-events:none;background-image:url(/grain.png);background-size:128px 128px;opacity:.16}
+
+/* Cards snap in instantly with a quick unfold instead of fading in slowly */
+@keyframes decode-in {
+  from { opacity: 0; transform: translateY(4px) scaleY(0.94); clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+}
+.decode-in { animation: decode-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: top; }
+@media (prefers-reduced-motion: reduce) { .decode-in { animation: none; } }
+.decode-in.animate-thought-stage { animation: decode-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both, thought-pulse 2.2s ease-in-out 0.22s infinite; }
+.decode-in.animate-aperture-bloom { animation: decode-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both, aperture-bloom 3s ease-in-out 0.22s infinite; }
