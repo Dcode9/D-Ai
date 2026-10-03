@@ -390,7 +390,7 @@ export async function listCloudChats(): Promise<DbChat[]> {
       console.warn("[D'Ai Cloud] listCloudChats error:", error);
       return [];
     }
-    return (data as DbChat[]) || [];
+    return ((data as DbChat[]) || []).filter((c) => (c.metadata as { kind?: string } | undefined)?.kind !== "memory");
   } catch (err) {
     console.warn("[D'Ai Cloud] Failed to list chats:", err);
     return [];

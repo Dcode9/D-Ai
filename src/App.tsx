@@ -52,6 +52,11 @@ export default function App() {
     return () => sub.unsubscribe();
   }, []);
 
+  // Memory follows the account: pull + merge once signed in
+  useEffect(() => {
+    if (user) void import("./lib/memorySync").then((m) => m.pullMemory());
+  }, [user]);
+
   // Memory count listener
   useEffect(() => {
     const updateCount = () => setMemoryCount(getMemory().length);

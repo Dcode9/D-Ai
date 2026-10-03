@@ -123,6 +123,7 @@ export function subscribeMessages(userId: string, onRow: (row: DbRow) => void, o
       if (p.new && p.new.id) onRow(p.new as DbRow);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "ai_chats", filter: `user_id=eq.${userId}` }, (p: any) => {
+      if (p.new && p.new.metadata && p.new.metadata.kind === "memory") { void import("./memorySync").then((m) => m.pullMemory()); return; }
       if (p.new && p.new.id) onChat(p.new);
     })
     .subscribe();
