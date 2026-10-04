@@ -1,3 +1,4 @@
-8c31205 Merge feat/gen
-18b5581 feat: step timeline, generative UI, ornate cards
-END_J1824018075
+✓ Closed pull request Dcode9/D-Ai#29 (Update API logic for Vision, Reasoning, and Tools)
+✓ Closed pull request Dcode9/D-Ai#30 (feat(hardening): rate limiting, CORS, CSP, validation, and dead-code removal)
+✓ Closed pull request Dcode9/D-Ai#31 (feat(chat): native tool-call + bulletproof backend + mobile+desktop sidebar fix)
+END_J2336717772
