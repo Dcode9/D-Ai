@@ -12,6 +12,23 @@ export type GenSpec =
 
 const s = (v: unknown) => (v == null ? "" : String(v));
 
+/** Inline markdown for component text: [label](https://url) links and **bold**. */
+function T({ v }: { v: unknown }) {
+  const str = s(v);
+  const out: ReactNode[] = [];
+  const re = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|\*\*([^*]+)\*\*/g;
+  let last = 0, m: RegExpExecArray | null, k = 0;
+  while ((m = re.exec(str))) {
+    if (m.index > last) out.push(str.slice(last, m.index));
+    out.push(m[1]
+      ? <a key={k++} href={m[2]} target="_blank" rel="noreferrer" className="text-gold-2 underline decoration-gold/40 underline-offset-2 hover:text-cream">{m[1]}</a>
+      : <strong key={k++} className="font-semibold text-cream">{m[3]}</strong>);
+    last = m.index + m[0].length;
+  }
+  if (last < str.length) out.push(str.slice(last));
+  return <>{out}</>;
+}
+
 function Shell({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className="gen-ui ornate-card decode-in my-4 rounded-sm border border-gold/40 bg-black/45 shadow-[0_6px_26px_rgba(0,0,0,.35)]">
@@ -39,9 +56,9 @@ export function GenUI({ spec }: { spec: GenSpec }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {arr<Item>(spec.items).map((it, i) => (
               <div key={i} className="rounded-sm border border-gold/25 bg-black/40 px-3 py-2.5">
-                <div className="font-display text-[26px] leading-none text-cream">{s(it.value)}</div>
+                <div className="font-display text-[26px] leading-none text-cream"><T v={it.value} /></div>
                 <div className="mt-1 font-body text-[12px] uppercase tracking-[0.12em] text-gold/80">{s(it.label)}</div>
-                {it.note && <div className="mt-1 font-body text-[12.5px] text-muted">{s(it.note)}</div>}
+                {it.note && <div className="mt-1 font-body text-[12.5px] text-muted"><T v={it.note} /></div>}
               </div>
             ))}
           </div>
@@ -53,11 +70,11 @@ export function GenUI({ spec }: { spec: GenSpec }) {
           <div className="scroll-gold overflow-x-auto">
             <table className="w-full border-collapse text-left font-body text-[14px]">
               <thead>
-                <tr>{arr<string>(spec.columns).map((c, i) => <th key={i} className="border-b border-gold/30 px-3 py-2 font-display text-[12px] uppercase tracking-[0.12em] text-gold-2">{s(c)}</th>)}</tr>
+                <tr>{arr<string>(spec.columns).map((c, i) => <th key={i} className="border-b border-gold/30 px-3 py-2 font-display text-[12px] uppercase tracking-[0.12em] text-gold-2"><T v={c} /></th>)}</tr>
               </thead>
               <tbody>
                 {arr<unknown[]>(spec.rows).map((r, i) => (
-                  <tr key={i} className="odd:bg-gold/[0.03]">{arr<unknown>(r).map((c, j) => <td key={j} className="border-b border-gold/10 px-3 py-2 text-cream/90">{s(c)}</td>)}</tr>
+                  <tr key={i} className="odd:bg-gold/[0.03]">{arr<unknown>(r).map((c, j) => <td key={j} className="border-b border-gold/10 px-3 py-2 text-cream/90"><T v={c} /></td>)}</tr>
                 ))}
               </tbody>
             </table>
@@ -71,7 +88,7 @@ export function GenUI({ spec }: { spec: GenSpec }) {
             {arr<Item>(spec.items).map((it, i) => (
               <li key={i} className="flex gap-3">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rotate-45 border border-gold/70 bg-ink"><span className="-rotate-45 font-display text-[12px] text-gold-2">{i + 1}</span></span>
-                <div><div className="font-display text-[17px] text-cream">{s(it.title)}</div>{it.body && <div className="font-body text-[14px] font-light leading-relaxed text-cream/80">{s(it.body)}</div>}</div>
+                <div><div className="font-display text-[17px] text-cream"><T v={it.title} /></div>{it.body && <div className="font-body text-[14px] font-light leading-relaxed text-cream/80"><T v={it.body} /></div>}</div>
               </li>
             ))}
           </ol>
@@ -84,8 +101,8 @@ export function GenUI({ spec }: { spec: GenSpec }) {
             {arr<Item>(spec.items).map((it, i) => (
               <div key={i} className="step-node">
                 <div className="font-body text-[11.5px] uppercase tracking-[0.16em] text-gold/80">{s(it.when)}</div>
-                <div className="font-display text-[17px] text-cream">{s(it.title)}</div>
-                {it.body && <div className="font-body text-[14px] font-light text-cream/80">{s(it.body)}</div>}
+                <div className="font-display text-[17px] text-cream"><T v={it.title} /></div>
+                {it.body && <div className="font-body text-[14px] font-light text-cream/80"><T v={it.body} /></div>}
               </div>
             ))}
           </div>
@@ -97,10 +114,10 @@ export function GenUI({ spec }: { spec: GenSpec }) {
           <div className="grid gap-3 sm:grid-cols-2">
             {arr<Item>(spec.options).map((o, i) => (
               <div key={i} className="rounded-sm border border-gold/25 bg-black/40 p-3">
-                <div className="font-display text-[19px] text-cream">{s(o.name)}</div>
+                <div className="font-display text-[19px] text-cream"><T v={o.name} /></div>
                 <ul className="mt-2 space-y-1 font-body text-[13.5px]">
-                  {arr<string>(o.pros).map((p, j) => <li key={"p" + j} className="text-emerald-300/90">+ {s(p)}</li>)}
-                  {arr<string>(o.cons).map((p, j) => <li key={"c" + j} className="text-rose-300/90">− {s(p)}</li>)}
+                  {arr<string>(o.pros).map((p, j) => <li key={"p" + j} className="text-emerald-300/90">+ <T v={p} /></li>)}
+                  {arr<string>(o.cons).map((p, j) => <li key={"c" + j} className="text-rose-300/90">− <T v={p} /></li>)}
                 </ul>
               </div>
             ))}
@@ -131,7 +148,7 @@ export function GenUI({ spec }: { spec: GenSpec }) {
       return (
         <div className={`gen-ui decode-in my-4 rounded-md border bg-black/45 px-4 py-3 ${tone}`}>
           {spec.title && <div className="font-display text-[17px]">{s(spec.title)}</div>}
-          <div className="font-body text-[14.5px] font-light leading-relaxed opacity-90">{s(spec.body)}</div>
+          <div className="font-body text-[14.5px] font-light leading-relaxed opacity-90"><T v={spec.body} /></div>
         </div>
       );
     }
