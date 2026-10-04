@@ -166,8 +166,13 @@ export function useChat() {
       setMessages((prev) => {
         const i = prev.findIndex((x) => x.id === row.id);
         if (i >= 0) {
+          const cur = prev[i];
+          // A saved copy can arrive late and be shorter than what is on screen. Never shrink a reply.
+          if (cur.content && m.content.length < cur.content.length) {
+            if (cur.streaming === m.streaming || !m.streaming) return prev;
+          }
           const next = [...prev];
-          next[i] = { ...next[i], ...m };
+          next[i] = { ...cur, ...m };
           return next;
         }
         return [...prev, m];
@@ -573,7 +578,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
               const row = await fetchRow(result.messageId);
               if (!row) continue;
               const m = rowToMessage(row);
-              if (m) setMessages((prev) => prev.map((x) => (x.id === result.messageId ? { ...x, ...m } : x)));
+              if (m) setMessages((prev) => prev.map((x) => (x.id === result.messageId && m.content.length >= x.content.length ? { ...x, ...m } : x)));
               finished = row.metadata?.status !== "streaming";
             }
           }
