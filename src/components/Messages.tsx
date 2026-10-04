@@ -450,6 +450,17 @@ function CodeBlock({
   );
 }
 
+const htmlCache = new Map<string, string>();
+/** Markdown to HTML, remembered per segment so a streaming reply only re-parses the part that changed. */
+function cachedHtml(part: string): string {
+  const hit = htmlCache.get(part);
+  if (hit !== undefined) return hit;
+  const html = cachedHtml(part);
+  if (htmlCache.size > 300) htmlCache.delete(htmlCache.keys().next().value as string);
+  htmlCache.set(part, html);
+  return html;
+}
+
 /** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components, KaTeX math, and Artifact Previews */
 function RichMarkdown({
   text,
