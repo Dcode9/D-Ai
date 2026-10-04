@@ -365,6 +365,8 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
   return { response: lastRes, provider, model: lastModelUsed };
 }
 
+import { rateLimited, badMessages } from './_guard.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
@@ -372,6 +374,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+  if (req.method === 'POST') {
+    if (rateLimited(req)) return res.status(429).json({ error: 'Too many requests. Slow down a moment.' });
+    const bad = badMessages(req.body?.messages ?? []);
+    if (bad) return res.status(400).json({ error: bad });
   }
 
   const inceptionKey = (process.env.INCEPTION_API || process.env.INCEPTION_API_KEY || process.env.INCEPTION_KEY || '').trim();

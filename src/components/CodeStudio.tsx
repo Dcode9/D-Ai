@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, type ChangeEvent } from "react";
 import { wrapCodeInDaiSandboxedHtml } from "../lib/designSystemTemplate";
 import { cn } from "../utils/cn";
+import { Plate } from "./frames/Plate";
 
 type Props = {
   open: boolean;
@@ -242,10 +243,9 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
       />
 
       {/* Main Drawer with Left-Sidebar Double Concentric Rails */}
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[920px] flex-col bg-ink-2/95 shadow-[0_0_60px_rgba(0,0,0,.6)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]">
-        {/* SIGNATURE DOUBLE CONCENTRIC BORDER RAILS */}
-        <div className="pointer-events-none absolute inset-3 border border-gold/40 z-20" />
-        <div className="pointer-events-none absolute inset-[15px] border border-gold/15 z-20" />
+      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[920px] pb-[env(safe-area-inset-bottom)] drop-shadow-[0_0_60px_rgba(0,0,0,.7)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]">
+        {/* Gilded SVG plate from the frame kit */}
+        <Plate variant="text" className="flex h-full w-full flex-col">
 
         {/* Header Bar */}
         <div className="relative flex flex-wrap items-center justify-between gap-4 px-8 pt-7 pb-3">
@@ -525,6 +525,7 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
             </div>
           </div>
         )}
+        </Plate>
       </aside>
     </>
   );
