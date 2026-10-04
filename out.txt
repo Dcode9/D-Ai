@@ -1,3 +1,4 @@
-29ba8ee Merge fix/stream
-73379d3 fix(stream): never shrink a reply; calmer tail decode
-END_J174077512
+remote: 
+d2144ed Merge fix/stream2
+a281b58 perf: cache markdown html per segment
+END_J190744618
