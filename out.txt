@@ -1,4 +1,4 @@
 remote: 
-d2144ed Merge fix/stream2
-a281b58 perf: cache markdown html per segment
-END_J190744618
+8748112 Merge fix/genui-md
+5fb3af9 fix: inline markdown in gen-ui
+END_J316496494
