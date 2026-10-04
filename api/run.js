@@ -189,6 +189,8 @@ async function patchRow(token, id, userId, fields) {
   }).catch(() => {});
 }
 
+import { rateLimited, badMessages } from './_guard.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -203,6 +205,9 @@ export default async function handler(req, res) {
 
   const { chat_id: chatId, messages } = req.body || {};
   if (!chatId || !Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'chat_id and messages are required' });
+  if (rateLimited(req)) return res.status(429).json({ error: 'Too many requests. Slow down a moment.' });
+  const badMsg = badMessages(messages);
+  if (badMsg) return res.status(400).json({ error: badMsg });
 
   const wantsStream = req.body?.stream_events === true;
   const um = req.body?.user_message;
