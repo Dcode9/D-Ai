@@ -566,3 +566,16 @@ input::placeholder {
 @media (prefers-reduced-motion: reduce) { .decode-in { animation: none; } }
 .decode-in.animate-thought-stage { animation: decode-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both, thought-pulse 2.2s ease-in-out 0.22s infinite; }
 .decode-in.animate-aperture-bloom { animation: decode-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both, aperture-bloom 3s ease-in-out 0.22s infinite; }
+
+/* Step timeline: a gold rail with a node per step */
+.step-rail{position:relative;padding-left:20px}
+.step-rail::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,rgba(201,168,106,.55),rgba(201,168,106,.12))}
+.step-node{position:relative}
+.step-node::before{content:"";position:absolute;left:-19px;top:14px;width:9px;height:9px;transform:rotate(45deg);background:#0b0a09;border:1px solid rgba(201,168,106,.75);box-shadow:0 0 8px rgba(201,168,106,.35)}
+
+/* Ornate card corners: gold diamonds echo the SVG plate jewels */
+.ornate-card{position:relative}
+.ornate-card::before,.ornate-card::after{content:"";position:absolute;width:7px;height:7px;transform:rotate(45deg);background:#0b0a09;border:1px solid rgba(201,168,106,.85);z-index:2;pointer-events:none}
+.ornate-card::before{top:-4px;left:-4px}
+.ornate-card::after{bottom:-4px;right:-4px}
+.ornate-card pre{overflow-x:auto}

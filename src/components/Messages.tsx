@@ -5,6 +5,7 @@ import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat
 import { Aura, type AuraState } from "./Aura";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { cn } from "../utils/cn";
+import { GenUI, parseGenSpec, wrapBareGenUI } from "./GenUI";
 import { processMathAndMarkdown } from "../lib/renderMarkdown";
 
 type Props = {
@@ -232,14 +233,24 @@ function WorkAccordion({ work }: { work?: WorkData }) {
   // 1. LIVE WORK MODE (Distinct animations for each action)
   if (work.isWorking) {
     return (
-      <div className="mb-4 space-y-2.5">
+      <div className="step-rail mb-4 space-y-2.5">
         {work.steps.map((step) => {
+          // Finished steps stay visible as compact, expandable rows (like a timeline)
+          if (!step.isLive && step.type === "thought" && step.content && step.content.trim()) {
+            return <div key={step.id} className="step-node decode-in"><ThoughtStepItem step={step} /></div>;
+          }
+          if (!step.isLive && step.type === "search") {
+            return <div key={step.id} className="step-node decode-in"><SearchStepItem step={step} /></div>;
+          }
+          if (!step.isLive && step.type === "image_gen") {
+            return <div key={step.id} className="step-node decode-in"><ImageStepItem step={step} /></div>;
+          }
           // Live Thought Stage
           if (step.type === "thought" && step.isLive) {
             return (
               <div
                 key={step.id}
-                className="decode-in animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
+                className="step-node decode-in animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
               >
                 <div className="flex items-center justify-between gap-2 border-b border-gold/20 pb-2 mb-2">
                   <div className="flex items-center gap-2 text-[13px] text-gold-2">
@@ -271,7 +282,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="decode-in rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
+                className="step-node decode-in rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-cyan-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
@@ -295,7 +306,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return (
               <div
                 key={step.id}
-                className="decode-in animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
+                className="step-node decode-in animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
               >
                 <div className="flex items-center gap-3 text-[13px] text-purple-200">
                   <div className="relative flex h-4 w-4 items-center justify-center">
@@ -327,21 +338,27 @@ function WorkAccordion({ work }: { work?: WorkData }) {
         className="group inline-flex cursor-pointer items-center gap-2 rounded-sm border border-gold/30 bg-gold/[0.05] px-3.5 py-1.5 font-display text-[12px] uppercase tracking-[0.16em] text-gold-2/90 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:border-gold/60 hover:bg-gold/[0.12] hover:text-cream active:scale-95"
         aria-expanded={isMasterOpen}
       >
-        <span>Deliberated for {totalLabel}</span>
+        <span>
+          Thought for {totalLabel}
+          {(() => {
+            const n = visibleSteps.filter((x) => x.type === "search").length;
+            return n ? ` · ${n} ${n === 1 ? "search" : "searches"}` : "";
+          })()}
+        </span>
         <ChevronIcon open={isMasterOpen} className="text-gold/70 group-hover:text-cream" />
       </button>
 
       {isMasterOpen && (
-        <div className="mt-2.5 ml-1 space-y-2 border-l border-gold/25 pl-3.5">
+        <div className="step-rail mt-2.5 ml-1 space-y-2">
           {visibleSteps.map((step) => {
             if (step.type === "thought") {
-              return <ThoughtStepItem key={step.id} step={step} />;
+              return <div key={step.id} className="step-node"><ThoughtStepItem step={step} /></div>;
             }
             if (step.type === "search") {
-              return <SearchStepItem key={step.id} step={step} />;
+              return <div key={step.id} className="step-node"><SearchStepItem step={step} /></div>;
             }
             if (step.type === "image_gen") {
-              return <ImageStepItem key={step.id} step={step} />;
+              return <div key={step.id} className="step-node"><ImageStepItem step={step} /></div>;
             }
             if (step.type === "memory") {
               return (
@@ -380,7 +397,7 @@ function CodeBlock({
   const isWebCode = /^(html|htm|jsx?|tsx?|css|svg|vue|web)$/i.test(lang);
 
   return (
-    <div className="group relative my-3 overflow-hidden rounded-md border border-gold/35 bg-[#121110] shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
+    <div className="ornate-card group relative my-3 rounded-sm border border-gold/40 bg-[#121110] shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
       <div className="flex items-center justify-between border-b border-gold/20 bg-white/[0.03] px-4 py-1.5">
         <span className="font-display text-[13px] uppercase tracking-[0.2em] text-gold-2/80">
           {lang || "code"}
@@ -450,11 +467,11 @@ function RichMarkdown({
 
     try {
       // Split on fenced code blocks to isolate executable code from prose/math
-      let processedText = text;
+      let processedText = wrapBareGenUI(text);
       // Handle streaming: if code block is currently being streamed, close it so it renders live
-      const backtickCount = (text.match(/```/g) || []).length;
+      const backtickCount = (processedText.match(/```/g) || []).length;
       if (backtickCount % 2 === 1) {
-        processedText = text + "\n```";
+        processedText = processedText + "\n```";
       }
 
       const parts = processedText.split(/(```[\s\S]*?```)/g);
@@ -464,6 +481,13 @@ function RichMarkdown({
           const rawLang = part.slice(3, firstLineEnd > 0 ? firstLineEnd : 3).trim().toLowerCase();
           const lang = rawLang.split(/\s+/)[0] || "";
           const code = firstLineEnd > 0 ? part.slice(firstLineEnd + 1, -3) : "";
+
+          if (lang === "dai-ui") {
+            const spec = parseGenSpec(code.trim());
+            return spec ? <GenUI key={`ui-${idx}`} spec={spec} /> : (
+              <div key={`ui-${idx}`} className="my-4 rounded-md border border-gold/25 bg-black/40 px-4 py-3 font-display italic text-gold/70 shimmer-text">Composing…</div>
+            );
+          }
 
           // Check if this should render as an interactive direct output artifact
           const isExplicitArtifact = lang === "dai-artifact" || lang === "artifact";
