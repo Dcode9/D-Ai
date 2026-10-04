@@ -621,7 +621,7 @@ function AssistantRowInner({
     : "idle";
 
   const answerRef = useRef<HTMLDivElement | null>(null);
-  useDecodeTail(answerRef, Boolean(m.streaming && !isWorking), m.content);
+  useDecodeTail(answerRef, Boolean(m.streaming && !isWorking), m.content, 5, 90);
 
   return (
     <div ref={isLatest ? rowRef : undefined} className="rise flex items-start gap-2 sm:gap-4">
