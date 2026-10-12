@@ -122,7 +122,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-ink text-cream">
+    <div className="relative flex h-full flex-col overflow-clip bg-ink text-cream">
       <SvgDefs />
       <Ambient state={chat.state} visible={empty} />
 
