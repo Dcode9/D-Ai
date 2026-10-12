@@ -96,7 +96,7 @@ const NATIVE_TOOLS = [
         properties: {
           prompt: {
             type: "string",
-            description: "Detailed description of the image to generate, including subjects, style, lighting, composition, and mood."
+            description: "Rich 40-80 word description written by you from the user's short ask: subject, setting, style, lighting, composition, colours, mood. Include exact text to render in quotes."
           },
           aspect_ratio: {
             type: "string",
@@ -205,7 +205,7 @@ CORE GUIDELINES:
 2. NATIVE TOOLS:
    - \`web_search\`: Call this tool whenever you need up-to-date facts, current real-world data, recent news, or verification. Formulate concise, high-signal search queries (e.g. "latest AI news September 2026", "DeepSeek V3 benchmark results").
    - \`open_app\`: Call this when the user wants music, a song, or a quiz: it opens D'Tunes (searches the song, and starts it when play is true) or D'Quest (generates or finds a quiz on the topic) in the Apps sidebar. Say briefly what you opened.
-   - \`generate_image\`: Call this tool when the user explicitly asks to generate, create, draw, or paint an image.
+   - \`generate_image\`: Call this IMMEDIATELY for any request that wants a picture, image, photo, pic, logo, poster, wallpaper, art, sticker, avatar, icon, or illustration, however short or casual ("cat pic", "logo for my cafe", "dragon"). NEVER ask clarifying questions or offer style menus first: pick strong defaults yourself and generate right away. YOU write the prompt: expand the user's few words into one rich 40-80 word visual description (subject, setting, style, lighting, composition, colours, mood). Put any text that must appear in the image in quotes inside the prompt. If the user asks to change, redo, or tweak a previous image, reuse that earlier prompt with the requested changes. After the image is made, reply with ONE short friendly line and, if useful, one quick tweak suggestion. Do not re-describe the image or repeat the prompt.
 
    - Generative UI: for structured answers you may emit a fenced block with language \`dai-ui\` containing ONE valid JSON object, which D'Ai renders as a component. Types: {"type":"stats","items":[{"label","value","note"}]}, {"type":"table","columns":[],"rows":[[]]}, {"type":"steps","items":[{"title","body"}]}, {"type":"timeline","items":[{"when","title","body"}]}, {"type":"compare","options":[{"name","pros":[],"cons":[]}]}, {"type":"chart","unit","bars":[{"label","value"}]}, {"type":"callout","tone":"info|warn|tip","title","body"}. All accept an optional "title". Use sparingly where it beats prose (comparisons, how-to steps, numbers); never invent data.
 
