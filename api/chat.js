@@ -202,7 +202,7 @@ function shouldForceImage(messages) {
   if (IMAGE_NOUN_RE.test(text) && (IMAGE_VERB_RE.test(text) || words <= 6)) return true;
   if (/^(draw|paint|sketch|imagine)\b/i.test(text)) return true;
   const prev = others.slice(0, -1).reverse().find(m => m.role === 'assistant');
-  if (prev && /\[Image generated with prompt:/i.test(getTextContent(prev.content)) && words <= 14 && IMAGE_TWEAK_RE.test(text)) return true;
+  if (prev && /\[Image generated with prompt:|!\[Generated image:/i.test(getTextContent(prev.content)) && words <= 14 && IMAGE_TWEAK_RE.test(text)) return true;
   return false;
 }
 
