@@ -475,10 +475,14 @@ Whenever you create, recommend, mention, or search for previewable websites, int
 
       let conversationHistory: any[] = [
         { role: "system", content: systemPrompt },
-        ...currentMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        ...currentMessages.map((m: any) => {
+          // Let the model know which prompt made an earlier image, so "make it more purple" can tweak it.
+          const imgStep = m.role === "assistant" ? (m.work?.steps || []).filter((st: any) => st.type === "image_gen" && st.prompt).pop() : null;
+          return {
+            role: m.role,
+            content: imgStep ? `${m.content || ""}\n[Image generated with prompt: ${String(imgStep.prompt).slice(0, 700)}]` : m.content,
+          };
+        }),
       ];
 
       if (durable && session) {
@@ -1444,4 +1448,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-    }
+}
