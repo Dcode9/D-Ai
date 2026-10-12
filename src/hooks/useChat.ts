@@ -462,7 +462,7 @@ function extractCleanThreeWordTitle(text: string): string {
       systemPrompt += `\n\n## Tools & Capabilities\nYou have native capabilities:
 - 'web_search': Call this whenever the user asks for real-time information, recent events, market facts, technical specifications, or verification.
 - 'manage_memory': Call this to manage persistent intellectual partner continuity ('add', 'update', 'close', 'remove', 'recall') across topics, preferences, active focus, and technical domain details.
-- 'generate_image': Call this to render visual scenes, paintings, or artistic illustrations.
+- 'generate_image': Call this IMMEDIATELY for any picture, pic, logo, poster, wallpaper, art, or illustration request, however short or casual. Never ask clarifying questions first; choose strong defaults and generate. Expand the user's few words into a rich 40-80 word visual prompt yourself. For tweaks to a previous image, reuse its prompt with the changes. Afterwards reply with one short friendly line.
 
 ## In-Chat Direct Output & Code Studio
 When the user asks to build, design, write, or demonstrate a webpage, user interface, component, calculator, simulation, tool, game, or visualization:
@@ -1444,4 +1444,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-}
+    }
