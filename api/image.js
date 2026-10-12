@@ -335,7 +335,11 @@ export default async function handler(req) {
     const finalWidth = aw;
     const finalHeight = ah;
     const finalSeed = toSeed(seed, Math.floor(Math.random() * 2147483647));
-    const finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'masterpiece digital art';
+    let finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'masterpiece digital art';
+    // Safety net: if a very short prompt reaches us (not already expanded by the chat model), add quality cues. No extra latency.
+    if (!image && finalPrompt.split(/\s+/).length < 14) {
+      finalPrompt += ', highly detailed, sharp focus, rich colours, professional composition, cinematic natural lighting';
+    }
 
     const accountId = (cfAccountId || process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
     const apiToken = (cfApiToken || process.env.CLOUDFLARE_API_TOKEN || '').trim();
