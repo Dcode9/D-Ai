@@ -185,6 +185,27 @@ function normalizeMessageForProvider(message, isVision = false) {
   return { role: 'user', content: cleanText };
 }
 
+
+// Deterministic image-intent routing: casual asks like "cat pic" or "make it more purple" must
+// generate right away instead of depending on the chat model's tool-choice mood.
+const IMAGE_NOUN_RE = /\b(pic|pics|picture|pictures|image|images|photo|photos|logo|poster|wallpaper|sticker|avatar|illustration|artwork|painting|drawing|sketch|portrait|meme)\b/i;
+const IMAGE_VERB_RE = /\b(draw|paint|sketch|generate|create|make|show|give|get|design|render|imagine)\b/i;
+const IMAGE_TWEAK_RE = /\b(more|less|make it|change|redo|again|another|different|instead|bigger|smaller|darker|brighter|lighter|add|remove|without|try)\b/i;
+function shouldForceImage(messages) {
+  const others = (messages || []).filter(m => m && m.role !== 'system');
+  const last = others[others.length - 1];
+  if (!last || last.role !== 'user') return false;
+  const text = getTextContent(last.content).trim();
+  if (!text || text.length > 220) return false;
+  const words = text.split(/\s+/).length;
+  if (/\b(code|html|css|javascript|react|docker|python|svg|favicon|api)\b/i.test(text)) return false;
+  if (IMAGE_NOUN_RE.test(text) && (IMAGE_VERB_RE.test(text) || words <= 6)) return true;
+  if (/^(draw|paint|sketch|imagine)\b/i.test(text)) return true;
+  const prev = others.slice(0, -1).reverse().find(m => m.role === 'assistant');
+  if (prev && /\[Image generated with prompt:/i.test(getTextContent(prev.content)) && words <= 14 && IMAGE_TWEAK_RE.test(text)) return true;
+  return false;
+}
+
 function buildSystemPrompt(messages, isVision = false) {
   if (isVision) {
     return `You are D'Ai, a multimodal AI vision assistant created by Dhairya Shah.
@@ -205,7 +226,7 @@ CORE GUIDELINES:
 2. NATIVE TOOLS:
    - \`web_search\`: Call this tool whenever you need up-to-date facts, current real-world data, recent news, or verification. Formulate concise, high-signal search queries (e.g. "latest AI news September 2026", "DeepSeek V3 benchmark results").
    - \`open_app\`: Call this when the user wants music, a song, or a quiz: it opens D'Tunes (searches the song, and starts it when play is true) or D'Quest (generates or finds a quiz on the topic) in the Apps sidebar. Say briefly what you opened.
-   - \`generate_image\`: Call this IMMEDIATELY for any request that wants a picture, image, photo, pic, logo, poster, wallpaper, art, sticker, avatar, icon, or illustration, however short or casual ("cat pic", "logo for my cafe", "dragon"). NEVER ask clarifying questions or offer style menus first: pick strong defaults yourself and generate right away. YOU write the prompt: expand the user's few words into one rich 40-80 word visual description (subject, setting, style, lighting, composition, colours, mood). Put any text that must appear in the image in quotes inside the prompt. If the user asks to change, redo, or tweak a previous image, reuse that earlier prompt with the requested changes. After the image is made, reply with ONE short friendly line and, if useful, one quick tweak suggestion. Do not re-describe the image or repeat the prompt.
+   - \`generate_image\`: Call this IMMEDIATELY for any request that wants a picture, image, photo, pic, logo, poster, wallpaper, art, sticker, avatar, icon, or illustration, however short or casual ("cat pic", "logo for my cafe", "dragon"). NEVER ask clarifying questions or offer style menus first: pick strong defaults yourself and generate right away. YOU write the prompt: expand the user's few words into one rich 40-80 word visual description (subject, setting, style, lighting, composition, colours, mood). Put any text that must appear in the image in quotes inside the prompt. If the user asks to change, redo, or tweak a previous image, reuse that earlier prompt with the requested changes. After the image is made, reply with ONE short friendly line and, if useful, one quick tweak suggestion. Do not re-describe the image or repeat the prompt. Lines like [Image generated with prompt: ...] in the history are private notes: never write them in your replies.
 
    - Generative UI: for structured answers you may emit a fenced block with language \`dai-ui\` containing ONE valid JSON object, which D'Ai renders as a component. Types: {"type":"stats","items":[{"label","value","note"}]}, {"type":"table","columns":[],"rows":[[]]}, {"type":"steps","items":[{"title","body"}]}, {"type":"timeline","items":[{"when","title","body"}]}, {"type":"compare","options":[{"name","pros":[],"cons":[]}]}, {"type":"chart","unit","bars":[{"label","value"}]}, {"type":"callout","tone":"info|warn|tip","title","body"}. All accept an optional "title". Use sparingly where it beats prose (comparisons, how-to steps, numbers); never invent data.
 
@@ -340,7 +361,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
         if (incomingBody.tool_choice) payload.tool_choice = incomingBody.tool_choice;
       } else if (incomingBody.enable_tools !== false && !isVision && !isCode) {
         payload.tools = NATIVE_TOOLS;
-        payload.tool_choice = incomingBody.tool_choice || 'auto';
+        payload.tool_choice = incomingBody.tool_choice || (shouldForceImage(incomingBody.messages) ? { type: 'function', function: { name: 'generate_image' } } : 'auto');
       }
 
       const response = await fetch(endpoint, {
