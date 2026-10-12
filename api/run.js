@@ -96,6 +96,7 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
   const sources = [];
   const toolLog = [];
   let lastFlush = 0;
+  let imageOnlyDone = false;
   let status = 'streaming';
   const startedAt = Date.now();
   let firstAt = 0;
@@ -184,6 +185,7 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
             emit({ type: 'content', delta: md });
             toolLog.push({ name: 'generate_image', query: imgPrompt.slice(0, 120), results: 1 });
             emit({ type: 'tool_done', name: 'generate_image', query: imgPrompt, sources: [] });
+            imageOnlyDone = true;
             result = JSON.stringify({ success: true, note: 'The image is already shown to the user inline. Reply with ONE short friendly line only. Do not describe it or output any image link.' });
           } catch (e) {
             toolLog.push({ name: 'generate_image', skipped: true });
@@ -194,6 +196,14 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
           result = JSON.stringify({ note: `${c.name} is not available in background mode yet. Answer without it.` });
         }
         history.push({ role: 'tool', tool_call_id: c.id, content: result });
+      }
+      if (imageOnlyDone && toolCalls.every((c) => c.name === 'generate_image')) {
+        // Skip the extra model round-trip: the image is the answer. Faster and no garbled links.
+        const line = '\n\nThere you go. Tell me what to change (colours, mood, style) and I will redo it.';
+        content += line;
+        emit({ type: 'content', delta: line });
+        await flush(true);
+        break;
       }
       await flush(true);
     }
