@@ -233,6 +233,75 @@ async function generateWithPollinations({ prompt, width, height, seed, model = '
 }
 
 // ----------------------------------------------------
+// Provider 0: Pollinations paid gateway (Pollen balance, key stays server-side)
+// Default z-image-turbo (0.004 Pollen), edits klein (0.005), fallback flux schnell (0.002)
+// ----------------------------------------------------
+const POLLEN_MODELS = {
+  default: 'z-image-turbo',
+  edit: 'klein',
+  budget: 'flux',
+  hd: 'gpt-image-2',
+};
+const POLLEN_ALLOWED = new Set(['z-image-turbo', 'z-image', 'klein', 'flux', 'gpt-image-2']);
+
+function aspectToSize(aspect, width, height) {
+  const map = { '1:1': [1024, 1024], '16:9': [1280, 720], '9:16': [720, 1280], '4:3': [1152, 864], '3:4': [864, 1152], '3:2': [1216, 832], '2:3': [832, 1216] };
+  if (aspect && map[aspect]) return map[aspect];
+  return [width, height];
+}
+
+async function generateWithPollinationsPaid({ prompt, width, height, seed, model, image, key }) {
+  const chain = image
+    ? [POLLEN_MODELS.edit]
+    : model === POLLEN_MODELS.hd
+      ? [POLLEN_MODELS.hd, POLLEN_MODELS.default, POLLEN_MODELS.budget]
+      : [POLLEN_ALLOWED.has(model) ? model : POLLEN_MODELS.default, POLLEN_MODELS.budget];
+  let lastErr = null;
+  for (const m of chain) {
+    try {
+      const res = await fetch(
+        image ? 'https://gen.pollinations.ai/v1/images/edits' : 'https://gen.pollinations.ai/v1/images/generations',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            prompt,
+            model: m,
+            size: `${width}x${height}`,
+            n: 1,
+            seed,
+            response_format: 'b64_json',
+            ...(image ? { image: Array.isArray(image) ? image : [image] } : {}),
+          }),
+          signal: AbortSignal.timeout(45000),
+        },
+      );
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        lastErr = new Error(`Pollinations ${m} (${res.status}): ${t.slice(0, 120)}`);
+        continue;
+      }
+      const payload = await res.json();
+      const b64 = payload.data?.[0]?.b64_json;
+      if (b64) {
+        const bytes = base64ToUint8Array(b64);
+        const mimeType = bytes[0] === 0x89 ? 'image/png' : bytes[0] === 0x52 ? 'image/webp' : 'image/jpeg';
+        return { bytes, mimeType, provider: `pollen:${m}` };
+      }
+      const u = payload.data?.[0]?.url;
+      if (u) {
+        const r = await fetch(u);
+        return { bytes: new Uint8Array(await r.arrayBuffer()), mimeType: r.headers.get('content-type') || 'image/jpeg', provider: `pollen:${m}` };
+      }
+      lastErr = new Error(`Pollinations ${m}: empty response`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Pollinations paid generation failed');
+}
+
+// ----------------------------------------------------
 // Main Handler: Auto-Cascade Image Generator
 // ----------------------------------------------------
 export default async function handler(req) {
@@ -258,11 +327,13 @@ export default async function handler(req) {
       cfApiToken,
       hfToken,
       cfModel,
-      hfModel
+      hfModel,
+      aspect_ratio
     } = body;
 
-    const finalWidth = toPositiveInt(width, 1024);
-    const finalHeight = toPositiveInt(height, 1024);
+    const [aw, ah] = aspectToSize(aspect_ratio, toPositiveInt(width, 1024), toPositiveInt(height, 1024));
+    const finalWidth = aw;
+    const finalHeight = ah;
     const finalSeed = toSeed(seed, Math.floor(Math.random() * 2147483647));
     const finalPrompt = prompt && String(prompt).trim() ? String(prompt).trim() : 'masterpiece digital art';
 
@@ -278,8 +349,21 @@ export default async function handler(req) {
     const attempts = [];
     let imageResult = null;
 
+    // 0. Pollinations paid gateway (Pollen) when a server-side key is configured
+    const pollenKey = (process.env.POLLINATIONS_API_KEY || '').trim();
+    if (pollenKey && !['cloudflare', 'huggingface'].includes(provider)) {
+      try {
+        imageResult = await generateWithPollinationsPaid({
+          prompt: finalPrompt, width: finalWidth, height: finalHeight, seed: finalSeed, model, image, key: pollenKey,
+        });
+      } catch (err) {
+        console.warn('[D-Ai Image] Pollen gateway failed:', err.message);
+        attempts.push({ provider: 'pollen', error: err.message });
+      }
+    }
+
     // 1. Try Cloudflare Workers AI if configured or requested
-    if (!image && (provider === 'cloudflare' || (hasCloudflare && provider !== 'huggingface' && provider !== 'pollinations'))) {
+    if (!imageResult && !image && (provider === 'cloudflare' || (hasCloudflare && provider !== 'huggingface' && provider !== 'pollinations'))) {
       try {
         imageResult = await generateWithCloudflare({
           prompt: finalPrompt,
