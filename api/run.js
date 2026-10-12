@@ -4,6 +4,8 @@
 // device sees it through Supabase Realtime (or a plain refetch).
 import chatHandler from './chat.js';
 import searchHandler from './search.js';
+import imageHandler from './image.js';
+import { put } from '@vercel/blob';
 
 export const config = { maxDuration: 300 };
 
@@ -162,6 +164,31 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
           emit({ type: 'app', app: args.app, query: q, play: !!args.play });
           toolLog.push({ name: 'open_app', query: `${args.app}${q ? ': ' + q : ''}`, results: 0 });
           result = JSON.stringify({ opened: args.app, note: 'Opened in the Apps sidebar with the search started. Tell the user briefly.' });
+        } else if (c.name === 'generate_image') {
+          const imgPrompt = String(args.prompt || '').trim().slice(0, 1200) || 'a beautiful illustration';
+          emit({ type: 'tool_query', name: 'generate_image', query: imgPrompt });
+          try {
+            const r = await imageHandler(new Request('http://internal/api/image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: args.aspect_ratio }),
+            }));
+            if (!r.ok) throw new Error(`image ${r.status}`);
+            const mime = (r.headers.get('content-type') || 'image/jpeg').split(';')[0];
+            const bytes = Buffer.from(await r.arrayBuffer());
+            const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+            const blob = await put(`dai-images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, bytes, { access: 'public', contentType: mime });
+            const alt = imgPrompt.replace(/[\[\]\n]/g, ' ').slice(0, 300);
+            const md = `\n\n![Generated image: ${alt}](${blob.url})\n\n`;
+            content += md;
+            emit({ type: 'content', delta: md });
+            toolLog.push({ name: 'generate_image', query: imgPrompt.slice(0, 120), results: 1 });
+            emit({ type: 'tool_done', name: 'generate_image', query: imgPrompt, sources: [] });
+            result = JSON.stringify({ success: true, note: 'The image is already shown to the user inline. Reply with ONE short friendly line only. Do not describe it or output any image link.' });
+          } catch (e) {
+            toolLog.push({ name: 'generate_image', skipped: true });
+            result = JSON.stringify({ error: 'Image generation failed: ' + String(e?.message || e).slice(0, 120), note: 'Apologise in one short line and offer to retry.' });
+          }
         } else {
           toolLog.push({ name: c.name, skipped: true });
           result = JSON.stringify({ note: `${c.name} is not available in background mode yet. Answer without it.` });
