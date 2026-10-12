@@ -716,7 +716,7 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
         // Land on the question that led to this answer so it is never hidden above the fold.
         const users = latestRowRef.current.parentElement?.querySelectorAll('[data-role="user"]');
         const target = (users && users.length ? users[users.length - 1] : latestRowRef.current) as HTMLElement;
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
       }
     }
   }, [messages]);
@@ -746,5 +746,3 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
     </div>
   );
 }
-
-
