@@ -558,7 +558,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
               mode: mode || (isCodePrompt ? "Code" : undefined),
               is_code: isCodePrompt,
               max_tokens: isCodePrompt ? 16384 : 4096,
-              hd: typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") === "1",
+              hd: typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") !== "0",
               title,
               user_message: { id: userMsg.id, content: prompt, mode },
             },
@@ -1036,7 +1036,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(localStorage.getItem("dai-hd") === "1" ? { model: "gpt-image-2" } : {}) }),
+                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(localStorage.getItem("dai-hd") !== "0" ? { model: "gpt-image-2" } : {}) }),
                     signal: controller.signal,
                   });
                   if (imgRes.ok) {
@@ -1446,4 +1446,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-    }
+                                      }
