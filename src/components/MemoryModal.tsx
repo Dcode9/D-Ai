@@ -56,7 +56,6 @@ export function MemoryModal({ open, onClose }: Props) {
         {/* Header */}
         <div className="relative mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="text-xl text-gold">🧠</span>
             <div>
               <h2 className="font-display text-[22px] tracking-[0.06em] text-cream">Personal Memory</h2>
               <p className="font-body text-[12px] text-muted">
