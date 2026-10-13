@@ -25,20 +25,11 @@ function buzz(ms: number | number[] = 8) {
 }
 
 export function ChatInput({ onSend, onStop, busy, mode, onMode, onOpenStudio }: Props) {
-  const [modeOpen, setModeOpen] = useState(false);
-  const curMode = MODES.find((x) => x.id === (mode ?? null)) || MODES[0];
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [hd, setHd] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") !== "0");
-  const toggleHd = () => {
-    const next = !hd;
-    setHd(next);
-    try { localStorage.setItem("dai-hd", next ? "1" : "0"); } catch {}
-    buzz(next ? [12, 30, 12] : 10);
-  };
 
   // Continuous auto-grow like ChatGPT: follows the text line by line, then scrolls past a cap.
   useEffect(() => {
@@ -107,7 +98,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onMode, onOpenStudio }: 
     <form
       onSubmit={submit}
       className={cn(
-        "relative mx-auto w-full max-w-[768px] rounded-[26px] border bg-[#1d1b17]/95 px-3 pb-2.5 pt-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur transition-all duration-200",
+        "dai-glass-box relative mx-auto w-full max-w-[768px] rounded-[28px] border px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-200",
         focused ? "border-gold/60 shadow-[0_8px_34px_rgba(201,168,106,0.16)]" : "border-gold/25",
       )}
     >
@@ -127,22 +118,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onMode, onOpenStudio }: 
         </div>
       )}
 
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        placeholder={busy ? "D’Ai is composing…" : "Message D’Ai"}
-        enterKeyHint="send"
-        className="scroll-gold block max-h-[220px] min-h-[28px] w-full resize-none bg-transparent px-1.5 font-body text-[16px] leading-[1.55] text-cream outline-none placeholder:text-muted/60"
-        autoComplete="off"
-        spellCheck={false}
-      />
-
-      <div className="mt-1.5 flex items-center gap-1">
+      <div className="flex items-end gap-1">
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
         <button
           type="button"
@@ -153,68 +129,21 @@ export function ChatInput({ onSend, onStop, busy, mode, onMode, onOpenStudio }: 
         >
           <svg width="22" height="22" viewBox="0 0 24 24" {...IC}><path d="M12 5v14M5 12h14" /></svg>
         </button>
-        {onOpenStudio && (
-          <button
-            type="button"
-            onClick={() => { buzz(); onOpenStudio(); }}
-            title="Open Code Studio"
-            aria-label="Open Code Studio"
-            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream/60 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" {...IC}><path d="M16 18l6-6-6-6" /><path d="M8 6l-6 6 6 6" /></svg>
-          </button>
-        )}
-        {onMode && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { buzz(); setModeOpen((o) => !o); }}
-              aria-haspopup="menu"
-              aria-expanded={modeOpen}
-              title="Mode"
-              className="flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-white/15 px-3 font-body text-[13px] text-cream/80 transition-all hover:text-cream active:scale-95"
-            >
-              {curMode.label}
-              <svg width="12" height="12" viewBox="0 0 24 24" {...IC}><path d="M6 15l6-6 6 6" /></svg>
-            </button>
-            {modeOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setModeOpen(false)} />
-                <div role="menu" className="rise absolute bottom-11 left-0 z-40 w-56 overflow-hidden rounded-2xl border border-gold/30 bg-[#1d1b17] p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.6)]">
-                  {MODES.map((x) => (
-                    <button
-                      key={x.label}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => { buzz(); onMode(x.id); setModeOpen(false); }}
-                      className={cn("flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[.06]", x.id === (mode ?? null) && "bg-gold/10")}
-                    >
-                      <span>
-                        <span className="block font-body text-[14.5px] text-cream">{x.label}</span>
-                        <span className="block font-body text-[12px] text-muted">{x.hint}</span>
-                      </span>
-                      {x.id === (mode ?? null) && <svg width="16" height="16" viewBox="0 0 24 24" {...IC} className="text-gold-2"><path d="M20 6L9 17l-5-5" /></svg>}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={toggleHd}
-          aria-pressed={hd}
-          title={hd ? "HD images on (GPT Image 2). Tap for fast mode" : "Fast images (Z-Image Turbo). Tap for HD"}
-          className={cn(
-            "flex h-8 shrink-0 cursor-pointer items-center rounded-full border px-3 font-display text-[12px] tracking-widest transition-all active:scale-90",
-            hd ? "border-gold bg-gold/20 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.35)]" : "border-white/15 text-cream/50 hover:text-cream",
-          )}
-        >
-          {hd ? "HD" : "FAST"}
-        </button>
 
-        <div className="flex-1" />
+        <textarea
+        ref={textareaRef}
+        rows={1}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={busy ? "D’Ai is composing…" : "Message D’Ai"}
+        enterKeyHint="send"
+        className="scroll-gold block max-h-[220px] min-h-[28px] min-w-0 flex-1 resize-none self-center bg-transparent px-1 py-[9px] font-body text-[16px] leading-[1.45] text-cream outline-none placeholder:text-muted/60"
+        autoComplete="off"
+        spellCheck={false}
+      />
 
         {busy ? (
           <button
