@@ -171,7 +171,7 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
           try {
             const r = await imageHandler(new Request('http://internal/api/image', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'x-sync': '1' },
               body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: args.aspect_ratio, ...(body.hd ? { model: 'gpt-image-2' } : {}) }),
             }));
             if (!r.ok) throw new Error(`image ${r.status}`);
