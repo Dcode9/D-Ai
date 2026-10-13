@@ -59,20 +59,10 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
   return (
     <div
       className={cn(
-        "group relative my-5 overflow-hidden rounded-md border border-gold/45 bg-ink-2/95 shadow-[0_8px_36px_rgba(0,0,0,0.65)] transition-all duration-300",
+        "group relative my-4 flex w-full max-w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#14120e] shadow-[0_8px_30px_rgba(0,0,0,0.5)]",
         isFullscreen && "fixed inset-4 z-50 my-0 border-gold bg-[#151413]/98 shadow-[0_0_80px_rgba(0,0,0,0.95)]",
       )}
     >
-      {/* SIGNATURE INNER CONCENTRIC BORDER RAIL */}
-      <div className="pointer-events-none absolute inset-[3px] rounded-[3px] border border-gold/20 z-20" />
-
-      {/* 4 Corner Diamond Jewels */}
-      {["-top-[2px] -left-[2px]", "-top-[2px] -right-[2px]", "-bottom-[2px] -left-[2px]", "-bottom-[2px] -right-[2px]"].map((pos) => (
-        <span
-          key={pos}
-          className={cn("pointer-events-none absolute z-30 h-2 w-2 rotate-45 border border-gold/80 bg-ink", pos)}
-        />
-      ))}
 
       {/* Ornate Header Toolbar */}
       <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-gold/25 bg-black/50 px-5 py-2.5">
@@ -218,7 +208,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
       </div>
 
       {/* Main Content Viewport */}
-      <div className={cn("relative w-full bg-[#121110]", isFullscreen ? "h-[calc(100%-80px)]" : "h-[440px]")}>
+      <div className={cn("relative w-full bg-[#121110]", isFullscreen ? "min-h-0 flex-1" : "h-[min(72vh,640px)] min-h-[320px]")}>
         {/* Direct Output (Iframe Preview) */}
         <div
           className={cn(
@@ -231,7 +221,7 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
             srcDoc={sandboxedHtml}
             title={title}
             sandbox="allow-scripts allow-forms allow-modals allow-popups"
-            className="h-full w-full border-0 bg-[#1c1b1a]"
+            className="block h-full w-full max-w-full border-0 bg-white"
           />
         </div>
 
