@@ -78,6 +78,7 @@ export type WorkStep =
       id: string;
       type: "image_gen";
       prompt: string;
+      hd?: boolean;
       imageUrl?: string;
       isLive?: boolean;
     }
@@ -1030,6 +1031,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                       id: imgStepId,
                       type: "image_gen",
                       prompt: imgPrompt,
+                      hd: !!pickImageModel(prompt),
                       isLive: true,
                     },
                   ],
@@ -1040,7 +1042,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(pickImageModel(imgPrompt) ? { model: "gpt-image-2" } : {}) }),
+                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(pickImageModel(prompt) ? { model: "gpt-image-2" } : {}) }),
                     signal: controller.signal,
                   });
                   if (imgRes.ok) {
@@ -1468,4 +1470,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-                  }
+                                     }
