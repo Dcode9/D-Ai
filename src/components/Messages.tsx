@@ -681,6 +681,7 @@ function AssistantRowInner({
   };
 
   const isWorking = Boolean(m.work?.isWorking);
+  const waiting = Boolean(m.streaming && !m.content.trim() && !m.imageUrl);
   const answerRef = useRef<HTMLDivElement | null>(null);
   const wasStreaming = useRef(false);
   if (m.streaming) wasStreaming.current = true;
@@ -688,10 +689,10 @@ function AssistantRowInner({
   return (
     <div ref={isLatest ? rowRef : undefined} className="rise min-w-0 font-body">
       {/* Agentic Execution / Work details */}
-      {m.work && <WorkAccordion work={m.work} />}
+      {waiting ? <LiveWork work={m.work ? { ...m.work, isWorking: true } : { totalDurationSec: 0, steps: [], isWorking: true }} /> : m.work && <WorkAccordion work={m.work} />}
 
       {/* Answer Content */}
-      <div ref={answerRef} className={cn("dai-shell", m.streaming ? "is-streaming" : wasStreaming.current && "is-settled")}>
+      <div ref={answerRef} className={cn("dai-shell", m.streaming && !waiting ? "is-streaming" : wasStreaming.current && "is-settled")}>
         <RichMarkdown
           text={m.content}
           streaming={m.streaming && !isWorking}
