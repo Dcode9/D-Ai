@@ -30,9 +30,9 @@ export function useGradientMode(messages: any[], state: string): GradientMode {
 }
 
 /** Soft gradient blobs behind the whole app. Colour, speed and glow follow the answer state. */
-export function Ambient({ mode }: { mode: GradientMode }) {
+export function Ambient({ mode, visible = true }: { mode: GradientMode; visible?: boolean }) {
   return (
-    <div className={cn("ambient", `ambient--${mode}`)} aria-hidden>
+    <div className={cn("ambient", `ambient--${mode}`, !visible && "ambient--off")} aria-hidden>
       <div className="ambient__blob ambient__blob--a"><div className="ambient__core" /></div>
       <div className="ambient__blob ambient__blob--b"><div className="ambient__core" /></div>
       <div className="ambient__blob ambient__blob--c"><div className="ambient__core" /></div>
