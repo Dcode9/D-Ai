@@ -292,7 +292,8 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
     if (apiKey && apiKey.startsWith('sk_')) {
       endpoint = 'https://gen.pollinations.ai/v1/chat/completions';
       if (isCode) {
-        candidateModels = ['qwen/qwen3-coder-30b-a3b-instruct', 'moonshotai/kimi-k2.7-code', 'openai/gpt-oss-20b', 'deepseek/deepseek-v4.1-flash'];
+        // Only models quest Pollen can pay for (paid_only=false): the paid coder models answer 200 with a 'top up' message instead of failing over.
+        candidateModels = ['moonshotai/kimi-k2.6', 'deepseek/deepseek-v4-flash', 'openai/gpt-oss-20b'];
       } else {
         candidateModels = ['openai/gpt-5.4-mini', 'meta/llama-3.3-70b-instruct', 'openai/gpt-oss-20b'];
       }
