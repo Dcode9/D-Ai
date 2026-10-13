@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Ambient, useGradientMode } from "./components/Ambient";
+import { Ambient } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
 import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
@@ -58,7 +58,6 @@ export default function App() {
 
   const empty = chat.messages.length === 0 && chat.state === "idle";
   const busy = chat.state !== "idle";
-  const gmode = useGradientMode(chat.messages, chat.state);
 
   // Auth state tracking
   useEffect(() => {
@@ -109,7 +108,7 @@ export default function App() {
   return (
     <div className="relative flex h-full flex-col bg-ink text-cream" style={{ overflow: "clip" }}>
       <SvgDefs />
-      <Ambient mode={gmode} />
+      <Ambient mode="idle" visible={empty} />
 
       <Header
         onHistory={() => setHistoryOpen(true)}
@@ -121,10 +120,10 @@ export default function App() {
         user={user}
       />
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
+      <main className="absolute inset-0 z-10">
         {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
         {chat.breadcrumbs.length > 1 && (
-          <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5">
+          <div className="absolute inset-x-3 top-[62px] z-20 mx-auto flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5">
             <div className="flex items-center gap-1.5 overflow-x-auto text-[12.5px] font-body">
               <span className="font-mono text-[11px] text-gold/70 shrink-0">⑂ Lineage:</span>
               {chat.breadcrumbs.map((crumb, idx) => {
@@ -170,7 +169,7 @@ export default function App() {
         )}
 
         {/* Chat area: clean full-width scroller with a centered column, composer pinned below */}
-        <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0">
           {chat.isLoadingChat && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30">
               <div className="flex items-center gap-2 rounded-full border border-gold/30 bg-ink px-4 py-2 text-gold shadow-lg">
@@ -183,7 +182,7 @@ export default function App() {
           <div
             ref={scrollRef}
             onScroll={onScroll}
-            className={cn("scroll-gold absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain", empty && "flex items-center justify-center")}
+            className={cn("scroll-gold absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain pb-[92px] pt-[calc(58px+env(safe-area-inset-top))]", empty && "flex items-center justify-center")}
           >
             {empty ? (
               <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-6 px-5 pb-10 text-center">
@@ -210,7 +209,7 @@ export default function App() {
               type="button"
               onClick={() => { try { navigator.vibrate?.(8); } catch {} scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }}
               aria-label="Scroll to bottom"
-              className="rise absolute bottom-3 left-1/2 z-20 flex h-10 w-10 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-gold/40 bg-[#1d1b17]/95 text-cream shadow-[0_4px_18px_rgba(0,0,0,0.5)] transition-transform active:scale-90"
+              className="rise absolute bottom-[100px] left-1/2 z-20 flex h-10 w-10 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-gold/40 bg-[#1d1b17]/95 text-cream shadow-[0_4px_18px_rgba(0,0,0,0.5)] transition-transform active:scale-90"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="M19 12l-7 7-7-7" /></svg>
             </button>
@@ -218,7 +217,7 @@ export default function App() {
         </div>
 
         {/* Composer */}
-        <div className="relative z-30 shrink-0 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-1.5 sm:px-5">
+        <div className="dai-glass-bottom absolute inset-x-0 bottom-0 z-30 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-3 sm:px-5">
           <ChatInput
             onSend={chat.send}
             onStop={chat.stop}
