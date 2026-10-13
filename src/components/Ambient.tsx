@@ -33,9 +33,9 @@ export function useGradientMode(messages: any[], state: string): GradientMode {
 export function Ambient({ mode }: { mode: GradientMode }) {
   return (
     <div className={cn("ambient", `ambient--${mode}`)} aria-hidden>
-      <div className="ambient__blob ambient__blob--a" />
-      <div className="ambient__blob ambient__blob--b" />
-      <div className="ambient__blob ambient__blob--c" />
+      <div className="ambient__blob ambient__blob--a"><div className="ambient__core" /></div>
+      <div className="ambient__blob ambient__blob--b"><div className="ambient__core" /></div>
+      <div className="ambient__blob ambient__blob--c"><div className="ambient__core" /></div>
       <div className="ambient__vignette" />
     </div>
   );
