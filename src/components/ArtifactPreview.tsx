@@ -238,7 +238,6 @@ export function ArtifactPreview({ code, lang = "html", title = "Interactive Prev
       {/* Ornate Website Link Footer Banner */}
       <div className="relative z-20 flex items-center justify-between border-t border-gold/25 bg-black/70 px-5 py-2 font-body text-[12.5px]">
         <div className="flex items-center gap-2 text-gold/85">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-display tracking-wide">Live Previewable Website</span>
         </div>
         {previewBlobUrl && (
