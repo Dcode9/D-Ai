@@ -1,58 +1,11 @@
 import { useState, useEffect } from "react";
 import { derivePromptSuggestions, getMemoryTopics, type PromptSuggestion } from "../lib/memory";
 import type { Conversation } from "../hooks/useChat";
-import { StretchFrame } from "./frames/StretchFrame";
-import { useSize } from "../hooks/useSize";
 
 type Props = {
   conversations: Conversation[];
   onSelectPrompt: (prompt: string) => void;
 };
-
-interface SuggestionCardProps {
-  suggestion: PromptSuggestion;
-  onSelect: (prompt: string) => void;
-}
-
-function OrnateSuggestionBox({ suggestion, onSelect }: SuggestionCardProps) {
-  const { ref, w, h } = useSize<HTMLButtonElement>();
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={() => onSelect(suggestion.prompt)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      title="Click to explore this direction"
-      className="group relative flex h-[56px] w-full cursor-pointer items-center justify-center px-8 transition-transform duration-200 hover:scale-[1.015] active:scale-[0.985]"
-    >
-      {/* Heraldic Ornate Frame */}
-      <StretchFrame
-        shape={suggestion.shapeId}
-        w={w}
-        h={h}
-        active={hovered}
-        glow={hovered}
-        strokeWidth={hovered ? 1.7 : 1.3}
-        showBackdrop={true}
-        backdropOpacity={0.88}
-        className="transition-all duration-300"
-      />
-
-      {/* 4-5 Word Preview Label (Full prompt is hidden) */}
-      <div className="relative z-10 flex items-center justify-center gap-2 px-2 text-center select-none">
-        <span className="font-display text-[13px] sm:text-[14px] font-medium tracking-[0.05em] text-cream/90 transition-colors group-hover:text-gold-2">
-          {suggestion.preview}
-        </span>
-        <span className="text-[12px] text-gold/45 transition-all duration-200 group-hover:translate-x-1 group-hover:text-gold">
-          →
-        </span>
-      </div>
-    </button>
-  );
-}
 
 export function PromptSuggestions({ conversations, onSelectPrompt }: Props) {
   const [suggestions, setSuggestions] = useState<PromptSuggestion[]>([]);
@@ -71,22 +24,26 @@ export function PromptSuggestions({ conversations, onSelectPrompt }: Props) {
     return () => window.removeEventListener("dai:memory-updated", onMemoryUpdate);
   }, [conversations]);
 
-  // If nothing is mentioned / no memory or context exists, keep blank per user mandate
-  if (!suggestions || suggestions.length === 0) {
-    return null;
-  }
+  const defaults: PromptSuggestion[] = [
+    { preview: "Make an image", prompt: "Make me a stunning image of a golden dragon over a misty mountain at sunrise" },
+    { preview: "Write some code", prompt: "Build a small, beautiful to-do app in one HTML file" },
+    { preview: "Explain something", prompt: "Explain how black holes work in simple terms" },
+    { preview: "Plan my day", prompt: "Help me plan a productive day, ask me what I need to get done" },
+  ] as PromptSuggestion[];
+  const list = suggestions && suggestions.length ? suggestions : defaults;
 
   return (
-    <div className="rise w-full max-w-2xl px-4 select-none">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {suggestions.map((item, idx) => (
-          <OrnateSuggestionBox
-            key={`${item.preview}-${idx}`}
-            suggestion={item}
-            onSelect={onSelectPrompt}
-          />
-        ))}
-      </div>
+    <div className="rise flex w-full flex-wrap items-center justify-center gap-2.5 select-none">
+      {list.map((item, idx) => (
+        <button
+          key={`${item.preview}-${idx}`}
+          type="button"
+          onClick={() => { try { navigator.vibrate?.(8); } catch {} onSelectPrompt(item.prompt); }}
+          className="cursor-pointer rounded-full border border-gold/30 bg-white/[.035] px-4 py-2.5 font-body text-[14.5px] text-cream/90 transition-all hover:border-gold/60 hover:bg-gold/10 hover:text-cream active:scale-95"
+        >
+          {item.preview}
+        </button>
+      ))}
     </div>
   );
 }
