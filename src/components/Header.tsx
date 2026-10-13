@@ -52,13 +52,8 @@ export function Header({ onHistory, onNewChat, onMemory, onAccount, onApps, apps
         </h1>
 
         <div className="flex items-center gap-0.5">
-          {onApps && (
-            <IconBtn label="Apps" onClick={onApps} active={appsOpen}>
-              <svg width="20" height="20" viewBox="0 0 24 24" {...IC}><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>
-            </IconBtn>
-          )}
           <IconBtn label="Memory" onClick={onMemory}>
-            <span className="text-[18px] leading-none">🧠</span>
+            <svg width="21" height="21" viewBox="0 0 24 24" {...IC}><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V4a3 3 0 0 0-3 0Z" /><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1" /></svg>
             {memoryCount > 0 && (
               <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-ink">{memoryCount}</span>
             )}
