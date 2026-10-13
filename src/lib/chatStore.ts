@@ -82,6 +82,14 @@ export function saveStoredConversations(chats: Conversation[]): Conversation[] {
     window.dispatchEvent(new CustomEvent("dai:chats-updated", { detail: chats }));
     return chats;
   } catch (e) {
+    // Out of space: drop old inline images (keep the 3 newest chats' pictures) and retry.
+    try {
+      const slim = JSON.stringify(chats.slice(0, 100), (_k, v) => (typeof v === "string" && v.startsWith("data:image") ? "" : v));
+      const keep = JSON.parse(slim) as Conversation[];
+      const merged = keep.map((c, idx) => (idx < 3 ? chats[idx] : c));
+      localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(merged));
+      return chats;
+    } catch { /* fall through */ }
     console.warn("[chatStore] Failed to save conversations:", e);
     return chats;
   }
@@ -316,3 +324,33 @@ export function deleteConversationWithDescendants(
   return { remainingChats, deletedIds: Array.from(toDelete) };
 }
 
+/** Picks the image model from the prompt: fast Z-Image Turbo by default, GPT Image 2 only for really complex asks. */
+export function pickImageModel(prompt: string): "gpt-image-2" | "" {
+  const p = (prompt || "").trim();
+  const words = p.split(/\s+/).filter(Boolean).length;
+  const needsText = /\b(text|typograph|lettering|caption|title|headline|slogan|words?\s+(saying|that say)|says?|reads?|poster|infographic|logo|menu|book cover|magazine|banner|sign(?:age)?|label|diagram|chart|ui mockup|screenshot|comic|storyboard|meme)\b/i.test(p) || /["“”][^"“”]{2,}["“”]/.test(p);
+  const manySubjects = /\b(collage|grid of|set of|series of|multiple|several|crowd|group of|\d+\s+(people|characters|panels|items|objects))\b/i.test(p);
+  const exacting = /\b(photorealistic|hyper[- ]?realistic|ultra[- ]?detailed|8k|product shot|studio photo|accurate|exact|precise|infographic|technical drawing|blueprint)\b/i.test(p);
+  const complex = (words >= 40) || (needsText && words >= 6) || manySubjects || (exacting && words >= 14);
+  return complex ? "gpt-image-2" : "";
+}
+
+/** Shrinks a generated image to a small JPEG data URL so it survives reloads and cloud sync. */
+export async function shrinkToDataUrl(blob: Blob, max = 960, quality = 0.82): Promise<string> {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k);
+    c.height = Math.round(bmp.height * k);
+    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", quality);
+  } catch {
+    return await new Promise<string>((res) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result || ""));
+      r.onerror = () => res("");
+      r.readAsDataURL(blob);
+    });
+  }
+}
