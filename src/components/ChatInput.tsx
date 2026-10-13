@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent, type ChangeEvent } from "react";
-import { useSize } from "../hooks/useSize";
-import { InputFrame } from "./frames/InputFrame";
 import type { Mode } from "../hooks/useChat";
 import { cn } from "../utils/cn";
 
@@ -12,75 +10,71 @@ type Props = {
   onOpenStudio?: () => void;
 };
 
-const NARROW_CAP = 0.62;
+const IC = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
-export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
-  const { ref, w, h } = useSize<HTMLFormElement>();
+function buzz(ms: number | number[] = 8) {
+  try { navigator.vibrate?.(ms); } catch {}
+}
+
+export function ChatInput({ onSend, onStop, busy, onOpenStudio }: Props) {
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [boxHeight, setBoxHeight] = useState(100);
-  const [boxWidth, setBoxWidth] = useState(780);
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [hd, setHd] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") !== "0");
   const toggleHd = () => {
     const next = !hd;
     setHd(next);
     try { localStorage.setItem("dai-hd", next ? "1" : "0"); } catch {}
-    try { navigator.vibrate?.(next ? [12, 30, 12] : 10); } catch {}
+    buzz(next ? [12, 30, 12] : 10);
   };
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
-  useEffect(() => {
-    const on = () => setNarrow(window.innerWidth < 640);
-    window.addEventListener("resize", on);
-    return () => window.removeEventListener("resize", on);
-  }, []);
 
-  // Continuous auto-grow like ChatGPT: the box follows the text line by line, then scrolls past a cap.
-  const [taH, setTaH] = useState(34);
+  // Continuous auto-grow like ChatGPT: follows the text line by line, then scrolls past a cap.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const maxH = Math.max(90, Math.min(narrow ? 120 : 200, Math.round(window.innerHeight * 0.3)));
-    const h = Math.min(maxH, Math.max(34, el.scrollHeight));
-    el.style.height = `${h}px`;
+    const maxH = Math.max(96, Math.min(window.innerWidth < 640 ? 150 : 220, Math.round(window.innerHeight * 0.32)));
+    el.style.height = `${Math.min(maxH, Math.max(28, el.scrollHeight))}px`;
     el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
-    setTaH(h);
-    document.documentElement.style.setProperty("--input-extra", `${Math.max(0, h - 34) + (h > 40 ? 40 : 0)}px`);
-    setBoxHeight(h + 66);
-    setBoxWidth(780);
-  }, [value, narrow]);
+  }, [value]);
 
-  const multi = taH > 40;
+  // "Edit" on a past message drops its text back into the box
+  useEffect(() => {
+    const onEdit = (e: Event) => {
+      const t = (e as CustomEvent).detail?.text as string | undefined;
+      if (t == null) return;
+      setValue(t);
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (el) { el.focus(); el.setSelectionRange(t.length, t.length); }
+      });
+    };
+    window.addEventListener("dai:edit", onEdit);
+    return () => window.removeEventListener("dai:edit", onEdit);
+  }, []);
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
-    if (busy && onStop) {
-      onStop();
+    if (busy) {
+      onStop?.();
       return;
     }
     const trimmed = value.trim();
-    if ((!trimmed && !attachedImage) || busy) return;
-
+    if (!trimmed && !attachedImage) return;
     let finalPrompt = trimmed;
     if (attachedImage) {
       finalPrompt = `[UPLOADED_IMAGE: ${attachedImage}]\n${trimmed || "Analyze this image and generate the implementation."}`;
     }
-
+    buzz(10);
     onSend(finalPrompt);
     setValue("");
     setAttachedImage(null);
-    setTaH(34);
-    setBoxHeight(100);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "34px";
-    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && window.innerWidth >= 640) {
       e.preventDefault();
       submit();
     }
@@ -91,146 +85,116 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     if (!file) return;
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setAttachedImage(reader.result as string);
-      };
+      reader.onload = () => setAttachedImage(reader.result as string);
       reader.readAsDataURL(file);
     }
+    e.target.value = "";
   };
+
+  const canSend = Boolean(value.trim() || attachedImage);
 
   return (
     <form
-      ref={ref}
       onSubmit={submit}
-      style={{
-        height: `${taH + (narrow ? 28 : 66) + (multi ? 40 : 0) + (attachedImage ? 42 : 0)}px`,
-        maxWidth: narrow ? "100%" : "min(780px, calc(100vw - 2rem))",
-      }}
-      className="relative mx-auto w-full transition-[height] duration-100 ease-out"
+      className={cn(
+        "relative mx-auto w-full max-w-[768px] rounded-[26px] border bg-[#1d1b17]/95 px-3 pb-2.5 pt-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur transition-all duration-200",
+        focused ? "border-gold/60 shadow-[0_8px_34px_rgba(201,168,106,0.16)]" : "border-gold/25",
+      )}
     >
-      <button
-            type="button"
-            onClick={toggleHd}
-            aria-pressed={hd}
-            title={hd ? "HD images on (GPT Image 2). Tap for fast mode" : "Fast mode (Z-Image Turbo). Tap for HD"}
-            className={cn(
-              "absolute -top-4 right-7 z-20 flex h-8 min-w-[48px] cursor-pointer items-center justify-center rounded-full border bg-[#161514] px-3 font-display text-[12px] tracking-widest transition-all active:scale-90",
-              hd ? "border-gold bg-gold/25 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.45)]" : "border-gold/30 text-gold/50 hover:text-gold",
-            )}
-          >
-            {hd ? "HD" : "FAST"}
-          </button>
-
-      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : 1.15} />
-
-      {/* Content strictly padded inside heraldic caps and rails */}
-      <div
-        style={narrow ? { paddingLeft: Math.round(94 * NARROW_CAP) + 4, paddingRight: Math.round(94 * NARROW_CAP) - 6 } : {
-          paddingLeft: `${Math.max(76, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
-          paddingRight: `${Math.max(68, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
-        }}
-        className={cn("relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3", multi && "pt-4 md:pt-5")}
-      >
-        {/* Attached thumbnail preview if uploaded */}
-        {attachedImage && (
-          <div className="flex items-center gap-2">
-            <div className="relative inline-flex items-center gap-1.5 rounded border border-gold/40 bg-black/60 px-2 py-0.5 text-xs text-gold-2">
-              <img src={attachedImage} alt="Attachment" className="h-5 w-5 rounded object-cover border border-gold/40" />
-              <span className="font-mono text-[11px]">Image attached (Groq Vision)</span>
-              <button
-                type="button"
-                onClick={() => setAttachedImage(null)}
-                className="cursor-pointer text-gold/60 hover:text-rose-300 ml-1"
-                title="Remove image"
-              >
-                ✕
-              </button>
-            </div>
+      {attachedImage && (
+        <div className="mb-2 flex">
+          <div className="relative">
+            <img src={attachedImage} alt="Attachment" className="h-16 w-16 rounded-xl border border-gold/30 object-cover" />
+            <button
+              type="button"
+              onClick={() => setAttachedImage(null)}
+              aria-label="Remove image"
+              className="absolute -right-1.5 -top-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-gold/40 bg-ink text-[12px] text-cream"
+            >
+              ✕
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="flex w-full flex-wrap items-end gap-2.5">
-          {/* File Upload Hidden Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
+      <textarea
+        ref={textareaRef}
+        rows={1}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={busy ? "D’Ai is composing…" : "Message D’Ai"}
+        enterKeyHint="send"
+        className="scroll-gold block max-h-[220px] min-h-[28px] w-full resize-none bg-transparent px-1.5 font-body text-[16px] leading-[1.55] text-cream outline-none placeholder:text-muted/60"
+        autoComplete="off"
+        spellCheck={false}
+      />
 
-          {/* Attachment / Upload Button */}
+      <div className="mt-1.5 flex items-center gap-1">
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+        <button
+          type="button"
+          onClick={() => { buzz(); fileInputRef.current?.click(); }}
+          title="Attach an image"
+          aria-label="Attach an image"
+          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream/60 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" {...IC}><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+        {onOpenStudio && (
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach image for Groq Vision analysis"
-            className="cursor-pointer text-gold/50 transition-colors hover:text-gold active:scale-95 shrink-0"
+            onClick={() => { buzz(); onOpenStudio(); }}
+            title="Open Code Studio"
+            aria-label="Open Code Studio"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream/60 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" {...IC}><path d="M16 18l6-6-6-6" /><path d="M8 6l-6 6 6 6" /></svg>
           </button>
-
-          {/* Code Studio Quick-Trigger Button */}
-          {onOpenStudio && (
-            <button
-              type="button"
-              onClick={onOpenStudio}
-              title="Open Code Studio Sidebar"
-              className="cursor-pointer text-gold/50 transition-colors hover:text-gold active:scale-95 shrink-0"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
-              </svg>
-            </button>
+        )}
+        <button
+          type="button"
+          onClick={toggleHd}
+          aria-pressed={hd}
+          title={hd ? "HD images on (GPT Image 2). Tap for fast mode" : "Fast images (Z-Image Turbo). Tap for HD"}
+          className={cn(
+            "flex h-8 shrink-0 cursor-pointer items-center rounded-full border px-3 font-display text-[12px] tracking-widest transition-all active:scale-90",
+            hd ? "border-gold bg-gold/20 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.35)]" : "border-white/15 text-cream/50 hover:text-cream",
           )}
+        >
+          {hd ? "HD" : "FAST"}
+        </button>
 
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder={busy ? "D’Ai is composing…" : narrow ? "Message D’Ai…" : "Message D’Ai… (Shift+Enter for newline)"}
-            className={cn("scroll-gold min-h-[34px] resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60", multi ? "order-first w-full basis-full" : "min-w-0 flex-1")}
-            autoComplete="off"
-            spellCheck={false}
-          />
+        <div className="flex-1" />
 
-          {busy ? (
-            <button
-              type="button"
-              onClick={onStop}
-              title="Stop composing"
-              aria-label="Stop composing"
-              className={cn("group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-end", multi && "ml-auto")}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/70 bg-gold/15 shadow-[0_0_12px_rgba(201,168,106,0.35)]">
-                <span className="h-2.5 w-2.5 rounded-[2px] bg-[#e8d3a0]" />
-              </span>
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!value.trim() && !attachedImage}
-              aria-label="Send"
-              className={cn(
-                "group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-end",
-                multi && "ml-auto",
-                "disabled:cursor-default disabled:opacity-40",
-                "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
-              )}
-            >
-              <svg width="26" height="18" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 10h25" />
-                <path d="M19 3l8 7-8 7" />
-              </svg>
-            </button>
-          )}
-        </div>
+        {busy ? (
+          <button
+            type="button"
+            onClick={() => { buzz([10, 20, 10]); onStop?.(); }}
+            title="Stop"
+            aria-label="Stop"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-[#f1deb0] to-[#c9a86a] text-ink shadow-[0_0_16px_rgba(201,168,106,0.4)] transition-transform active:scale-90"
+          >
+            <span className="h-3.5 w-3.5 rounded-[3px] bg-ink" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!canSend}
+            aria-label="Send"
+            title="Send"
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-90",
+              canSend
+                ? "cursor-pointer bg-gradient-to-br from-[#f1deb0] to-[#c9a86a] text-ink shadow-[0_0_16px_rgba(201,168,106,0.35)] hover:scale-105"
+                : "cursor-default bg-white/[.08] text-cream/30",
+            )}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" {...IC} strokeWidth={2.2}><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
+          </button>
+        )}
       </div>
     </form>
   );
