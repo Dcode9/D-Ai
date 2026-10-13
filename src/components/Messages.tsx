@@ -195,7 +195,7 @@ function LiveImageProgress({ prompt }: { prompt: string }) {
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black" />
       <div className="absolute inset-0 overflow-hidden">
         {colors.map((c, i) => (
-          <div key={i} className="gen-card__blob" style={{ left: `${pos[i][0]}%`, top: `${pos[i][1]}%`, animationDelay: `${-i * 1.1}s` }}><div className="gen-card__core" style={{ background: `radial-gradient(circle, ${c} 0%, transparent 65%)` }} /></div>
+          <div key={i} className="gen-card__blob" style={{ left: `${pos[i][0]}%`, top: `${pos[i][1]}%`, animationDelay: `${-i * 1.1}s` }}><div className="gen-card__core" style={{ background: `radial-gradient(circle, ${c} 0%, ${c} 28%, transparent 66%)` }} /></div>
         ))}
       </div>
       <svg className="pointer-events-none absolute inset-0 z-[2] h-full w-full">
