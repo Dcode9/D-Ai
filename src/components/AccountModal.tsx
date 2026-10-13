@@ -101,7 +101,6 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
                   <h3 className="truncate font-display text-[17px] font-medium text-cream">{fullName}</h3>
                   <p className="truncate font-body text-[13px] text-muted">{email}</p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-gold-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Synced
                   </div>
                 </div>
