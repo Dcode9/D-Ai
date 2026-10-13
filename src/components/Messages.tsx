@@ -325,11 +325,11 @@ function WorkAccordion({ work }: { work?: WorkData }) {
   const totalLabel = formatDuration(work.totalDurationSec);
 
   return (
-    <div className="mb-4 select-none">
+    <div className="mb-2 select-none">
       <button
         type="button"
         onClick={() => setIsMasterOpen((prev) => !prev)}
-        className="group inline-flex cursor-pointer items-center gap-2 rounded-sm border border-gold/30 bg-gold/[0.05] px-3.5 py-1.5 font-display text-[12px] uppercase tracking-[0.16em] text-gold-2/90 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:border-gold/60 hover:bg-gold/[0.12] hover:text-cream active:scale-95"
+        className="inline-flex cursor-pointer items-center gap-1 py-1 font-body text-[11.5px] text-gold/40 transition-colors hover:text-gold/80 active:text-gold"
         aria-expanded={isMasterOpen}
       >
         <span>
@@ -339,7 +339,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             return n ? ` · ${n} ${n === 1 ? "search" : "searches"}` : "";
           })()}
         </span>
-        <ChevronIcon open={isMasterOpen} className="text-gold/70 group-hover:text-cream" />
+        <ChevronIcon open={isMasterOpen} className="h-3 w-3 opacity-60" />
       </button>
 
       {isMasterOpen && (
@@ -469,6 +469,31 @@ function splitProseBlocks(part: string): string[] {
   return out.length ? out : [part];
 }
 
+/** While streaming, show only the part of the trailing block whose markdown is complete, so raw ** or ` never flashes. */
+function isBalanced(t: string): boolean {
+  const n = (re: RegExp) => (t.match(re) || []).length;
+  if (n(/\*\*/g) % 2) return false;
+  if (n(/__/g) % 2) return false;
+  if (n(/`/g) % 2) return false;
+  if (n(/\$/g) % 2) return false;
+  if (n(/(?<!\*)\*(?!\*)/g) % 2) return false;
+  if (n(/\[/g) !== n(/\]/g)) return false;
+  if (/\]\([^)]*$/.test(t)) return false;
+  return true;
+}
+function safeStreamPrefix(block: string): string {
+  const cuts: number[] = [];
+  const re = /([.!?:;][)"'”]*(?=\s)|\n)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(block))) cuts.push(m.index + m[0].length);
+  if (/[.!?]$/.test(block.trimEnd())) cuts.push(block.length);
+  for (let i = cuts.length - 1; i >= 0; i--) {
+    const pre = block.slice(0, cuts[i]);
+    if (isBalanced(pre)) return pre;
+  }
+  return "";
+}
+
 /** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components, KaTeX math, and Artifact Previews */
 function RichMarkdown({
   text,
@@ -539,13 +564,21 @@ function RichMarkdown({
         if (!part.trim()) return null;
         // Each paragraph is its own stable node: finished ones are never touched again, and a new one fades in once.
         const blocks = splitProseBlocks(part);
-        return blocks.map((b, bi) => (
-          <div
-            key={`prose-${idx}-${bi}`}
-            className={`dai-prose text-[16px] leading-[1.75] text-[#ded4bf]${streaming ? " dai-reveal" : ""}`}
-            dangerouslySetInnerHTML={{ __html: processMathAndMarkdown(b) }}
-          />
-        ));
+        const lastPart = idx === parts.length - 1;
+        return blocks.map((b, bi) => {
+          let src = b;
+          if (streaming && lastPart && bi === blocks.length - 1) {
+            src = safeStreamPrefix(b);
+            if (!src.trim()) return null;
+          }
+          return (
+            <div
+              key={`prose-${idx}-${bi}`}
+              className={`dai-prose text-[16px] leading-[1.75] text-[#ded4bf]${streaming ? " dai-swipe" : ""}`}
+              dangerouslySetInnerHTML={{ __html: processMathAndMarkdown(src) }}
+            />
+          );
+        });
       });
     } catch {
       return (
@@ -559,7 +592,6 @@ function RichMarkdown({
   return (
     <div className="space-y-2">
       {renderedContent}
-      {streaming && <span className="streaming-quill" title="Composing…" />}
 
       {imageUrl && (
         <div className="my-4 overflow-hidden rounded-md border border-gold/40 bg-black/60 p-2 shadow-[0_0_30px_rgba(201,168,106,0.18)]">
@@ -690,7 +722,7 @@ function AssistantRowInner({
       {waiting ? <LiveWork work={m.work ? { ...m.work, isWorking: true } : { totalDurationSec: 0, steps: [], isWorking: true }} /> : m.work && <WorkAccordion work={m.work} />}
 
       {/* Answer Content */}
-      <div ref={answerRef} className={cn("dai-shell", m.streaming && m.content.trim() ? "is-streaming" : wasStreaming.current && "is-settled")}>
+      <div ref={answerRef}>
         <RichMarkdown
           text={m.content}
           streaming={m.streaming && !isWorking}
