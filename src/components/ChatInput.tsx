@@ -22,7 +22,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boxHeight, setBoxHeight] = useState(100);
   const [boxWidth, setBoxWidth] = useState(780);
-  const [hd, setHd] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") === "1");
+  const [hd, setHd] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") !== "0");
   const toggleHd = () => {
     const next = !hd;
     setHd(next);
@@ -112,13 +112,13 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
             type="button"
             onClick={toggleHd}
             aria-pressed={hd}
-            title={hd ? "HD images on (GPT Image 2)" : "HD images off (fast mode)"}
+            title={hd ? "HD images on (GPT Image 2). Tap for fast mode" : "Fast mode (Z-Image Turbo). Tap for HD"}
             className={cn(
               "absolute -top-4 right-7 z-20 flex h-8 min-w-[48px] cursor-pointer items-center justify-center rounded-full border bg-[#161514] px-3 font-display text-[12px] tracking-widest transition-all active:scale-90",
               hd ? "border-gold bg-gold/25 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.45)]" : "border-gold/30 text-gold/50 hover:text-gold",
             )}
           >
-            HD
+            {hd ? "HD" : "FAST"}
           </button>
 
       <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : 1.15} />
