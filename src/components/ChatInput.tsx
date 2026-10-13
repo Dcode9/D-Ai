@@ -48,6 +48,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     el.style.height = `${h}px`;
     el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
     setTaH(h);
+    document.documentElement.style.setProperty("--input-extra", `${Math.max(0, h - 34) + (h > 40 ? 40 : 0)}px`);
     setBoxHeight(h + 66);
     setBoxWidth(780);
   }, [value, narrow]);
