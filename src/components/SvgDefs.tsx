@@ -29,8 +29,6 @@ export function SvgDefs() {
         </defs>
       </svg>
 
-      {/* Hardware-tiled full-screen grain overlay - lightweight & crash-free */}
-      <div className="grain-overlay" aria-hidden />
     </>
   );
 }
