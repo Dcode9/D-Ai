@@ -56,6 +56,14 @@ const NATIVE_TOOLS = [
   {
     type: "function",
     function: {
+      name: "think_deeper",
+      description: "Escalate to the slower thinking model. Call ONLY when the question truly needs careful multi-step reasoning (hard maths or logic, tricky debugging, deep analysis, planning with many constraints). Never call it for greetings, simple facts, chat, writing, or normal questions - answer those directly and instantly.",
+      parameters: { type: "object", properties: { reason: { type: "string", description: "Few words on why deeper reasoning is needed." } }, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "open_app",
       description: "Open one of the user's D'Verse apps in the Apps sidebar: 'tunes' (D'Tunes music player) or 'quest' (D'Quest quizzes). Call when the user asks to play music, listen to a song, take or make a quiz, or open one of these apps.",
       parameters: {
@@ -291,7 +299,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
   } else if (provider === 'pollinations') {
     if (apiKey && apiKey.startsWith('sk_')) {
       endpoint = 'https://gen.pollinations.ai/v1/chat/completions';
-      if (isCode) {
+      if (isCode || incomingBody.deep) {
         // Only models quest Pollen can pay for (paid_only=false): the paid coder models answer 200 with a 'top up' message instead of failing over.
         candidateModels = ['moonshotai/kimi-k2.6', 'deepseek/deepseek-v4-flash', 'openai/gpt-oss-20b'];
       } else {
@@ -327,7 +335,7 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
   // Max completion tokens: 16384 for code to prevent truncations, 4096 for normal chat
   const effectiveMaxTokens = incomingBody.max_tokens ||
     incomingBody.max_completion_tokens ||
-    (isCode ? 16384 : 4096);
+    (isCode ? 16384 : 8192);
 
   for (const model of candidateModels) {
     lastModelUsed = model;
@@ -346,7 +354,9 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
       // Control reasoning effort:
       // - If coding: allow medium/high reasoning so coder thinks through complex state/architecture
       // - If normal chat: explicitly set reasoning_effort = 'none' (user wants instant response, NO thinking)
-      if (isCode) {
+      if (incomingBody.deep) {
+        payload.reasoning_effort = 'high';
+      } else if (isCode) {
         payload.reasoning_effort = incomingBody.reasoning_effort || 'medium';
       } else {
         payload.reasoning_effort = 'none';
@@ -361,16 +371,19 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
         payload.tools = incomingBody.tools;
         if (incomingBody.tool_choice) payload.tool_choice = incomingBody.tool_choice;
       } else if (incomingBody.enable_tools !== false && !isVision && !isCode) {
-        payload.tools = NATIVE_TOOLS;
+        payload.tools = incomingBody.deep ? NATIVE_TOOLS.filter((t) => t.function.name !== 'think_deeper') : NATIVE_TOOLS;
         payload.tool_choice = incomingBody.tool_choice || (shouldForceImage(incomingBody.messages) ? { type: 'function', function: { name: 'generate_image' } } : 'auto');
       }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(isCode ? 90000 : 45000)
-      });
+      // Time limit applies to getting the response started only. A plain AbortSignal.timeout would also cut the stream mid-answer.
+      const ac = new AbortController();
+      const killer = setTimeout(() => ac.abort(), (isCode || incomingBody.deep) ? 90000 : 45000);
+      let response;
+      try {
+        response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(payload), signal: ac.signal });
+      } finally {
+        clearTimeout(killer);
+      }
 
       if (response.ok) {
         return { response, provider, model };
@@ -388,6 +401,8 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
 }
 
 import { rateLimited, badMessages } from './_guard.js';
+
+export const config = { maxDuration: 300 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
