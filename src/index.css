@@ -64,6 +64,7 @@ body,
 }
 
 .aura__shape {
+  filter: url(#dai-mezz);
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -570,7 +571,7 @@ input::placeholder {
 .step-rail{position:relative;padding-left:20px}
 .step-rail::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,rgba(201,168,106,.55),rgba(201,168,106,.12))}
 .step-node{position:relative}
-.step-node::before{content:"";position:absolute;left:-19px;top:14px;width:9px;height:9px;transform:rotate(45deg);background:#0b0a09;border:1px solid rgba(201,168,106,.75);box-shadow:0 0 8px rgba(201,168,106,.35)}
+.step-node::before{display:none}
 
 /* Ornate card corners: gold diamonds echo the SVG plate jewels */
 .ornate-card{position:relative}
@@ -628,3 +629,17 @@ input::placeholder {
 .ambient--image .ambient__blob { animation-play-state: paused; }
 .gen-card__blob { filter: none; }
 .gen-card__core { position: absolute; inset: 0; border-radius: 50%; filter: url(#dai-mezz); }
+
+/* blobs live on the home screen only; they fade once a message is sent */
+.ambient { transition: opacity .5s ease, visibility 0s linear 0s; }
+.ambient--off { opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s linear .5s; }
+.ambient--off .ambient__blob { animation-play-state: paused; }
+
+/* mezzotint glass behind the top bar and the message box */
+.dai-glass-top, .dai-glass-box { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+@supports (backdrop-filter: url(#dai-mezz)) {
+  .dai-glass-top, .dai-glass-box { -webkit-backdrop-filter: url(#dai-mezz) blur(6px); backdrop-filter: url(#dai-mezz) blur(6px); }
+}
+.dai-glass-top { background: linear-gradient(to bottom, rgba(10,9,8,.72), rgba(10,9,8,.38)); }
+.dai-glass-bottom { background: linear-gradient(to top, rgba(10,9,8,.7), rgba(10,9,8,.0)); }
+.dai-glass-box { background: rgba(29,27,23,.55); }
