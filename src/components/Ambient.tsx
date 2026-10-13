@@ -1,64 +1,42 @@
-import type { AuraState } from "./Aura";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../utils/cn";
 
-type Props = { state: AuraState; visible?: boolean };
+export type GradientMode = "idle" | "send" | "think" | "image" | "respond" | "final";
 
-/** Slow-drifting grainy gradient blobs bleeding in from the edges. */
-export function Ambient({ state, visible = true }: Props) {
-  const boost = state === "thinking" ? 1.35 : state === "answering" ? 1.2 : 1;
-  const blob = (style: React.CSSProperties, color: string, base: number) => (
-    <div
-      className="ambient-blob transition-opacity duration-1000"
-      style={{
-        ...style,
-        background: `radial-gradient(circle, ${color} 0%, transparent 65%)`,
-        opacity: Math.min(1, base * boost),
-      }}
-    />
-  );
+/** Derive the gradient mood from the chat: send pulse, think, image, respond, then a final bloom. */
+export function useGradientMode(messages: any[], state: string): GradientMode {
+  const [pulse, setPulse] = useState<GradientMode | null>(null);
+  const prevBusy = useRef(false);
+  const busy = state !== "idle" || messages.some((m) => m?.streaming);
+  useEffect(() => {
+    let t: number | undefined;
+    if (busy && !prevBusy.current) {
+      setPulse("send");
+      t = window.setTimeout(() => setPulse(null), 750);
+    } else if (!busy && prevBusy.current) {
+      setPulse("final");
+      t = window.setTimeout(() => setPulse(null), 2200);
+    }
+    prevBusy.current = busy;
+    return () => { if (t) window.clearTimeout(t); };
+  }, [busy]);
+  if (pulse === "send" && busy) return "send";
+  if (!busy) return pulse === "final" ? "final" : "idle";
+  const last = messages[messages.length - 1];
+  const steps: any[] = last?.work?.steps || [];
+  if (steps.some((s) => s.type === "image_gen" && s.isLive)) return "image";
+  if (last?.role === "assistant" && String(last.content || "").trim().length > 0) return "respond";
+  return "think";
+}
 
+/** Soft gradient blobs behind the whole app. Colour, speed and glow follow the answer state. */
+export function Ambient({ mode }: { mode: GradientMode }) {
   return (
-    <div
-      className={cn(
-        "pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-1000",
-        visible ? "opacity-100" : "opacity-0",
-      )}
-      aria-hidden
-    >
-      {/* top-right plum */}
-      {blob(
-        { top: "-6%", right: "-10%", width: 560, height: 560, ["--dx" as string]: "-40px", ["--dy" as string]: "30px", ["--dur" as string]: "26s" },
-        "#5f36a0",
-        0.55,
-      )}
-      {/* left amber */}
-      {blob(
-        { top: "48%", left: "-14%", width: 460, height: 460, ["--dx" as string]: "50px", ["--dy" as string]: "-40px", ["--dur" as string]: "21s", ["--delay" as string]: "-8s" },
-        "#c9a04a",
-        0.42,
-      )}
-      {/* left plum below amber */}
-      {blob(
-        { top: "72%", left: "-8%", width: 380, height: 380, ["--dx" as string]: "30px", ["--dy" as string]: "-60px", ["--dur" as string]: "24s", ["--delay" as string]: "-4s" },
-        "#6b3fa0",
-        0.45,
-      )}
-      {/* bottom-right amber + plum */}
-      {blob(
-        { bottom: "-14%", right: "-4%", width: 420, height: 420, ["--dx" as string]: "-30px", ["--dy" as string]: "-40px", ["--dur" as string]: "19s", ["--delay" as string]: "-12s" },
-        "#c9a04a",
-        0.45,
-      )}
-      {blob(
-        { bottom: "8%", right: "-12%", width: 480, height: 480, ["--dx" as string]: "-50px", ["--dy" as string]: "20px", ["--dur" as string]: "28s", ["--delay" as string]: "-15s" },
-        "#5f36a0",
-        0.5,
-      )}
-      {/* faint vignette */}
-      <div
-        className="absolute inset-0"
-        style={{ background: "radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,.45) 100%)" }}
-      />
+    <div className={cn("ambient", `ambient--${mode}`)} aria-hidden>
+      <div className="ambient__blob ambient__blob--a" />
+      <div className="ambient__blob ambient__blob--b" />
+      <div className="ambient__blob ambient__blob--c" />
+      <div className="ambient__vignette" />
     </div>
   );
 }
