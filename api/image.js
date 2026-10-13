@@ -273,7 +273,7 @@ async function generateWithPollinationsPaid({ prompt, width, height, seed, model
             response_format: 'b64_json',
             ...(image ? { image: Array.isArray(image) ? image : [image] } : {}),
           }),
-          signal: AbortSignal.timeout(45000),
+          signal: AbortSignal.timeout(m === POLLEN_MODELS.hd ? 110000 : 45000),
         },
       );
       if (!res.ok) {
@@ -304,7 +304,7 @@ async function generateWithPollinationsPaid({ prompt, width, height, seed, model
 // ----------------------------------------------------
 // Main Handler: Auto-Cascade Image Generator
 // ----------------------------------------------------
-export default async function handler(req) {
+async function innerHandler(req) {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: CORS_HEADERS });
   }
@@ -419,10 +419,49 @@ export default async function handler(req) {
     }
 
     console.log(`[D-Ai Image] Generated successfully via ${imageResult.provider}! Size: ${imageResult.bytes.length} bytes`);
-    return imageResponse(imageResult.bytes, imageResult.mimeType);
+    const ir = imageResponse(imageResult.bytes, imageResult.mimeType);
+    ir.headers.set('x-provider', String(imageResult.provider || ''));
+    return ir;
 
   } catch (error) {
     console.error('[D-Ai Image Critical Error]', error);
     return jsonResponse({ error: error.message || 'Internal Server Error' }, 500);
   }
+}
+
+function bytesToBase64(bytes) {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) out += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(out);
+}
+
+// HD (gpt-image-2) takes longer than the edge 25s first-byte limit, so stream
+// keep-alive whitespace and finish with JSON. Internal callers send x-sync.
+export default async function handler(req) {
+  if (req.method !== 'POST' || req.headers.get('x-sync')) return innerHandler(req);
+  let peek = {};
+  try { peek = await req.clone().json(); } catch {}
+  if (peek.model !== 'gpt-image-2') return innerHandler(req);
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const beat = setInterval(() => { try { controller.enqueue(enc.encode(' ')); } catch {} }, 5000);
+      controller.enqueue(enc.encode(' '));
+      try {
+        const r = await innerHandler(req);
+        const ct = r.headers.get('content-type') || '';
+        if (r.ok && ct.startsWith('image/')) {
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          controller.enqueue(enc.encode(JSON.stringify({ image: `data:${ct.split(';')[0]};base64,${bytesToBase64(bytes)}`, provider: r.headers.get('x-provider') || '' })));
+        } else {
+          controller.enqueue(enc.encode(await r.text()));
+        }
+      } catch (e) {
+        controller.enqueue(enc.encode(JSON.stringify({ error: String(e?.message || e) })));
+      }
+      clearInterval(beat);
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS } });
 }
