@@ -1,3 +1,4 @@
+import { pickImageModel, shrinkToDataUrl } from "../lib/chatStore";
 import { openAppEvent } from "../components/AppsDrawer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuraState } from "../components/Aura";
@@ -415,7 +416,9 @@ function extractCleanThreeWordTitle(text: string): string {
 
       // Signed-in chats run on the server so they finish even if this tab closes.
       const session = await getSession();
+      // Fully client-side streaming (no server run + database hop). Signed-in chats sync to the cloud from the browser afterwards.
       const durable =
+        false &&
         !!session?.access_token &&
         !/\[UPLOADED_IMAGE/i.test(prompt) &&
         (mode === null || mode === "Text" || mode === "Code") &&
@@ -1037,14 +1040,14 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(localStorage.getItem("dai-hd") !== "0" ? { model: "gpt-image-2" } : {}) }),
+                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(pickImageModel(imgPrompt) ? { model: "gpt-image-2" } : {}) }),
                     signal: controller.signal,
                   });
                   if (imgRes.ok) {
                     const contentType = imgRes.headers.get("content-type") || "";
                     if (contentType.includes("image/")) {
                       const blob = await imgRes.blob();
-                      generatedUrl = URL.createObjectURL(blob);
+                      generatedUrl = await shrinkToDataUrl(blob);
                     } else {
                       const imgData = await imgRes.json();
                       generatedUrl = imgData.url || imgData.image || imgData.imageUrl || "";
@@ -1065,7 +1068,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                     });
                     if (retry.ok) {
                       const ct2 = retry.headers.get("content-type") || "";
-                      if (ct2.includes("image/")) generatedUrl = URL.createObjectURL(await retry.blob());
+                      if (ct2.includes("image/")) generatedUrl = await shrinkToDataUrl(await retry.blob());
                       else { const d2 = await retry.json(); generatedUrl = d2.url || d2.image || d2.imageUrl || ""; }
                     }
                   } catch {}
@@ -1465,4 +1468,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-}
+                  }
