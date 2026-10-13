@@ -177,29 +177,32 @@ function SearchStepItem({ step }: { step: WorkStep & { type: "search" } }) {
   );
 }
 
-/** Real-time progress for image generation: elapsed time, honest stages, and a bar that eases toward done. */
+/** Image generation card in the original D'Ai style: drifting fluid blobs, a glowing border that fills as it paints. */
 function LiveImageProgress({ prompt }: { prompt: string }) {
   const hd = typeof localStorage === "undefined" || localStorage.getItem("dai-hd") !== "0";
   const expect = hd ? 65 : 10;
   const [t, setT] = useState(0);
   useEffect(() => {
     const t0 = Date.now();
-    const id = window.setInterval(() => setT((Date.now() - t0) / 1000), 250);
+    const id = window.setInterval(() => setT((Date.now() - t0) / 1000), 400);
     return () => window.clearInterval(id);
   }, []);
   const pct = Math.min(94, Math.round(100 * (1 - Math.exp((-2.2 * t) / expect))));
-  const stage = !hd ? "Painting…" : t < 8 ? "Sending your prompt to GPT Image 2…" : t < 40 ? "Painting in HD…" : t < 70 ? "Adding the final detail…" : "Almost there, HD is taking a little longer…";
+  const colors = ["#5f36a0", "#c9a04a", "#7a49b8", "#3d5bd6", "#c9a04a", "#5f36a0"];
+  const pos = [[-5, 5], [55, -10], [20, 45], [65, 50], [-10, 70], [40, 80]];
   return (
-    <div className="text-[13px] text-purple-200">
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-display italic tracking-wide text-purple-300">{stage}</span>
-        <span className="font-mono text-[11px] text-purple-300/70 tabular-nums">{Math.floor(t)}s{hd ? " / ~60s" : ""}</span>
+    <div className="gen-card" style={{ aspectRatio: "1 / 1" }} role="status" aria-label="Generating image">
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black" />
+      <div className="absolute inset-0 overflow-hidden">
+        {colors.map((c, i) => (
+          <div key={i} className="gen-card__blob" style={{ left: `${pos[i][0]}%`, top: `${pos[i][1]}%`, background: c, animationDelay: `${-i * 1.1}s` }} />
+        ))}
       </div>
-      <div className="mt-2 h-[5px] overflow-hidden rounded-full border border-gold/30 bg-black/60">
-        <div className="h-full rounded-full bg-gradient-to-r from-gold/60 to-[#fff3d6] transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="mt-1.5 truncate font-body text-[11.5px] italic text-purple-400/70">“{prompt}”</div>
-      {hd && <div className="mt-0.5 font-body text-[11px] text-gold/50">HD takes about a minute. Tap the HD pill for instant fast mode.</div>}
+      <svg className="pointer-events-none absolute inset-0 z-[2] h-full w-full">
+        <defs><filter id="gcglow"><feGaussianBlur stdDeviation="6" /></filter></defs>
+        <rect className="gen-card__rect" x="0" y="0" width="100%" height="100%" rx="24" fill="none" stroke="#d4ad5a" strokeWidth="20" pathLength="100" strokeDasharray="100 200" strokeDashoffset={100 - pct} strokeLinecap="round" filter="url(#gcglow)" style={{ strokeOpacity: 0.8 }} />
+      </svg>
+      <div className="gen-card__status">Generating Image… {Math.floor(t)}s{hd ? " / ~60s" : ""}</div>
     </div>
   );
 }
@@ -334,12 +337,7 @@ function WorkAccordion({ work }: { work?: WorkData }) {
           // Live Image Synthesis Stage
           if (step.type === "image_gen" && step.isLive) {
             return (
-              <div
-                key={step.id}
-                className="step-node decode-in animate-aperture-bloom rounded-md border border-purple-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(168,85,247,0.2)]"
-              >
-                <LiveImageProgress prompt={step.prompt} />
-              </div>
+              <div key={step.id} className="step-node my-1"><LiveImageProgress prompt={step.prompt} /></div>
             );
           }
 
@@ -385,7 +383,6 @@ function WorkAccordion({ work }: { work?: WorkData }) {
             if (step.type === "memory") {
               return (
                 <div key={step.id} className="flex items-center gap-2 py-1 font-body text-[12.5px] text-gold/85">
-                  <span className="text-xs">🧠</span>
                   <span>{step.action === "add" ? `Stored memory: "${step.fact}"` : "Recalled personal memory context"}</span>
                 </div>
               );
