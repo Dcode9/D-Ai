@@ -1,5 +1,3 @@
-import { useSize } from "../hooks/useSize";
-import { HeaderArch } from "./frames/HeaderArch";
 import { cn } from "../utils/cn";
 
 type Props = {
@@ -16,127 +14,65 @@ type Props = {
   user: any;
 };
 
-function SmallButton({
-  children,
-  onClick,
-  active,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  active?: boolean;
-}) {
+const IC = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+
+function IconBtn({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => { try { navigator.vibrate?.(8); } catch {} onClick(); }}
+      aria-label={label}
+      title={label}
       className={cn(
-        "group relative flex h-[40px] min-w-[40px] cursor-pointer items-center justify-center gap-2 px-2.5 sm:px-3.5 font-body text-[16px] text-cream/90 outline-none transition-colors",
-        "hover:text-[#fff3d6] focus-visible:text-[#fff3d6]",
+        "relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-cream/80 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90",
+        active && "bg-gold/15 text-[#fff3d6]",
       )}
     >
-      <span
-        className={cn(
-          "absolute inset-0 rounded-[3px] border transition-colors",
-          active ? "border-gold-2/80" : "border-gold/55 group-hover:border-gold-2/80",
-        )}
-      />
-      <span className="absolute inset-[3px] rounded-[2px] border border-gold/20" />
-      <span className="relative flex items-center gap-2">{children}</span>
+      {children}
     </button>
   );
 }
 
-export function Header({
-  onHistory,
-  onNewChat,
-  onMemory,
-  onAccount,
-  onStudio,
-  onApps,
-  appsOpen = false,
-  historyOpen,
-  studioOpen = false,
-  memoryCount,
-  user,
-}: Props) {
-  const { ref, w, h } = useSize<HTMLElement>();
+export function Header({ onHistory, onNewChat, onMemory, onAccount, onApps, appsOpen = false, historyOpen, memoryCount, user }: Props) {
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-
   return (
-    <header ref={ref} className="relative z-20 h-[96px] shrink-0" style={{ marginTop: "env(safe-area-inset-top)" }}>
-      <HeaderArch w={w} h={h} />
+    <header className="relative z-20 shrink-0 bg-gradient-to-b from-black/50 to-transparent" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="flex h-[56px] items-center justify-between px-2 sm:px-4">
+        <div className="flex items-center gap-0.5">
+          <IconBtn label="Chats" onClick={onHistory} active={historyOpen}>
+            <svg width="22" height="22" viewBox="0 0 24 24" {...IC}><path d="M4 7h16" /><path d="M4 12h10" /><path d="M4 17h16" /></svg>
+          </IconBtn>
+          <IconBtn label="New chat" onClick={onNewChat}>
+            <svg width="21" height="21" viewBox="0 0 24 24" {...IC}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+          </IconBtn>
+        </div>
 
-      {/* Left controls */}
-      <div className="absolute left-3 sm:left-6 top-6 flex items-center gap-1.5 sm:gap-3">
-        <SmallButton onClick={onHistory} active={historyOpen}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-            <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
-            <path d="M3.5 4.5v4.2h4.2" />
-            <path d="M12 7.5V12l3.2 2" />
-          </svg>
-          <span className="hidden sm:inline">History</span>
-        </SmallButton>
-        <SmallButton onClick={onNewChat}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-            <path d="M12 4v16M4 12h16" />
-          </svg>
-          <span className="hidden sm:inline">New</span>
-        </SmallButton>
-        {onStudio && (
-          <SmallButton onClick={onStudio} active={studioOpen}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="16 18 22 12 16 6" />
-              <polyline points="8 6 2 12 8 18" />
-            </svg>
-            <span className="hidden sm:inline">Studio</span>
-          </SmallButton>
-        )}
-        {onApps && (
-          <SmallButton onClick={onApps} active={appsOpen}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
-              <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
-              <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
-              <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
-              <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
-            </svg>
-            <span className="hidden sm:inline">Apps</span>
-          </SmallButton>
-        )}
-      </div>
-
-      {/* Center Title */}
-      <div className="pointer-events-none absolute left-1/2 top-[68px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-        <h1
-          className="title-glow font-display text-[38px] sm:text-[48px] leading-none tracking-tight text-cream select-none"
-          aria-label="D'Ai"
-        >
+        <h1 className="title-glow pointer-events-none absolute left-1/2 -translate-x-1/2 select-none font-display text-[30px] leading-none tracking-tight text-cream" aria-label="D'Ai">
           D’Ai
         </h1>
-      </div>
 
-      {/* Right controls */}
-      <div className="absolute right-3 sm:right-6 top-6 flex items-center gap-1.5 sm:gap-3">
-        <SmallButton onClick={onMemory} active={false}>
-          <span className="text-[16px]">🧠</span>
-          <span className="hidden sm:inline">Memory</span>
-          {memoryCount > 0 && (
-            <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full border border-gold/40 bg-gold/20 px-1 text-[10.5px] font-bold text-gold">
-              {memoryCount}
-            </span>
+        <div className="flex items-center gap-0.5">
+          {onApps && (
+            <IconBtn label="Apps" onClick={onApps} active={appsOpen}>
+              <svg width="20" height="20" viewBox="0 0 24 24" {...IC}><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>
+            </IconBtn>
           )}
-        </SmallButton>
-        <SmallButton onClick={onAccount} active={Boolean(user)}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="User" className="h-5 w-5 rounded-full border border-gold/50 object-cover" />
-          ) : (
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          )}
-          <span className="hidden sm:inline">{user ? "Account" : "Sign In"}</span>
-        </SmallButton>
+          <IconBtn label="Memory" onClick={onMemory}>
+            <span className="text-[18px] leading-none">🧠</span>
+            {memoryCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-ink">{memoryCount}</span>
+            )}
+          </IconBtn>
+          <IconBtn label={user ? "Account" : "Sign in"} onClick={onAccount}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="User" className="h-7 w-7 rounded-full border border-gold/50 object-cover" />
+            ) : (
+              <svg width="21" height="21" viewBox="0 0 24 24" {...IC}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            )}
+          </IconBtn>
+        </div>
       </div>
+      <div className="h-px bg-gradient-to-r from-transparent via-gold/45 to-transparent" />
     </header>
   );
 }
