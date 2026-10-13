@@ -1055,6 +1055,23 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                 }
 
                 if (!generatedUrl) {
+                  // HD failed or came back empty: retry once on the fast model before giving up.
+                  try {
+                    const retry = await fetch("/api/image", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio }),
+                      signal: controller.signal,
+                    });
+                    if (retry.ok) {
+                      const ct2 = retry.headers.get("content-type") || "";
+                      if (ct2.includes("image/")) generatedUrl = URL.createObjectURL(await retry.blob());
+                      else { const d2 = await retry.json(); generatedUrl = d2.url || d2.image || d2.imageUrl || ""; }
+                    }
+                  } catch {}
+                }
+
+                if (!generatedUrl) {
                   const seed = Math.floor(Math.random() * 1000000);
                   generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imgPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
                 }
