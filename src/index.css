@@ -579,6 +579,17 @@ input::placeholder {
 .ornate-card::after{bottom:-4px;right:-4px}
 .ornate-card pre{overflow-x:auto}
 
-@keyframes daiReveal { from { opacity: 0; transform: translateY(5px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
-.dai-reveal { animation: daiReveal 0.3s ease-out both; }
-@media (prefers-reduced-motion: reduce) { .dai-reveal { animation: none; } }
+/* Answer aura from the original D'Ai: a drifting aurora behind the reply while it streams, fading out once it settles. */
+@keyframes daiReveal { from { opacity: 0; filter: blur(8px); transform: translateY(3px); } to { opacity: 1; filter: none; transform: none; } }
+.dai-reveal { animation: daiReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes auraBloom { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes auroraDrift { 0%, 100% { transform: translate3d(-3%, -2%, 0) scale(1); opacity: 0.8; } 50% { transform: translate3d(4%, 3%, 0) scale(1.06); opacity: 1; } }
+@keyframes auraFade { from { opacity: 0.85; } to { opacity: 0; transform: scale(1.04); } }
+.dai-shell { position: relative; isolation: isolate; }
+.dai-shell::before { content: ""; position: absolute; inset: -12px -6px; z-index: -1; border-radius: 26px; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 18% 50%, rgba(56,189,248,0.26), transparent 42%), radial-gradient(circle at 50% 30%, rgba(167,139,250,0.26), transparent 38%), radial-gradient(circle at 82% 60%, rgba(201,168,106,0.30), transparent 38%);
+  filter: blur(18px); }
+.dai-shell.is-streaming { animation: auraBloom 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.dai-shell.is-streaming::before { animation: auroraDrift 5.5s ease-in-out infinite; }
+.dai-shell.is-settled::before { opacity: 0.85; animation: auraFade 1.25s ease forwards; }
+@media (prefers-reduced-motion: reduce) { .dai-reveal, .dai-shell.is-streaming, .dai-shell.is-streaming::before, .dai-shell.is-settled::before { animation: none; } .dai-shell.is-streaming::before { opacity: 0.6; } }
