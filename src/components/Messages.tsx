@@ -257,6 +257,8 @@ function WorkAccordion({ work }: { work?: WorkData }) {
 
   if (!work) return null;
   if (!work.isWorking && visibleSteps.length === 0) return null;
+  // Quick plain answers don't need a "Thought for 1 second" chip, like ChatGPT
+  if (!work.isWorking && !visibleSteps.some((x) => x.type === "search" || x.type === "image_gen") && (work.totalDurationSec || 0) < 4) return null;
 
   // 1. LIVE WORK MODE (Distinct animations for each action)
   if (work.isWorking) {
