@@ -39,7 +39,7 @@ export const DAI_DESIGN_SYSTEM_CSS = `
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     padding: 1.25rem;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   /* Typography */
