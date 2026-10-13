@@ -13,6 +13,7 @@ type Props = {
   state: AuraState;
   onOpenStudio?: (code: string, title?: string) => void;
   onBranch?: (messageId: string) => void;
+  onRegenerate?: (prompt: string) => void;
 };
 
 /** Short label that glyph-decodes into place the moment it appears. */
@@ -416,8 +417,8 @@ function CodeBlock({
   const isWebCode = /^(html|htm|jsx?|tsx?|css|svg|vue|web)$/i.test(lang);
 
   return (
-    <div className="ornate-card group relative my-3 rounded-sm border border-gold/40 bg-[#121110] shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
-      <div className="flex items-center justify-between border-b border-gold/20 bg-white/[0.03] px-4 py-1.5">
+    <div className="group relative my-3 overflow-hidden rounded-xl border border-white/10 bg-[#141311]">
+      <div className="flex items-center justify-between bg-white/[0.05] px-3.5 py-1.5">
         <span className="font-display text-[13px] uppercase tracking-[0.2em] text-gold-2/80">
           {lang || "code"}
         </span>
@@ -601,40 +602,65 @@ function RichMarkdown({
   );
 }
 
-function UserBubbleInner({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
-  return (
-    <div data-role="user" className="rise group flex justify-end">
-      <div className="relative max-w-[88%] md:max-w-[72%] px-4 sm:px-5 py-3.5">
-        <span className="absolute inset-0 border border-gold/45" />
-        {/* corner jewels */}
-        {["-top-[3px] -left-[3px]", "-top-[3px] -right-[3px]", "-bottom-[3px] -left-[3px]", "-bottom-[3px] -right-[3px]"].map((c) => (
-          <span key={c} className={cn("absolute h-[5px] w-[5px] rotate-45 bg-ink border border-gold/80", c)} />
-        ))}
-        <div className="relative">
-          {m.mode && (
-            <div className="mb-1 font-body text-[11px] uppercase tracking-[0.22em] text-gold/70">
-              {m.mode}
-            </div>
-          )}
-          <p className="whitespace-pre-wrap font-body text-[18.5px] font-light leading-relaxed text-cream">
-            {m.content}
-          </p>
+const IC = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
-          {/* User message branch action */}
-          {onBranch && (
-            <div className="mt-2 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-              <button
-                type="button"
-                onClick={() => onBranch(m.id)}
-                title="Branch conversation from this message"
-                className="flex cursor-pointer items-center gap-1 font-body text-[11px] text-gold/60 hover:text-cream transition-colors"
-              >
-                <span className="font-mono text-[11px]">⑂</span>
-                <span>Branch from here</span>
-              </button>
-            </div>
-          )}
-        </div>
+function ActionBtn({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        try { navigator.vibrate?.(8); } catch {}
+        onClick();
+      }}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-cream/45 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90",
+        active && "text-gold-2",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+const CheckIcon = (
+  <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><path d="M20 6L9 17l-5-5" /></svg>
+);
+const CopyIcon = (
+  <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+);
+
+function UserBubbleInner({ m, onBranch }: { m: Message; onBranch?: (messageId: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const text = m.content.replace(/\[UPLOADED_IMAGE:[^\]]*\]\n?/g, "").trim();
+  return (
+    <div data-role="user" className="rise group flex flex-col items-end gap-1">
+      <div className="max-w-[88%] rounded-[22px] rounded-br-md border border-gold/20 bg-gradient-to-br from-[#2d2820] to-[#221f1a] px-4 py-2.5 shadow-[0_2px_14px_rgba(0,0,0,0.25)]">
+        {m.mode && (
+          <div className="mb-0.5 font-body text-[10.5px] uppercase tracking-[0.2em] text-gold/70">{m.mode}</div>
+        )}
+        <p className="whitespace-pre-wrap break-words font-body text-[16px] leading-[1.6] text-cream">{text || m.content}</p>
+      </div>
+      <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+        <ActionBtn
+          label={copied ? "Copied" : "Copy"}
+          onClick={() => {
+            navigator.clipboard?.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          }}
+        >
+          {copied ? CheckIcon : CopyIcon}
+        </ActionBtn>
+        <ActionBtn label="Edit" onClick={() => window.dispatchEvent(new CustomEvent("dai:edit", { detail: { text } }))}>
+          <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+        </ActionBtn>
+        {onBranch && (
+          <ActionBtn label="Branch from here" onClick={() => onBranch(m.id)}>
+            <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><circle cx="6" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="9" r="2" /><path d="M6 7v10" /><path d="M18 11c0 4-6 3-12 6" /></svg>
+          </ActionBtn>
+        )}
       </div>
     </div>
   );
@@ -646,87 +672,84 @@ function AssistantRowInner({
   rowRef,
   onBranch,
   onOpenStudio,
+  onRegenerate,
+  prompt,
 }: {
   m: Message;
   isLatest: boolean;
   rowRef: (el: HTMLDivElement | null) => void;
   onBranch?: (messageId: string) => void;
   onOpenStudio?: (code: string, title?: string) => void;
+  onRegenerate?: (prompt: string) => void;
+  prompt?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [fb, setFb] = useState<string>(() => {
+    try { return localStorage.getItem(`dai-fb:${m.id}`) || ""; } catch { return ""; }
+  });
+  const rate = (v: string) => {
+    const next = fb === v ? "" : v;
+    setFb(next);
+    try { next ? localStorage.setItem(`dai-fb:${m.id}`, next) : localStorage.removeItem(`dai-fb:${m.id}`); } catch {}
+  };
 
   const copyAll = () => {
     navigator.clipboard?.writeText(m.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  const share = async () => {
+    try {
+      if (navigator.share) await navigator.share({ text: m.content });
+      else { await navigator.clipboard?.writeText(m.content); setCopied(true); setTimeout(() => setCopied(false), 1800); }
+    } catch {}
   };
 
   const isWorking = Boolean(m.work?.isWorking);
-  const auraState: AuraState = m.streaming
-    ? (isWorking ? "thinking" : "answering")
-    : "idle";
-
   const answerRef = useRef<HTMLDivElement | null>(null);
+  const wasStreaming = useRef(false);
+  if (m.streaming) wasStreaming.current = true;
 
   return (
-    <div ref={isLatest ? rowRef : undefined} className="rise flex items-start gap-2 sm:gap-4">
-      <Aura state={auraState} size={44} className="mt-1 hidden shrink-0 sm:block" ring={false} />
+    <div ref={isLatest ? rowRef : undefined} className="rise min-w-0 font-body">
+      {/* Agentic Execution / Work details */}
+      {m.work && <WorkAccordion work={m.work} />}
 
-      <div className="min-w-0 max-w-full flex-1 sm:max-w-[90%] pt-1.5 font-body">
-        {/* Agentic Execution / Work details */}
-        {m.work && <WorkAccordion work={m.work} />}
-
-        {/* Answer Content */}
-        <div ref={answerRef}>
-          <RichMarkdown
-            text={m.content}
-            streaming={m.streaming && !isWorking}
-            imageUrl={m.imageUrl}
-            onOpenStudio={onOpenStudio}
-          />
-        </div>
-
-        {/* Action bar on completed responses */}
-        {!m.streaming && m.content && (
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={copyAll}
-              className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-gold/25 px-2.5 py-1 font-body text-[12px] text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
-              aria-label="Copy full response"
-            >
-              {copied ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  <span>Copied</span>
-                </>
-              ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-
-            {onBranch && (
-              <button
-                type="button"
-                onClick={() => onBranch(m.id)}
-                title="Branch conversation from this point"
-                className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-gold/25 px-2.5 py-1 font-body text-[12px] text-gold/70 transition-colors hover:border-gold/50 hover:bg-gold/10 hover:text-cream active:scale-95"
-              >
-                <span className="font-mono text-[12px]">⑂</span>
-                <span>Branch</span>
-              </button>
-            )}
-          </div>
-        )}
+      {/* Answer Content */}
+      <div ref={answerRef} className={cn("dai-shell", m.streaming ? "is-streaming" : wasStreaming.current && "is-settled")}>
+        <RichMarkdown
+          text={m.content}
+          streaming={m.streaming && !isWorking}
+          imageUrl={m.imageUrl}
+          onOpenStudio={onOpenStudio}
+        />
       </div>
+
+      {/* Action row on completed responses */}
+      {!m.streaming && m.content && (
+        <div className="-ml-2 mt-1 flex flex-wrap items-center">
+          <ActionBtn label={copied ? "Copied" : "Copy"} onClick={copyAll}>{copied ? CheckIcon : CopyIcon}</ActionBtn>
+          <ActionBtn label="Good response" active={fb === "up"} onClick={() => rate("up")}>
+            <svg width="17" height="17" viewBox="0 0 24 24" {...IC} fill={fb === "up" ? "currentColor" : "none"}><path d="M7 10v11H3V10Z" /><path d="M7 10l4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8a2 2 0 0 1-2 1.7H7" /></svg>
+          </ActionBtn>
+          <ActionBtn label="Bad response" active={fb === "down"} onClick={() => rate("down")}>
+            <svg width="17" height="17" viewBox="0 0 24 24" {...IC} fill={fb === "down" ? "currentColor" : "none"}><path d="M17 14V3h4v11Z" /><path d="M17 14l-4 8a3 3 0 0 1-3-3v-4H4.5a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 5.9 3H17" /></svg>
+          </ActionBtn>
+          {prompt && onRegenerate && (
+            <ActionBtn label="Regenerate" onClick={() => onRegenerate(prompt)}>
+              <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" /><path d="M3 21v-5h5" /><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8" /><path d="M21 3v5h-5" /></svg>
+            </ActionBtn>
+          )}
+          <ActionBtn label="Share" onClick={share}>
+            <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
+          </ActionBtn>
+          {onBranch && (
+            <ActionBtn label="Branch" onClick={() => onBranch(m.id)}>
+              <svg width="17" height="17" viewBox="0 0 24 24" {...IC}><circle cx="6" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="9" r="2" /><path d="M6 7v10" /><path d="M18 11c0 4-6 3-12 6" /></svg>
+            </ActionBtn>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -734,10 +757,10 @@ function AssistantRowInner({
 const UserBubble = memo(UserBubbleInner, (a, b) => a.m === b.m && a.onBranch === b.onBranch);
 const AssistantRow = memo(
   AssistantRowInner,
-  (a, b) => a.m === b.m && a.isLatest === b.isLatest && a.onBranch === b.onBranch && a.onOpenStudio === b.onOpenStudio,
+  (a, b) => a.m === b.m && a.isLatest === b.isLatest && a.onBranch === b.onBranch && a.onOpenStudio === b.onOpenStudio && a.prompt === b.prompt && a.onRegenerate === b.onRegenerate,
 );
 
-export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
+export function Messages({ messages, state, onBranch, onOpenStudio, onRegenerate }: Props) {
   const latestRowRef = useRef<HTMLDivElement | null>(null);
   const scrolledAssistantIdRef = useRef<string | null>(null);
 
@@ -758,8 +781,8 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
-    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-8 px-3 py-6 sm:px-4 sm:py-8 md:px-10">
-      {messages.map((m) =>
+    <div className="mx-auto flex w-full max-w-[768px] flex-col gap-6 px-4 pb-8 pt-4 sm:px-5 md:gap-7">
+      {messages.map((m, mi) =>
         m.role === "user" ? (
           <UserBubble key={m.id} m={m} onBranch={onBranch} />
         ) : (
@@ -774,9 +797,11 @@ export function Messages({ messages, state, onBranch, onOpenStudio }: Props) {
             }}
             onBranch={onBranch}
             onOpenStudio={onOpenStudio}
+            onRegenerate={onRegenerate}
+            prompt={[...messages.slice(0, mi)].reverse().find((x) => x.role === "user")?.content.replace(/\[UPLOADED_IMAGE:[^\]]*\]\n?/g, "").trim()}
           />
         ),
       )}
     </div>
   );
-  }
+}
