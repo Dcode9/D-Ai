@@ -231,7 +231,7 @@ export default function App() {
           </div>
 
           {/* Message Box: Positioned so the chat container bottom border ends in the middle of the message box */}
-          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-1/2 px-2.5 md:px-8 pointer-events-none">
+          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-[31px] md:translate-y-[50px] px-2.5 md:px-8 pointer-events-none">
             <div className="w-full max-w-[920px] pointer-events-auto flex justify-center">
               <ChatInput
                 onSend={chat.send}
