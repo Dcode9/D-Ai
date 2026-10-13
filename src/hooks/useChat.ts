@@ -1019,6 +1019,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                 const imgStepId = uid();
                 updateWork((w) => ({
                   ...w,
+                  isWorking: true,
                   statusText: "Composing visual representation…",
                   steps: [
                     ...w.steps,
@@ -1067,6 +1068,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
 
                 updateWork((w) => ({
                   ...w,
+                  isWorking: false,
                   statusText: "Generated visual artwork",
                   steps: w.steps.map((s) =>
                     s.id === imgStepId ? { ...s, isLive: false, imageUrl: generatedUrl } : s,
@@ -1446,4 +1448,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-                                      }
+}
