@@ -650,6 +650,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
       let displayedText = "";
       let isStreamingActive = false;
       let finalImageUrl: string | undefined = undefined;
+      const deepRef = { current: false };
       let loopCount = 0;
       const maxLoops = 5;
 
@@ -691,7 +692,8 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                 stream: true,
                 mode: mode || (isCodePrompt ? "Code" : undefined),
                 is_code: isCodePrompt,
-                max_tokens: isCodePrompt ? 16384 : 4096,
+                max_tokens: isCodePrompt ? 16384 : 8192,
+                ...(deepRef.current ? { deep: true } : {}),
               }),
               signal: controller.signal,
             });
@@ -1195,6 +1197,15 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   name: "manage_memory",
                   content: JSON.stringify(resultPayload),
                 });
+              } else if (toolCall.name === "think_deeper") {
+                // The instant model asked for more reasoning: the next turn runs on the thinking model.
+                deepRef.current = true;
+                conversationHistory.push({
+                  role: "tool",
+                  tool_call_id: toolCall.id,
+                  name: "think_deeper",
+                  content: JSON.stringify({ ok: true, note: "Deeper reasoning enabled. Now answer the user's question fully." }),
+                });
               } else if (toolCall.name === "open_app") {
                 let a: any = {};
                 try { a = JSON.parse(toolCall.arguments || "{}"); } catch { /* ignore */ }
@@ -1470,4 +1481,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-                                     }
+}
