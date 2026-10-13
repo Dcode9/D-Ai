@@ -159,15 +159,6 @@ export function StretchFrame({
                 />
               </>
             )}
-
-            {/* Fine noise grain overlay for authentic animated grainy texture */}
-            <rect
-              width={w}
-              height={h}
-              fill="url(#grain-pattern)"
-             
-              opacity={0.35}
-            />
           </g>
         </>
       )}
