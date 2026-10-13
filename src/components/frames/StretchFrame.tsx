@@ -15,6 +15,8 @@ export interface StretchFrameProps {
   backdropOpacity?: number;
   className?: string;
   maxCapScale?: number;
+  /** Let the frame grow taller than its caps (multi-line message box). */
+  stretchY?: boolean;
 }
 
 export function StretchFrame({
@@ -30,6 +32,7 @@ export function StretchFrame({
   backdropOpacity = 0.9,
   className,
   maxCapScale,
+  stretchY,
 }: StretchFrameProps) {
   const reactId = useId().replace(/:/g, "");
 
@@ -51,7 +54,7 @@ export function StretchFrame({
     // Ensures capScaleX and capScaleY scale in lockstep to preserve the 1:1 fidelity of curves and wingtips.
     const capScale = Math.min((h * 0.94) / shapeVisualHeight, (w * 0.42) / shape.capW, maxCapScale ?? Infinity);
     const capScaleX = capScale;
-    const capScaleY = capScale;
+    const capScaleY = stretchY ? Math.max(capScale, (h * 0.94) / shapeVisualHeight) : capScale;
 
     // Position capTop so that the visual center of the shape maps EXACTLY to h / 2
     const capTop = h / 2 - shapeVisualCenterY * capScaleY;
@@ -60,7 +63,7 @@ export function StretchFrame({
     const inner = buildClosedFramePath(shape.inner, shape.capW, w, capScaleX, capTop, capScaleY);
 
     return { outerPath: outer, innerPath: inner };
-  }, [shape, w, h, maxCapScale]);
+  }, [shape, w, h, maxCapScale, stretchY]);
 
   if (!w || !h || w <= 0 || h <= 0 || !outerPath) return null;
 
