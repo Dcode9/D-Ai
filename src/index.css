@@ -578,3 +578,7 @@ input::placeholder {
 .ornate-card::before{top:-4px;left:-4px}
 .ornate-card::after{bottom:-4px;right:-4px}
 .ornate-card pre{overflow-x:auto}
+
+@keyframes daiReveal { from { opacity: 0; transform: translateY(5px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+.dai-reveal { animation: daiReveal 0.3s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .dai-reveal { animation: none; } }
