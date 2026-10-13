@@ -173,7 +173,6 @@ export default function App() {
           {chat.isLoadingChat && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30">
               <div className="flex items-center gap-2 rounded-full border border-gold/30 bg-ink px-4 py-2 text-gold shadow-lg">
-                <span className="h-2 w-2 rounded-full bg-gold animate-ping" />
                 <span className="font-body text-[14px]">Loading chat…</span>
               </div>
             </div>
