@@ -407,7 +407,6 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
         {/* Uploading Status Banner */}
         {isUploading && (
           <div className="flex items-center gap-3 border-y border-gold/30 bg-gold/10 px-8 py-2 text-gold-2">
-            <span className="h-2 w-2 rounded-full bg-gold animate-ping" />
             <span className="font-display italic text-[14px]">{uploadStatus}</span>
           </div>
         )}
@@ -474,7 +473,6 @@ Output ONLY the clean HTML document inside a \`\`\`html code block. No unnecessa
                   </span>
                 </div>
                 <span className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-mono">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Active Sandbox
                 </span>
               </div>
