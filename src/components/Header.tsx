@@ -36,7 +36,7 @@ function IconBtn({ label, onClick, active, children }: { label: string; onClick:
 export function Header({ onHistory, onNewChat, onMemory, onAccount, onApps, appsOpen = false, historyOpen, memoryCount, user }: Props) {
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   return (
-    <header className="relative z-20 shrink-0 bg-gradient-to-b from-black/50 to-transparent" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+    <header className="dai-glass-top absolute inset-x-0 top-0 z-20" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="flex h-[56px] items-center justify-between px-2 sm:px-4">
         <div className="flex items-center gap-0.5">
           <IconBtn label="Chats" onClick={onHistory} active={historyOpen}>
