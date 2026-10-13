@@ -10,6 +10,8 @@ type Props = {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onNewChat?: () => void;
+  onMemory?: () => void;
+  memoryCount?: number;
 };
 
 const fmt = (ts: number) => {
@@ -21,7 +23,7 @@ const fmt = (ts: number) => {
     : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
-export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, onDelete, onNewChat }: Props) {
+export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, onDelete, onNewChat, onMemory, memoryCount = 0 }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredConversations = useMemo(() => {
@@ -144,6 +146,16 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
             </div>
           ))}
         </div>
+        {onMemory && (
+          <button
+            type="button"
+            onClick={() => { try { navigator.vibrate?.(8); } catch {} onMemory(); onClose(); }}
+            className="mx-3 mb-3 mt-1 flex h-12 shrink-0 cursor-pointer items-center justify-between rounded-xl border border-white/10 px-4 font-body text-[15px] text-cream/85 transition-colors hover:bg-white/[.06] active:scale-[.98]"
+          >
+            <span>Memory</span>
+            <span className="text-[13px] text-gold/80">{memoryCount > 0 ? `${memoryCount} saved` : "Manage"}</span>
+          </button>
+        )}
       </aside>
     </>
   );
