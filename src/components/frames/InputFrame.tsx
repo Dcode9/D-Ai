@@ -33,6 +33,7 @@ export function InputFrame({ w, h, focused, busy, maxCapScale }: Props) {
       backdropOpacity={0.94}
       className="transition-all duration-300"
       maxCapScale={maxCapScale}
+      stretchY
     />
   );
 }
