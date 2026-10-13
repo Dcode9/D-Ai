@@ -128,7 +128,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
           paddingLeft: `${Math.max(76, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
           paddingRight: `${Math.max(68, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
         }}
-        className="relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3"
+        className={cn("relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3", multi && "pt-4 md:pt-5")}
       >
         {/* Attached thumbnail preview if uploaded */}
         {attachedImage && (
