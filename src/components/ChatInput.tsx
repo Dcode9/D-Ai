@@ -22,6 +22,13 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boxHeight, setBoxHeight] = useState(100);
   const [boxWidth, setBoxWidth] = useState(780);
+  const [hd, setHd] = useState(() => typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") === "1");
+  const toggleHd = () => {
+    const next = !hd;
+    setHd(next);
+    try { localStorage.setItem("dai-hd", next ? "1" : "0"); } catch {}
+    try { navigator.vibrate?.(next ? [12, 30, 12] : 10); } catch {}
+  };
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
   useEffect(() => {
@@ -30,28 +37,20 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     return () => window.removeEventListener("resize", on);
   }, []);
 
-  // Proportional multi-dimensional scaling for multi-line prompts
+  // Continuous auto-grow like ChatGPT: the box follows the text line by line, then scrolls past a cap.
+  const [taH, setTaH] = useState(34);
   useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = "auto";
-    const scrollH = textareaRef.current.scrollHeight;
-    textareaRef.current.style.height = `${Math.min(125, Math.max(34, scrollH))}px`;
-
-    // Scale up in BOTH dimensions proportionally when more content is entered
-    if (scrollH <= 38) {
-      setBoxHeight(100);
-      setBoxWidth(780);
-    } else if (scrollH <= 66) {
-      setBoxHeight(122);
-      setBoxWidth(815);
-    } else if (scrollH <= 96) {
-      setBoxHeight(146);
-      setBoxWidth(850);
-    } else {
-      setBoxHeight(170);
-      setBoxWidth(885);
-    }
-  }, [value]);
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const maxH = Math.max(90, Math.min(240, Math.round(window.innerHeight * 0.34)));
+    const h = Math.min(maxH, Math.max(34, el.scrollHeight));
+    el.style.height = `${h}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
+    setTaH(h);
+    setBoxHeight(h + 66);
+    setBoxWidth(780);
+  }, [value, narrow]);
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
@@ -70,10 +69,10 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     onSend(finalPrompt);
     setValue("");
     setAttachedImage(null);
+    setTaH(34);
     setBoxHeight(100);
-    setBoxWidth(780);
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = "34px";
     }
   };
 
@@ -101,18 +100,18 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
       ref={ref}
       onSubmit={submit}
       style={{
-        height: `${(narrow ? boxHeight - 38 : boxHeight) + (attachedImage ? 42 : 0)}px`,
-        maxWidth: narrow ? "100%" : `min(${boxWidth}px, calc(100vw - 2rem))`,
+        height: `${taH + (narrow ? 28 : 66) + (attachedImage ? 42 : 0)}px`,
+        maxWidth: narrow ? "100%" : "min(780px, calc(100vw - 2rem))",
       }}
-      className="relative mx-auto w-full transition-[height,max-width] duration-250 ease-out"
+      className="relative mx-auto w-full transition-[height] duration-100 ease-out"
     >
       <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : undefined} />
 
       {/* Content strictly padded inside heraldic caps and rails */}
       <div
         style={narrow ? { paddingLeft: Math.round(94 * NARROW_CAP) + 4, paddingRight: Math.round(94 * NARROW_CAP) - 6 } : {
-          paddingLeft: `${Math.max(76, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
-          paddingRight: `${Math.max(68, Math.round(94 * Math.min((boxHeight * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
+          paddingLeft: `${Math.max(76, Math.round(94 * Math.min((Math.min(boxHeight, 130) * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
+          paddingRight: `${Math.max(68, Math.round(94 * Math.min((Math.min(boxHeight, 130) * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
         }}
         className="relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3"
       >
@@ -134,7 +133,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
           </div>
         )}
 
-        <div className="flex w-full items-center gap-2.5">
+        <div className="flex w-full items-end gap-2.5">
           {/* File Upload Hidden Input */}
           <input
             ref={fileInputRef}
@@ -171,6 +170,19 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={toggleHd}
+            aria-pressed={hd}
+            title={hd ? "HD images on (GPT Image 2)" : "HD images off (fast mode)"}
+            className={cn(
+              "flex h-9 min-w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full border px-2 font-display text-[12px] tracking-widest transition-all active:scale-90",
+              hd ? "border-gold bg-gold/25 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.45)]" : "border-gold/30 text-gold/50 hover:text-gold",
+            )}
+          >
+            HD
+          </button>
+
           <textarea
             ref={textareaRef}
             rows={1}
@@ -180,7 +192,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={busy ? "D’Ai is composing…" : narrow ? "Message D’Ai…" : "Message D’Ai… (Shift+Enter for newline)"}
-            className="scroll-gold max-h-[115px] min-h-[34px] w-full resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60"
+            className="scroll-gold min-h-[34px] w-full resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60"
             autoComplete="off"
             spellCheck={false}
           />
@@ -191,7 +203,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               onClick={onStop}
               title="Stop composing"
               aria-label="Stop composing"
-              className="group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-center"
+              className="group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-end"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/70 bg-gold/15 shadow-[0_0_12px_rgba(201,168,106,0.35)]">
                 <span className="h-2.5 w-2.5 rounded-[2px] bg-[#e8d3a0]" />
@@ -203,7 +215,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               disabled={!value.trim() && !attachedImage}
               aria-label="Send"
               className={cn(
-                "group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-center",
+                "group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-end",
                 "disabled:cursor-default disabled:opacity-40",
                 "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
               )}
