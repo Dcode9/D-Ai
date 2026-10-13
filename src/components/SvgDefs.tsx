@@ -19,6 +19,13 @@ export function SvgDefs() {
             <stop offset="100%" stopColor="#c9a86a" />
           </linearGradient>
 
+          {/* Mezzotint grain blur (from d-ui): scatter 55, density .70, diffusion 8.5, octaves 1 */}
+          <filter id="dai-mezz" x="-35%" y="-35%" width="170%" height="170%" colorInterpolationFilters="sRGB">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4.675" result="diffused" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.875" numOctaves="1" stitchTiles="stitch" result="inkGrain" />
+            <feDisplacementMap in="diffused" in2="inkGrain" scale="35.75" xChannelSelector="R" yChannelSelector="G" result="jittered" />
+          </filter>
+
           {/* Optimized noise filter and repeating pattern */}
           <pattern id="grain-pattern" width="128" height="128" patternUnits="userSpaceOnUse">
             <image href="/grain.png" width="128" height="128" />
