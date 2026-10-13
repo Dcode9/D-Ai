@@ -178,9 +178,17 @@ export async function runGeneration({ token, messageId, userId, body, patch = pa
             const mime = (r.headers.get('content-type') || 'image/jpeg').split(';')[0];
             const bytes = Buffer.from(await r.arrayBuffer());
             const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
-            const blob = await put(`dai-images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, bytes, { access: 'public', contentType: mime });
+            // Vercel Blob is not connected on this deployment, so fall back to an inline data URL instead of failing every image.
+            let imgUrl = '';
+            if (process.env.BLOB_READ_WRITE_TOKEN) {
+              try {
+                const blob = await put(`dai-images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, bytes, { access: 'public', contentType: mime });
+                imgUrl = blob.url;
+              } catch { /* fall through to inline */ }
+            }
+            if (!imgUrl) imgUrl = `data:${mime};base64,${bytes.toString('base64')}`;
             const alt = imgPrompt.replace(/[\[\]\n]/g, ' ').slice(0, 300);
-            const md = `\n\n![Generated image: ${alt}](${blob.url})\n\n`;
+            const md = `\n\n![Generated image: ${alt}](${imgUrl})\n\n`;
             content += md;
             emit({ type: 'content', delta: md });
             toolLog.push({ name: 'generate_image', query: imgPrompt.slice(0, 120), results: 1 });
