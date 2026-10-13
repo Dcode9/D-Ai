@@ -598,7 +598,7 @@ input::placeholder {
 @property --g1 { syntax: "<color>"; inherits: true; initial-value: #5f36a0; }
 @property --g2 { syntax: "<color>"; inherits: true; initial-value: #c9a04a; }
 .ambient { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
-  --g1: #5f36a0; --g2: #c9a04a; --amp: .38; --spd: 26s;
+  --g1: #5f36a0; --g2: #c9a04a; --amp: .5; --spd: 26s;
   transition: --g1 .9s ease, --g2 .9s ease; }
 .ambient__blob { position: absolute; border-radius: 50%; will-change: transform; opacity: var(--amp);
   animation: drift var(--spd) ease-in-out infinite alternate; transition: opacity .9s ease; }
@@ -606,7 +606,7 @@ input::placeholder {
 .ambient__blob--b { top: 46%; left: -26%; width: 470px; height: 470px;  --dx: 60px; --dy: -40px; animation-delay: -8s; }
 .ambient__blob--c { bottom: -16%; right: -14%; width: 440px; height: 440px;  --dx: -40px; --dy: -50px; animation-delay: -14s; }
 .ambient__vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,.5) 100%); }
-.ambient--idle { --amp: .3; }
+.ambient--idle { --amp: .5; }
 .ambient--send { --g1: #d4ad5a; --g2: #ffe9b0; --amp: .62; --spd: 2.2s; }
 .ambient--think { --g1: #7a49d8; --g2: #3d5bd6; --amp: .55; --spd: 6s; }
 .ambient--respond { --g1: #c9a04a; --g2: #7a49b8; --amp: .5; --spd: 11s; }
@@ -620,11 +620,11 @@ input::placeholder {
 .gen-card__rect { mix-blend-mode: screen; transition: stroke-dashoffset .4s linear; }
 .gen-card__status { position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #fff; font-family: inherit; font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; opacity: .75; text-shadow: 0 2px 4px rgba(0,0,0,.8); z-index: 3; }
 
-.ambient__blob--a .ambient__core { background: radial-gradient(circle, var(--g1) 0%, transparent 62%); }
-.ambient__blob--b .ambient__core { background: radial-gradient(circle, var(--g2) 0%, transparent 62%); }
-.ambient__blob--c .ambient__core { background: radial-gradient(circle, var(--g1) 0%, transparent 62%); }
+.ambient__blob--a .ambient__core { background: radial-gradient(circle, var(--g1) 0%, var(--g1) 26%, transparent 66%); }
+.ambient__blob--b .ambient__core { background: radial-gradient(circle, var(--g2) 0%, var(--g2) 26%, transparent 66%); }
+.ambient__blob--c .ambient__core { background: radial-gradient(circle, var(--g1) 0%, var(--g1) 26%, transparent 66%); }
 .ambient__core { position: absolute; inset: 12%; border-radius: 50%; filter: url(#dai-mezz); }
-.ambient--image { --g1: #5f36a0; --g2: #c9a04a; --amp: .3; }
+.ambient--image { --g1: #5f36a0; --g2: #c9a04a; --amp: .5; }
 .ambient--image .ambient__blob { animation-play-state: paused; }
 .gen-card__blob { filter: none; }
 .gen-card__core { position: absolute; inset: 0; border-radius: 50%; filter: url(#dai-mezz); }
