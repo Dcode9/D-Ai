@@ -377,6 +377,37 @@ function extractCleanThreeWordTitle(text: string): string {
     );
   }, []);
 
+  // AI-written chat title (2-5 words) from the first exchange. Fire-and-forget, never blocks the chat.
+  const aiTitle = useCallback((convId: string, userText: string, reply: string) => {
+    const q = String(userText || "").replace(/\[UPLOADED_IMAGE:[^\]]+\]/gi, "").slice(0, 300);
+    if (!q.trim()) return;
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: "Write a short, natural chat title (2 to 5 words, Title Case) that captures what this conversation is about. Reply with ONLY the title: no quotes, no markdown, no trailing punctuation." },
+          { role: "user", content: `User asked: ${q}\nAssistant replied: ${String(reply || "").replace(/!\[[^\]]*\]\([^)]*\)/g, "[image]").slice(0, 300)}` },
+        ],
+        stream: false,
+        enable_tools: false,
+        max_tokens: 20,
+        temperature: 0.3,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const t = String(data.choices?.[0]?.message?.content || "")
+          .replace(/[“”"'`*#.!?:]/g, "")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 5)
+          .join(" ");
+        if (t.length >= 3 && t.length <= 60) renameConversation(convId, t);
+      })
+      .catch(() => {});
+  }, [renameConversation]);
+
   const send = useCallback(
     async (text: string) => {
       const prompt = text.trim();
@@ -527,6 +558,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
               mode: mode || (isCodePrompt ? "Code" : undefined),
               is_code: isCodePrompt,
               max_tokens: isCodePrompt ? 16384 : 4096,
+              hd: typeof localStorage !== "undefined" && localStorage.getItem("dai-hd") === "1",
               title,
               user_message: { id: userMsg.id, content: prompt, mode },
             },
@@ -573,6 +605,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
           if (frame != null) cancelAnimationFrame(frame);
           if (result.finished) {
             render(false);
+            if (currentMessages.length === 1) aiTitle(convId, prompt, live.content);
           } else if (result.messageId) {
             // Connection dropped; the server is still writing. Follow the saved row.
             const deadline = Date.now() + 6 * 60 * 1000;
@@ -1003,7 +1036,7 @@ Whenever you create, recommend, mention, or search for previewable websites, int
                   const imgRes = await fetch("/api/image", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio }),
+                    body: JSON.stringify({ prompt: imgPrompt, aspect_ratio: aspectRatio, ...(localStorage.getItem("dai-hd") === "1" ? { model: "gpt-image-2" } : {}) }),
                     signal: controller.signal,
                   });
                   if (imgRes.ok) {
@@ -1258,49 +1291,14 @@ Whenever you create, recommend, mention, or search for previewable websites, int
         setState("idle");
         persist(convId, done);
 
-        // Auto-generate a short ~3 word title after the first user/assistant exchange
-        if (currentMessages.length === 1) {
-          fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are a succinct title generator. Provide STRICTLY a 2 or 3 word title for this conversation based on the user request. Respond with ONLY the 2 to 3 words. No quotes, no markdown, no period.",
-                },
-                { role: "user", content: prompt.slice(0, 250) },
-              ],
-              stream: false,
-              enable_tools: false,
-              max_tokens: 12,
-              temperature: 0.3,
-            }),
-          })
-            .then((r) => r.json())
-            .then((data) => {
-              const rawTitle = data.choices?.[0]?.message?.content || "";
-              const cleaned = rawTitle
-                .replace(/[“"'.!?:#*`]/g, "")
-                .trim()
-                .split(/\s+/)
-                .slice(0, 3)
-                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(" ");
-              if (cleaned && cleaned.split(/\s+/).length >= 2) {
-                renameConversation(convId, cleaned);
-              }
-            })
-            .catch(() => {});
-        }
+        if (currentMessages.length === 1) aiTitle(convId, prompt, rawBuffer);
       } catch (err: any) {
         if (err?.name === "AbortError") return;
         console.error("Chat failure:", err);
         setState("idle");
       }
     },
-    [activeId, messages, mode, persist, state],
+    [activeId, messages, mode, persist, state, aiTitle],
   );
 
   const newChat = useCallback(() => {
@@ -1448,4 +1446,4 @@ Whenever you create, recommend, mention, or search for previewable websites, int
     deleteProject,
     assignToProject,
   };
-}
+    }
