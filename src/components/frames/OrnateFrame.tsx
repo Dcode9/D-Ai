@@ -153,7 +153,6 @@ export function OrnateFrame({ variant, active, className, children, onClick }: P
               fill="url(#glow-amber)"
               className={cn("transition-opacity duration-700", active ? "opacity-70" : "opacity-35 group-hover:opacity-60")}
             />
-            <rect width={w} height={h} fill="url(#grain-pattern)" opacity="0.35" />
           </g>
 
           {geo.strokes.map((s, i) => (
