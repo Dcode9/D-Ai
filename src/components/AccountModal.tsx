@@ -1,4 +1,3 @@
-import { Plate } from "./frames/Plate";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getUser, signInWithGoogle, signOut, onAuthStateChange } from "../lib/supabase";
@@ -59,14 +58,14 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
       />
 
       {/* Ornate Modal Frame */}
-      <Plate variant="text" className="w-full max-w-[440px] max-h-[88vh] p-7 drop-shadow-[0_12px_48px_rgba(0,0,0,0.85)] sm:p-10">
+      <div className="relative w-full max-w-[400px] max-h-[88vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#15130f] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
 
         {/* Header */}
         <div className="relative mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="text-xl text-gold">✦</span>
-            <h2 className="font-display text-[22px] tracking-[0.06em] text-cream">
-              {user ? "Sovereign Account" : "Sign In to D'Ai"}
+            <h2 className="font-display text-[24px] text-cream">
+              {user ? "Account" : "Sign in"}
             </h2>
           </div>
           <button
@@ -103,7 +102,7 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
                   <p className="truncate font-body text-[13px] text-muted">{email}</p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-gold-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Supabase Cloud Sync Active
+                    Synced
                   </div>
                 </div>
               </div>
@@ -125,7 +124,7 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
                 type="button"
                 onClick={handleSignOut}
                 disabled={loading}
-                className="w-full cursor-pointer rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 font-display text-[13px] uppercase tracking-[0.14em] text-rose-300 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+                className="w-full cursor-pointer h-12 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 font-body text-[15px] text-rose-300 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
               >
                 {loading ? "Signing out…" : "Sign Out"}
               </button>
@@ -133,15 +132,13 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
           ) : (
             /* Guest / Signed Out State */
             <div className="space-y-4">
-              <p className="font-body text-[14px] leading-relaxed text-[#d4c8af]">
-                Sign in with Google to synchronize your conversations, saved intelligence, and personal memory across all your devices via Supabase cloud storage.
-              </p>
+              <p className="font-body text-[15px] leading-relaxed text-cream/75">Save your chats and memory across devices.</p>
 
               <button
                 type="button"
                 onClick={handleSignIn}
                 disabled={loading}
-                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-gold/40 bg-gradient-to-r from-gold/20 via-gold/10 to-gold/20 px-5 py-3 font-display text-[14px] uppercase tracking-[0.14em] text-cream shadow-md transition-all hover:border-gold hover:from-gold/30 hover:to-gold/30 disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center justify-center gap-3 h-14 rounded-2xl border border-gold/50 bg-gradient-to-r from-gold/25 via-gold/15 to-gold/25 px-5 font-body text-[16px] font-medium text-cream shadow-md transition-all active:scale-[.98] disabled:opacity-50"
               >
                 <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -163,14 +160,10 @@ export function AccountModal({ open, onClose, savedChatsCount, memoryFactsCount 
                 </svg>
                 <span>{loading ? "Connecting…" : "Continue with Google"}</span>
               </button>
-
-              <div className="rounded-lg border border-gold/15 bg-black/30 p-3 text-center font-body text-[12px] text-muted">
-                Guest Mode: Conversations and memory are stored locally on this device.
-              </div>
             </div>
           )}
         </div>
-      </Plate>
+      </div>
     </div>
   );
 }
