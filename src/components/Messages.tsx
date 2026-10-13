@@ -461,6 +461,21 @@ function cachedHtml(part: string): string {
   return html;
 }
 
+/** Split prose at blank lines into paragraphs, but keep lists, tables, quotes, indents and $$ math together. */
+function splitProseBlocks(part: string): string[] {
+  const raw = part.split(/\n{2,}/);
+  const out: string[] = [];
+  for (const r of raw) {
+    if (!r.trim()) continue;
+    const prev = out[out.length - 1];
+    const sticky = /^\s*([-*+]\s|\d+[.)]\s|>|\||\s{2,}|\t)/.test(r);
+    const prevOpen = prev !== undefined && ((prev.match(/\$\$/g) || []).length % 2 === 1 || /^\s*([-*+]\s|\d+[.)]\s|\|)/.test(prev.split("\n").pop() || ""));
+    if (prev !== undefined && (sticky || prevOpen)) out[out.length - 1] = prev + "\n\n" + r;
+    else out.push(r);
+  }
+  return out.length ? out : [part];
+}
+
 /** Segmented Markdown Renderer combining marked tokens with custom CodeBlock components, KaTeX math, and Artifact Previews */
 function RichMarkdown({
   text,
@@ -529,14 +544,15 @@ function RichMarkdown({
           );
         }
         if (!part.trim()) return null;
-        const html = processMathAndMarkdown(part);
-        return (
+        // Each paragraph is its own stable node: finished ones are never touched again, and a new one fades in once.
+        const blocks = splitProseBlocks(part);
+        return blocks.map((b, bi) => (
           <div
-            key={`prose-${idx}`}
-            className="dai-prose text-[16px] leading-[1.75] text-[#ded4bf]"
-            dangerouslySetInnerHTML={{ __html: html }}
+            key={`prose-${idx}-${bi}`}
+            className={`dai-prose text-[16px] leading-[1.75] text-[#ded4bf]${streaming ? " dai-reveal" : ""}`}
+            dangerouslySetInnerHTML={{ __html: processMathAndMarkdown(b) }}
           />
-        );
+        ));
       });
     } catch {
       return (
@@ -545,7 +561,7 @@ function RichMarkdown({
         </div>
       );
     }
-  }, [text, onOpenStudio]);
+  }, [text, onOpenStudio, streaming]);
 
   return (
     <div className="space-y-2">
