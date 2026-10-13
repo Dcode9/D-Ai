@@ -1,16 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Ambient } from "./components/Ambient";
+import { Ambient, useGradientMode } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
 import { Header } from "./components/Header";
 import { HistoryDrawer } from "./components/HistoryDrawer";
-import { AppsDrawer, type AppId } from "./components/AppsDrawer";
 import { WikiDrawer, wikiTitleFromHref } from "./components/WikiDrawer";
 import { Messages } from "./components/Messages";
 import { PromptSuggestions } from "./components/PromptSuggestions";
 const AccountModal = lazy(() => import("./components/AccountModal").then((m) => ({ default: m.AccountModal })));
 const MemoryModal = lazy(() => import("./components/MemoryModal").then((m) => ({ default: m.MemoryModal })));
-const CodeStudio = lazy(() => import("./components/CodeStudio").then((m) => ({ default: m.CodeStudio })));
 import { SvgDefs } from "./components/SvgDefs";
 import { useChat } from "./hooks/useChat";
 import { useSize } from "./hooks/useSize";
@@ -27,18 +25,6 @@ export default function App() {
     if (el) setShowJump(el.scrollHeight - el.scrollTop - el.clientHeight > 260);
   };
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [appsOpen, setAppsOpen] = useState(false);
-  const [appLaunch, setAppLaunch] = useState<{ app: AppId; query?: string; play?: boolean; n: number } | null>(null);
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      const d = (e as CustomEvent).detail as { app: AppId; query?: string; play?: boolean };
-      if (!d?.app) return;
-      setAppLaunch({ app: d.app, query: d.query, play: d.play, n: Date.now() });
-      setAppsOpen(true);
-    };
-    window.addEventListener("dai:open-app", onOpen);
-    return () => window.removeEventListener("dai:open-app", onOpen);
-  }, []);
   const [wikiOpen, setWikiOpen] = useState(false);
   const [wikiReq, setWikiReq] = useState<{ title: string; n: number } | null>(null);
   useEffect(() => {
@@ -72,6 +58,7 @@ export default function App() {
 
   const empty = chat.messages.length === 0 && chat.state === "idle";
   const busy = chat.state !== "idle";
+  const gmode = useGradientMode(chat.messages, chat.state);
 
   // Auth state tracking
   useEffect(() => {
@@ -98,12 +85,6 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         chat.newChat();
-      } else if (
-        (e.altKey && e.key.toLowerCase() === "s") ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s")
-      ) {
-        e.preventDefault();
-        setCodeStudioOpen((prev) => !prev);
       } else if (e.key === "Escape") {
         setHistoryOpen(false);
         setAccountOpen(false);
@@ -128,18 +109,14 @@ export default function App() {
   return (
     <div className="relative flex h-full flex-col bg-ink text-cream" style={{ overflow: "clip" }}>
       <SvgDefs />
-      <Ambient state={chat.state} visible={empty} />
+      <Ambient mode={gmode} />
 
       <Header
         onHistory={() => setHistoryOpen(true)}
         onNewChat={chat.newChat}
         onMemory={() => setMemoryOpen(true)}
         onAccount={() => setAccountOpen(true)}
-        onStudio={() => setCodeStudioOpen((prev) => !prev)}
-        onApps={() => setAppsOpen((p) => !p)}
-        appsOpen={appsOpen}
         historyOpen={historyOpen}
-        studioOpen={codeStudioOpen}
         memoryCount={memoryCount}
         user={user}
       />
@@ -212,7 +189,6 @@ export default function App() {
               <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-6 px-5 pb-10 text-center">
                 <div className="rise">
                   <h1 className="font-display text-[30px] leading-tight tracking-wide text-cream sm:text-[38px]">What shall we make?</h1>
-                  <p className="mt-2 font-display text-[16px] italic tracking-wide text-muted">The sovereign flame of ornate intelligence.</p>
                 </div>
                 <PromptSuggestions
                   conversations={chat.conversations}
@@ -224,7 +200,6 @@ export default function App() {
                 messages={chat.messages}
                 state={chat.state}
                 onBranch={(msgId) => chat.createBranch(chat.activeId || undefined, msgId)}
-                onOpenStudio={handleOpenStudio}
                 onRegenerate={(prompt) => chat.send(prompt)}
               />
             )}
@@ -250,7 +225,6 @@ export default function App() {
             busy={busy}
             mode={chat.mode}
             onMode={chat.setMode}
-            onOpenStudio={() => handleOpenStudio()}
           />
         </div>
       </main>
@@ -267,17 +241,8 @@ export default function App() {
       />
 
       <WikiDrawer open={wikiOpen} onClose={() => setWikiOpen(false)} request={wikiReq} />
-      <AppsDrawer open={appsOpen} onClose={() => setAppsOpen(false)} initialApp={appLaunch} />
 
-      {/* Full Sidebar Code Studio */}
       <Suspense fallback={null}>
-<CodeStudio
-        open={codeStudioOpen}
-        onClose={() => setCodeStudioOpen(false)}
-        initialCode={studioCode}
-        title={studioTitle}
-        onSendToChat={chat.send}
-      />
 
       {/* Google Sign-in & Account Modal */}
       <AccountModal
