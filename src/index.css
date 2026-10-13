@@ -555,7 +555,6 @@ input::placeholder {
 }
 
 
-.grain-overlay{position:fixed;inset:0;z-index:60;pointer-events:none;background-image:url(/grain.png);background-size:128px 128px;opacity:.16}
 
 /* Cards snap in instantly with a quick unfold instead of fading in slowly */
 @keyframes decode-in {
