@@ -55,6 +55,10 @@ export function rowToMessage(row: DbRow): Message | null {
     const tools: any[] = Array.isArray(m.tools) ? m.tools : [];
     let cursor = 0;
     tools.forEach((t: any, i: number) => {
+      if (t?.name === "generate_image") {
+        steps.push({ id: `${row.id}-i${i}`, type: "image_gen", prompt: String(t.query || ""), isLive: live && phase === "searching" && i === tools.length - 1 } as WorkStep);
+        return;
+      }
       if (t?.name !== "web_search") return;
       const n = Number(t.results) || 0;
       const results = sources.slice(cursor, cursor + n).map((s) => ({ title: s.title, url: s.url, snippet: s.snippet || "" }));
