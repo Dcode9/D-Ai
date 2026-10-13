@@ -249,6 +249,7 @@ export default function App() {
             onStop={chat.stop}
             busy={busy}
             mode={chat.mode}
+            onMode={chat.setMode}
             onOpenStudio={() => handleOpenStudio()}
           />
         </div>
