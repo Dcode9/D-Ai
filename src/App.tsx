@@ -263,6 +263,7 @@ export default function App() {
         activeId={chat.activeId}
         onOpen={chat.openConversation}
         onDelete={chat.deleteConversation}
+        onNewChat={chat.newChat}
       />
 
       <WikiDrawer open={wikiOpen} onClose={() => setWikiOpen(false)} request={wikiReq} />
