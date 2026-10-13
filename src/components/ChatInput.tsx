@@ -52,6 +52,8 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     setBoxWidth(780);
   }, [value, narrow]);
 
+  const multi = taH > 40;
+
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
     if (busy && onStop) {
@@ -100,7 +102,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
       ref={ref}
       onSubmit={submit}
       style={{
-        height: `${taH + (narrow ? 28 : 66) + (attachedImage ? 42 : 0)}px`,
+        height: `${taH + (narrow ? 28 : 66) + (multi ? 40 : 0) + (attachedImage ? 42 : 0)}px`,
         maxWidth: narrow ? "100%" : "min(780px, calc(100vw - 2rem))",
       }}
       className="relative mx-auto w-full transition-[height] duration-100 ease-out"
@@ -146,7 +148,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
           </div>
         )}
 
-        <div className="flex w-full items-end gap-2.5">
+        <div className="flex w-full flex-wrap items-end gap-2.5">
           {/* File Upload Hidden Input */}
           <input
             ref={fileInputRef}
@@ -192,7 +194,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={busy ? "D’Ai is composing…" : narrow ? "Message D’Ai…" : "Message D’Ai… (Shift+Enter for newline)"}
-            className="scroll-gold min-h-[34px] w-full resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60"
+            className={cn("scroll-gold min-h-[34px] resize-none bg-transparent font-body text-[16px] md:text-[18.5px] font-light leading-relaxed tracking-wide text-cream outline-none placeholder:text-muted/60", multi ? "order-first w-full basis-full" : "min-w-0 flex-1")}
             autoComplete="off"
             spellCheck={false}
           />
@@ -203,7 +205,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               onClick={onStop}
               title="Stop composing"
               aria-label="Stop composing"
-              className="group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-end"
+              className={cn("group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-gold-2 transition-transform duration-200 hover:scale-105 active:scale-95 self-end", multi && "ml-auto")}
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/70 bg-gold/15 shadow-[0_0_12px_rgba(201,168,106,0.35)]">
                 <span className="h-2.5 w-2.5 rounded-[2px] bg-[#e8d3a0]" />
@@ -216,6 +218,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               aria-label="Send"
               className={cn(
                 "group flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-cream transition-all duration-300 self-end",
+                multi && "ml-auto",
                 "disabled:cursor-default disabled:opacity-40",
                 "enabled:hover:translate-x-1 enabled:hover:text-[#fff3d6]",
               )}
