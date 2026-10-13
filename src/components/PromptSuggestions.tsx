@@ -30,7 +30,7 @@ export function PromptSuggestions({ conversations, onSelectPrompt }: Props) {
     { preview: "Explain something", prompt: "Explain how black holes work in simple terms" },
     { preview: "Plan my day", prompt: "Help me plan a productive day, ask me what I need to get done" },
   ] as PromptSuggestion[];
-  const list = suggestions && suggestions.length ? suggestions : defaults;
+  const list = defaults;
 
   return (
     <div className="rise flex w-full flex-wrap items-center justify-center gap-2.5 select-none">
