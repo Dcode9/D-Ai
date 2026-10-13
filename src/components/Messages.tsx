@@ -3,6 +3,7 @@ import { useDecodeAll, useDecodeTail } from "../lib/decode";
 import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
+import { pickImageModel } from "../lib/chatStore";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { cn } from "../utils/cn";
 import { GenUI, parseGenSpec, wrapBareGenUI } from "./GenUI";
@@ -179,7 +180,7 @@ function SearchStepItem({ step }: { step: WorkStep & { type: "search" } }) {
 
 /** Image generation card in the original D'Ai style: drifting fluid blobs, a glowing border that fills as it paints. */
 function LiveImageProgress({ prompt }: { prompt: string }) {
-  const hd = typeof localStorage === "undefined" || localStorage.getItem("dai-hd") !== "0";
+  const hd = pickImageModel(prompt) === "gpt-image-2";
   const expect = hd ? 65 : 10;
   const [t, setT] = useState(0);
   useEffect(() => {
@@ -245,6 +246,62 @@ function ImageStepItem({ step }: { step: WorkStep & { type: "image_gen" } }) {
   );
 }
 
+function hostOf(u: string) {
+  try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; }
+}
+
+/** Live activity: what D'Ai is doing right now and what it is touching. No content dumps. */
+function LiveWork({ work }: { work: WorkData }) {
+  const steps = work.steps;
+  const live = [...steps].reverse().find((x) => x.isLive);
+  const lastSearch = [...steps].reverse().find((x) => x.type === "search" && !x.isLive) as (WorkStep & { type: "search" }) | undefined;
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((n) => n + 1), 1300);
+    return () => window.clearInterval(id);
+  }, []);
+  const chips = steps.filter((x) => !x.isLive && (x.type === "search" || x.type === "image_gen"));
+  let label = "Thinking";
+  let target = "";
+  if (live?.type === "search") { label = "Searching the web"; target = live.query; }
+  else if (live?.type === "thought") { label = "Thinking"; target = live.durationSec ? formatDuration(live.durationSec) : ""; }
+  else if (!live && lastSearch && lastSearch.results.length) {
+    label = "Reading sources";
+    target = hostOf(lastSearch.results[tick % lastSearch.results.length].url);
+  }
+  if (live?.type === "image_gen") {
+    return (
+      <div className="mb-3 space-y-2">
+        {chips.map((c) => <StepChip key={c.id} step={c} />)}
+        <LiveImageProgress prompt={live.prompt} />
+      </div>
+    );
+  }
+  return (
+    <div className="mb-3 space-y-2">
+      {chips.map((c) => <StepChip key={c.id} step={c} />)}
+      <div key={label} className="rise flex items-center gap-3">
+        <Aura state="thinking" size={34} ring={false} />
+        <div className="min-w-0">
+          <div className="shimmer-text font-body text-[14.5px] text-cream/90">{label}…</div>
+          {target && <div key={target} className="rise truncate font-body text-[12.5px] text-muted">{target}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepChip({ step }: { step: WorkStep }) {
+  const text = step.type === "search" ? `Searched “${step.query}”${step.results?.length ? ` · ${step.results.length} sources` : ""}` : step.type === "image_gen" ? "Image ready" : "";
+  if (!text) return null;
+  return (
+    <div className="rise flex items-center gap-2 font-body text-[12.5px] text-muted">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-gold/80"><path d="M20 6L9 17l-5-5" /></svg>
+      <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
 /** Complete Work / Agentic Execution Accordion */
 function WorkAccordion({ work }: { work?: WorkData }) {
   const [isMasterOpen, setIsMasterOpen] = useState(false);
@@ -263,89 +320,8 @@ function WorkAccordion({ work }: { work?: WorkData }) {
   // Quick plain answers don't need a "Thought for 1 second" chip, like ChatGPT
   if (!work.isWorking && !visibleSteps.some((x) => x.type === "search" || x.type === "image_gen") && (work.totalDurationSec || 0) < 4) return null;
 
-  // 1. LIVE WORK MODE (Distinct animations for each action)
-  if (work.isWorking) {
-    return (
-      <div className="step-rail mb-4 space-y-2.5">
-        {work.steps.map((step) => {
-          // Finished steps stay visible as compact, expandable rows (like a timeline)
-          if (!step.isLive && step.type === "thought" && step.content && step.content.trim()) {
-            return <div key={step.id} className="step-node decode-in"><ThoughtStepItem step={step} /></div>;
-          }
-          if (!step.isLive && step.type === "search") {
-            return <div key={step.id} className="step-node decode-in"><SearchStepItem step={step} /></div>;
-          }
-          if (!step.isLive && step.type === "image_gen") {
-            return <div key={step.id} className="step-node decode-in"><ImageStepItem step={step} /></div>;
-          }
-          // Live Thought Stage
-          if (step.type === "thought" && step.isLive) {
-            return (
-              <div
-                key={step.id}
-                className="step-node decode-in animate-thought-stage rounded-md border border-gold/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(201,168,106,0.15)]"
-              >
-                <div className="flex items-center justify-between gap-2 border-b border-gold/20 pb-2 mb-2">
-                  <div className="flex items-center gap-2 text-[13px] text-gold-2">
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
-                    </span>
-                    <Decoded className="shimmer-text font-display italic tracking-wide" text="Deliberating architectural reasoning…" />
-                  </div>
-                  <span className="font-mono text-[11px] text-gold/70">
-                    {formatDuration(step.durationSec)}
-                  </span>
-                </div>
-
-                {step.content && (
-                  <div className="border-l border-gold/30 pl-2.5">
-                    <DecodedTail
-                      className="scroll-gold max-h-36 overflow-y-auto whitespace-pre-wrap font-mono text-[11.5px] italic leading-relaxed text-[#ded4bf]/90"
-                      text={step.content}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          // Live Web Search Stage
-          if (step.type === "search" && step.isLive) {
-            return (
-              <div
-                key={step.id}
-                className="step-node decode-in rounded-md border border-cyan-500/40 bg-black/50 p-3 shadow-[0_4px_20px_rgba(6,182,212,0.18)]"
-              >
-                <div className="flex items-center gap-3 text-[13px] text-cyan-200">
-                  <div className="relative flex h-4 w-4 items-center justify-center">
-                    <div className="absolute h-full w-full rounded-full border border-cyan-400 radar-ping" />
-                    <svg className="h-4 w-4 text-cyan-400 radar-sweep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="12" x2="12" y2="2" />
-                    </svg>
-                  </div>
-                  <div className="flex flex-col">
-                    <Decoded className="font-display italic tracking-wide text-cyan-300" text="Scanning live web archives…" />
-                    <Decoded className="font-mono text-[11px] text-cyan-400/70 truncate max-w-[340px]" text={`Query: “${step.query}”`} />
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Live Image Synthesis Stage
-          if (step.type === "image_gen" && step.isLive) {
-            return (
-              <div key={step.id} className="step-node my-1"><LiveImageProgress prompt={step.prompt} /></div>
-            );
-          }
-
-          return null;
-        })}
-      </div>
-    );
-  }
+  // 1. LIVE WORK MODE: one quiet activity row with a morphing blob, plus compact finished-step chips
+  if (work.isWorking) return <LiveWork work={work} />;
 
   // 2. COMPLETED WORK MODE (Collapsed Master Accordion)
   const totalLabel = formatDuration(work.totalDurationSec);
