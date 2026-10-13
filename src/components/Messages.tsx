@@ -3,7 +3,6 @@ import { useDecodeAll, useDecodeTail } from "../lib/decode";
 import { marked, type Tokens } from "marked";
 import type { Message, WorkData, WorkStep, SearchResult } from "../hooks/useChat";
 import { Aura, type AuraState } from "./Aura";
-import { pickImageModel } from "../lib/chatStore";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { cn } from "../utils/cn";
 import { GenUI, parseGenSpec, wrapBareGenUI } from "./GenUI";
@@ -179,8 +178,7 @@ function SearchStepItem({ step }: { step: WorkStep & { type: "search" } }) {
 }
 
 /** Image generation card in the original D'Ai style: drifting fluid blobs, a glowing border that fills as it paints. */
-function LiveImageProgress({ prompt }: { prompt: string }) {
-  const hd = pickImageModel(prompt) === "gpt-image-2";
+function LiveImageProgress({ hd }: { prompt?: string; hd?: boolean }) {
   const expect = hd ? 65 : 10;
   const [t, setT] = useState(0);
   useEffect(() => {
@@ -273,7 +271,7 @@ function LiveWork({ work }: { work: WorkData }) {
     return (
       <div className="mb-3 space-y-2">
         {chips.map((c) => <StepChip key={c.id} step={c} />)}
-        <LiveImageProgress prompt={live.prompt} />
+        <LiveImageProgress prompt={live.prompt} hd={(live as any).hd} />
       </div>
     );
   }
@@ -692,7 +690,7 @@ function AssistantRowInner({
       {waiting ? <LiveWork work={m.work ? { ...m.work, isWorking: true } : { totalDurationSec: 0, steps: [], isWorking: true }} /> : m.work && <WorkAccordion work={m.work} />}
 
       {/* Answer Content */}
-      <div ref={answerRef} className={cn("dai-shell", m.streaming && !waiting ? "is-streaming" : wasStreaming.current && "is-settled")}>
+      <div ref={answerRef} className={cn("dai-shell", m.streaming && m.content.trim() ? "is-streaming" : wasStreaming.current && "is-settled")}>
         <RichMarkdown
           text={m.content}
           streaming={m.streaming && !isWorking}
