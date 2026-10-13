@@ -243,7 +243,7 @@ export default function App() {
         </div>
 
         {/* Composer */}
-        <div className="shrink-0 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-1.5 sm:px-5">
+        <div className="relative z-30 shrink-0 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-1.5 sm:px-5">
           <ChatInput
             onSend={chat.send}
             onStop={chat.stop}
