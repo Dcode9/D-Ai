@@ -43,7 +43,7 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const maxH = Math.max(90, Math.min(240, Math.round(window.innerHeight * 0.34)));
+    const maxH = Math.max(90, Math.min(narrow ? 120 : 200, Math.round(window.innerHeight * 0.3)));
     const h = Math.min(maxH, Math.max(34, el.scrollHeight));
     el.style.height = `${h}px`;
     el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
@@ -105,13 +105,26 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
       }}
       className="relative mx-auto w-full transition-[height] duration-100 ease-out"
     >
-      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : undefined} />
+      <button
+            type="button"
+            onClick={toggleHd}
+            aria-pressed={hd}
+            title={hd ? "HD images on (GPT Image 2)" : "HD images off (fast mode)"}
+            className={cn(
+              "absolute -top-4 right-7 z-20 flex h-8 min-w-[48px] cursor-pointer items-center justify-center rounded-full border bg-[#161514] px-3 font-display text-[12px] tracking-widest transition-all active:scale-90",
+              hd ? "border-gold bg-gold/25 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.45)]" : "border-gold/30 text-gold/50 hover:text-gold",
+            )}
+          >
+            HD
+          </button>
+
+      <InputFrame w={w} h={h} focused={focused} busy={busy} mode={mode} maxCapScale={narrow ? NARROW_CAP : 1.15} />
 
       {/* Content strictly padded inside heraldic caps and rails */}
       <div
         style={narrow ? { paddingLeft: Math.round(94 * NARROW_CAP) + 4, paddingRight: Math.round(94 * NARROW_CAP) - 6 } : {
-          paddingLeft: `${Math.max(76, Math.round(94 * Math.min((Math.min(boxHeight, 130) * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
-          paddingRight: `${Math.max(68, Math.round(94 * Math.min((Math.min(boxHeight, 130) * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
+          paddingLeft: `${Math.max(76, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 14))}px`,
+          paddingRight: `${Math.max(68, Math.round(94 * Math.min((Math.min(boxHeight, 118) * 0.94) / 98, (boxWidth * 0.42) / 94) + 8))}px`,
         }}
         className="relative z-10 flex h-full flex-col justify-center gap-1.5 py-2.5 md:py-3"
       >
@@ -169,19 +182,6 @@ export function ChatInput({ onSend, onStop, busy, mode, onOpenStudio }: Props) {
               </svg>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={toggleHd}
-            aria-pressed={hd}
-            title={hd ? "HD images on (GPT Image 2)" : "HD images off (fast mode)"}
-            className={cn(
-              "flex h-9 min-w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full border px-2 font-display text-[12px] tracking-widest transition-all active:scale-90",
-              hd ? "border-gold bg-gold/25 text-[#fff3d6] shadow-[0_0_12px_rgba(201,168,106,0.45)]" : "border-gold/30 text-gold/50 hover:text-gold",
-            )}
-          >
-            HD
-          </button>
 
           <textarea
             ref={textareaRef}
