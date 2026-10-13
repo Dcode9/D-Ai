@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Ambient } from "./components/Ambient";
 import { ChatInput } from "./components/ChatInput";
@@ -12,7 +12,6 @@ const AccountModal = lazy(() => import("./components/AccountModal").then((m) => 
 const MemoryModal = lazy(() => import("./components/MemoryModal").then((m) => ({ default: m.MemoryModal })));
 const CodeStudio = lazy(() => import("./components/CodeStudio").then((m) => ({ default: m.CodeStudio })));
 import { SvgDefs } from "./components/SvgDefs";
-import { PanelFrame } from "./components/frames/PanelFrame";
 import { useChat } from "./hooks/useChat";
 import { useSize } from "./hooks/useSize";
 import { getMemory } from "./lib/memory";
@@ -21,6 +20,12 @@ import { cn } from "./utils/cn";
 
 export default function App() {
   const chat = useChat();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showJump, setShowJump] = useState(false);
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el) setShowJump(el.scrollHeight - el.scrollTop - el.clientHeight > 260);
+  };
   const [historyOpen, setHistoryOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(false);
   const [appLaunch, setAppLaunch] = useState<{ app: AppId; query?: string; play?: boolean; n: number } | null>(null);
@@ -65,7 +70,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [memoryCount, setMemoryCount] = useState<number>(() => getMemory().length);
 
-  const panel = useSize<HTMLDivElement>();
   const empty = chat.messages.length === 0 && chat.state === "idle";
   const busy = chat.state !== "idle";
 
@@ -140,7 +144,7 @@ export default function App() {
         user={user}
       />
 
-      <main className="relative z-10 flex-1 px-2.5 pt-3 pb-[calc(58px+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 md:px-7 md:pt-7 md:pb-[68px]">
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         {/* Branch Breadcrumb Navigation Bar (when viewing a branch) */}
         {chat.breadcrumbs.length > 1 && (
           <div className="mx-auto mb-2 flex max-w-[880px] items-center justify-between rounded border border-gold/25 bg-black/40 px-3.5 py-1.5">
@@ -188,37 +192,32 @@ export default function App() {
           </div>
         )}
 
-        {/* Main D'Ai framed panel container */}
-        <div ref={panel.ref} className="relative h-full">
-          <PanelFrame w={panel.w} h={panel.h} />
-
-          {/* Loading Shimmer Transition */}
+        {/* Chat area: clean full-width scroller with a centered column, composer pinned below */}
+        <div className="relative min-h-0 flex-1">
           {chat.isLoadingChat && (
-            <div className="absolute inset-[2px] z-30 flex items-center justify-center rounded-[15px] bg-black/40">
-              <div className="flex items-center gap-2 rounded border border-gold/40 bg-ink px-4 py-2 text-gold shadow-lg">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30">
+              <div className="flex items-center gap-2 rounded-full border border-gold/30 bg-ink px-4 py-2 text-gold shadow-lg">
                 <span className="h-2 w-2 rounded-full bg-gold animate-ping" />
-                <span className="font-display italic text-[14px]">Loading chronicle…</span>
+                <span className="font-body text-[14px]">Loading chat…</span>
               </div>
             </div>
           )}
 
           <div
-            className={cn(
-              "scroll-gold absolute inset-[1px] overflow-y-auto overflow-x-hidden rounded-[15px]",
-              empty ? "flex items-center justify-center pb-20" : "pb-[calc(6rem+var(--input-extra,0px))]",
-            )}
+            ref={scrollRef}
+            onScroll={onScroll}
+            className={cn("scroll-gold absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain", empty && "flex items-center justify-center")}
           >
             {empty ? (
-              <div className="flex flex-col items-center justify-center gap-6 px-4 text-center max-w-4xl mx-auto -translate-y-4">
-                {/* Context & History-driven prompt suggestions (blank if no prior context) */}
+              <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-6 px-5 pb-10 text-center">
+                <div className="rise">
+                  <h1 className="font-display text-[30px] leading-tight tracking-wide text-cream sm:text-[38px]">What shall we make?</h1>
+                  <p className="mt-2 font-display text-[16px] italic tracking-wide text-muted">The sovereign flame of ornate intelligence.</p>
+                </div>
                 <PromptSuggestions
                   conversations={chat.conversations}
                   onSelectPrompt={(prompt) => chat.send(prompt)}
                 />
-
-                <p className="rise font-display text-[20px] md:text-[22px] italic tracking-wide text-muted select-none">
-                  “The sovereign flame of ornate intelligence.”
-                </p>
               </div>
             ) : (
               <Messages
@@ -226,22 +225,32 @@ export default function App() {
                 state={chat.state}
                 onBranch={(msgId) => chat.createBranch(chat.activeId || undefined, msgId)}
                 onOpenStudio={handleOpenStudio}
+                onRegenerate={(prompt) => chat.send(prompt)}
               />
             )}
           </div>
 
-          {/* Message Box: Positioned so the chat container bottom border ends in the middle of the message box */}
-          <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center translate-y-[31px] md:translate-y-[50px] px-2.5 md:px-8 pointer-events-none">
-            <div className="w-full max-w-[920px] pointer-events-auto flex justify-center">
-              <ChatInput
-                onSend={chat.send}
-                onStop={chat.stop}
-                busy={busy}
-                mode={chat.mode}
-                onOpenStudio={() => handleOpenStudio()}
-              />
-            </div>
-          </div>
+          {showJump && !empty && (
+            <button
+              type="button"
+              onClick={() => { try { navigator.vibrate?.(8); } catch {} scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }}
+              aria-label="Scroll to bottom"
+              className="rise absolute bottom-3 left-1/2 z-20 flex h-10 w-10 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-gold/40 bg-[#1d1b17]/95 text-cream shadow-[0_4px_18px_rgba(0,0,0,0.5)] transition-transform active:scale-90"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="M19 12l-7 7-7-7" /></svg>
+            </button>
+          )}
+        </div>
+
+        {/* Composer */}
+        <div className="shrink-0 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-1.5 sm:px-5">
+          <ChatInput
+            onSend={chat.send}
+            onStop={chat.stop}
+            busy={busy}
+            mode={chat.mode}
+            onOpenStudio={() => handleOpenStudio()}
+          />
         </div>
       </main>
 
