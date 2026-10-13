@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Conversation } from "../hooks/useChat";
 import { cn } from "../utils/cn";
-import { Plate } from "./frames/Plate";
 
 type Props = {
   open: boolean;
@@ -10,6 +9,7 @@ type Props = {
   activeId: string | null;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  onNewChat?: () => void;
 };
 
 const fmt = (ts: number) => {
@@ -21,7 +21,7 @@ const fmt = (ts: number) => {
     : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
-export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, onDelete }: Props) {
+export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, onDelete, onNewChat }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredConversations = useMemo(() => {
@@ -36,49 +36,39 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
     });
   }, [conversations, searchQuery]);
 
+  const groups = useMemo(() => {
+    const day = 86400000;
+    const startToday = new Date(new Date().toDateString()).getTime();
+    const order = ["Today", "Yesterday", "Previous 7 days", "Previous 30 days", "Older"];
+    const map = new Map<string, Conversation[]>();
+    [...filteredConversations]
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .forEach((c) => {
+        const t = c.createdAt || 0;
+        const g = t >= startToday ? "Today" : t >= startToday - day ? "Yesterday" : t >= startToday - 7 * day ? "Previous 7 days" : t >= startToday - 30 * day ? "Previous 30 days" : "Older";
+        map.set(g, [...(map.get(g) || []), c]);
+      });
+    return order.filter((g) => map.has(g)).map((g) => ({ label: g, items: map.get(g)! }));
+  }, [filteredConversations]);
+
   return (
     <>
       <div
         className={cn(
-          "absolute inset-0 z-30 bg-black/40 transition-opacity duration-300",
+          "absolute inset-0 z-30 bg-black/55 backdrop-blur-[2px] transition-opacity duration-300",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onClose}
       />
       <aside
         className={cn(
-          "absolute left-0 top-0 z-40 h-full w-[min(360px,90vw)] pb-[env(safe-area-inset-bottom)] drop-shadow-[0_0_40px_rgba(0,0,0,.7)] transition-transform duration-500 ease-[cubic-bezier(.2,.7,.2,1)]",
+          "absolute left-0 top-0 z-40 flex h-full w-[min(330px,86vw)] flex-col border-r border-gold/20 bg-[#17150f] pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-[8px_0_40px_rgba(0,0,0,.6)] transition-transform duration-300 ease-[cubic-bezier(.2,.7,.2,1)]",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <Plate variant="text" className="flex h-full flex-col">
-
-        {/* Header */}
-        <div className="relative flex items-center justify-between px-9 pb-3 pt-9">
-          <h2 className="font-display text-[30px] text-cream">History</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="cursor-pointer text-gold/70 transition-colors hover:text-cream"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
-
-        {/* History Search Bar */}
-        <div className="relative mx-8 mb-2">
-          <div className="relative flex items-center rounded border border-gold/30 bg-black/40 transition-colors focus-within:border-gold">
-            <svg
-              className="ml-3 h-3.5 w-3.5 shrink-0 text-gold/60"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
+        <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+          <div className="relative flex min-w-0 flex-1 items-center rounded-xl border border-white/10 bg-white/[.05] transition-colors focus-within:border-gold/50">
+            <svg className="ml-3 h-4 w-4 shrink-0 text-cream/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -86,79 +76,74 @@ export function HistoryDrawer({ open, onClose, conversations, activeId, onOpen, 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chronicles…"
-              className="w-full bg-transparent px-2.5 py-1.5 font-body text-[14px] text-cream outline-none placeholder:italic placeholder:text-muted/60"
+              placeholder="Search chats"
+              className="h-10 w-full bg-transparent px-2.5 font-body text-[15px] text-cream outline-none placeholder:text-muted/70"
             />
             {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="mr-2.5 cursor-pointer text-gold/50 hover:text-cream text-xs"
-                title="Clear search"
-              >
+              <button type="button" onClick={() => setSearchQuery("")} className="mr-2.5 cursor-pointer text-cream/50 hover:text-cream" aria-label="Clear search">
                 ✕
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-cream/60 transition-all hover:bg-white/[.07] hover:text-cream active:scale-90"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
         </div>
 
-        <div className="relative mx-9 h-px bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
+        {onNewChat && (
+          <button
+            type="button"
+            onClick={() => { try { navigator.vibrate?.(8); } catch {} onNewChat(); onClose(); }}
+            className="mx-3 mb-2 flex h-11 cursor-pointer items-center gap-3 rounded-xl px-3 font-body text-[15.5px] text-cream transition-all hover:bg-white/[.07] active:scale-[0.98]"
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+            New chat
+          </button>
+        )}
 
-        <div className="scroll-gold relative min-h-0 flex-1 overflow-y-auto px-7 py-4">
+        <div className="scroll-gold min-h-0 flex-1 overflow-y-auto px-2 pb-4">
           {conversations.length === 0 && (
-            <p className="px-2 pt-4 font-body text-[16px] italic leading-relaxed text-muted">
-              No conversations yet. Your exchanges with D’Ai will be kept here.
-            </p>
+            <p className="px-3 pt-4 font-body text-[14.5px] leading-relaxed text-muted">No chats yet. Your conversations with D’Ai will show up here.</p>
           )}
-
           {conversations.length > 0 && filteredConversations.length === 0 && (
-            <p className="px-2 pt-4 font-body text-[14px] italic leading-relaxed text-muted">
-              No chronicles matching “{searchQuery}”.
-            </p>
+            <p className="px-3 pt-4 font-body text-[14px] leading-relaxed text-muted">No chats matching “{searchQuery}”.</p>
           )}
 
-          <ul className="space-y-1">
-            {filteredConversations.map((c) => (
-              <li key={c.id} className="group relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpen(c.id);
-                    onClose();
-                  }}
-                  className={cn(
-                    "w-full cursor-pointer rounded-sm px-3 py-3 text-left transition-colors",
-                    c.id === activeId ? "bg-gold/10" : "hover:bg-white/[.04]",
-                  )}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="line-clamp-1 font-body text-[17px] text-cream">{c.title}</span>
-                    <span className="shrink-0 font-body text-[12px] uppercase tracking-[0.15em] text-muted">
-                      {fmt(c.createdAt)}
-                    </span>
-                  </div>
-                  <div className="mt-1 line-clamp-1 font-body text-[14px] font-light text-muted">
-                    {(c.messages.find((m) => m.role === "assistant") ?? c.messages[0])?.content.replace(/```[\s\S]*?```/g, "[code]") || c.preview || "New chronicle"}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Delete conversation"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(c.id);
-                  }}
-                  className="absolute right-2 top-3 cursor-pointer p-1 text-gold/0 transition-colors hover:!text-cream group-hover:text-gold/60"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {groups.map((g) => (
+            <div key={g.label} className="mb-2">
+              <div className="px-3 pb-1 pt-3 font-body text-[12px] font-medium tracking-wide text-muted">{g.label}</div>
+              <ul>
+                {g.items.map((c) => (
+                  <li key={c.id} className="group relative">
+                    <button
+                      type="button"
+                      onClick={() => { onOpen(c.id); onClose(); }}
+                      className={cn(
+                        "block w-full cursor-pointer rounded-xl px-3 py-2.5 pr-10 text-left transition-colors active:bg-white/[.1]",
+                        c.id === activeId ? "bg-white/[.09]" : "hover:bg-white/[.05]",
+                      )}
+                    >
+                      <span className="line-clamp-1 font-body text-[15px] text-cream">{c.title || "New chat"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete chat"
+                      onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
+                      className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-cream/30 transition-colors hover:bg-white/[.08] hover:text-rose-300 md:text-transparent md:group-hover:text-cream/50"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" /></svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        </Plate>
       </aside>
     </>
   );
