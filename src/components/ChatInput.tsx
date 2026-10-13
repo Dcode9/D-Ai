@@ -7,8 +7,16 @@ type Props = {
   onStop?: () => void;
   busy: boolean;
   mode?: Mode | null;
+  onMode?: (m: Mode | null) => void;
   onOpenStudio?: () => void;
 };
+
+const MODES: { id: Mode | null; label: string; hint: string }[] = [
+  { id: null, label: "Auto", hint: "D'Ai decides" },
+  { id: "Text", label: "Chat", hint: "Plain answers" },
+  { id: "Code", label: "Code", hint: "Builds and fixes code" },
+  { id: "Image", label: "Image", hint: "Always make a picture" },
+];
 
 const IC = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -16,7 +24,9 @@ function buzz(ms: number | number[] = 8) {
   try { navigator.vibrate?.(ms); } catch {}
 }
 
-export function ChatInput({ onSend, onStop, busy, onOpenStudio }: Props) {
+export function ChatInput({ onSend, onStop, busy, mode, onMode, onOpenStudio }: Props) {
+  const [modeOpen, setModeOpen] = useState(false);
+  const curMode = MODES.find((x) => x.id === (mode ?? null)) || MODES[0];
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -153,6 +163,43 @@ export function ChatInput({ onSend, onStop, busy, onOpenStudio }: Props) {
           >
             <svg width="20" height="20" viewBox="0 0 24 24" {...IC}><path d="M16 18l6-6-6-6" /><path d="M8 6l-6 6 6 6" /></svg>
           </button>
+        )}
+        {onMode && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { buzz(); setModeOpen((o) => !o); }}
+              aria-haspopup="menu"
+              aria-expanded={modeOpen}
+              title="Mode"
+              className="flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-white/15 px-3 font-body text-[13px] text-cream/80 transition-all hover:text-cream active:scale-95"
+            >
+              {curMode.label}
+              <svg width="12" height="12" viewBox="0 0 24 24" {...IC}><path d="M6 15l6-6 6 6" /></svg>
+            </button>
+            {modeOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setModeOpen(false)} />
+                <div role="menu" className="rise absolute bottom-11 left-0 z-40 w-56 overflow-hidden rounded-2xl border border-gold/30 bg-[#1d1b17] p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.6)]">
+                  {MODES.map((x) => (
+                    <button
+                      key={x.label}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { buzz(); onMode(x.id); setModeOpen(false); }}
+                      className={cn("flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[.06]", x.id === (mode ?? null) && "bg-gold/10")}
+                    >
+                      <span>
+                        <span className="block font-body text-[14.5px] text-cream">{x.label}</span>
+                        <span className="block font-body text-[12px] text-muted">{x.hint}</span>
+                      </span>
+                      {x.id === (mode ?? null) && <svg width="16" height="16" viewBox="0 0 24 24" {...IC} className="text-gold-2"><path d="M20 6L9 17l-5-5" /></svg>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
         <button
           type="button"
