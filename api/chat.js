@@ -320,7 +320,8 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'inception') {
     endpoint = process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1/chat/completions';
-    candidateModels = incomingBody.model ? [incomingBody.model, 'mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'] : ['mercury-2.5', 'mercury-2', 'mercury-2-coder', 'mercury'];
+    // Mercury 3 is the current model. Mercury 2.5 remains only as an interim fallback - it retires 2026-11-15, remove it after that.
+    candidateModels = incomingBody.model ? [incomingBody.model, 'mercury-3', 'mercury-2.5'] : ['mercury-3', 'mercury-2.5'];
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (provider === 'cloudflare') {
     const cfAccount = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -363,6 +364,10 @@ async function callProviderAPI({ provider, apiKey, incomingBody, isVision = fals
       }
 
       if (provider === 'inception') {
+        // Mercury 3 accepts only instant|low|medium|high; D'Ai's instant-chat 'none' maps to 'instant'.
+        if (payload.reasoning_effort === 'none') payload.reasoning_effort = 'instant';
+        // Mercury 3 accepts temperature 0.5-1.0 only; clamp (code default 0.3 -> 0.5).
+        if (typeof payload.temperature === 'number') payload.temperature = Math.min(1, Math.max(0.5, payload.temperature));
         payload.reasoning_summary = isCode;
       }
 
@@ -631,3 +636,4 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 }
+
